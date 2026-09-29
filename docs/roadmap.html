@@ -1,0 +1,225 @@
+<title>StashLink Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header com progresso, faixa de funcionalidades (filtros), lista de itens em ordem de execução, riscos no fim */
+:root{
+  --bg:#f3f2f5; --surface:#ffffff; --fg:#1e1b22; --muted:#6b6573; --line:#dcd8e1;
+  --accent:#7b4f9e; --accent-soft:#efe6f6; --ok:#2f7d4f; --ok-soft:#e2f2e8; --wip:#9a6b00; --wip-soft:#fbf0d6;
+  --display:"Pixelify Sans", ui-monospace, monospace;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17151b; --surface:#211e27; --fg:#ece8f1; --muted:#a39cad; --line:#353040;
+  --accent:#c39ae6; --accent-soft:#2f2540; --ok:#6fcf97; --ok-soft:#1d3327; --wip:#e8b94a; --wip-soft:#3a2f14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17151b; --surface:#211e27; --fg:#ece8f1; --muted:#a39cad; --line:#353040;
+  --accent:#c39ae6; --accent-soft:#2f2540; --ok:#6fcf97; --ok-soft:#1d3327; --wip:#e8b94a; --wip-soft:#3a2f14; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:880px;margin:0 auto;display:grid;gap:32px}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:2.1rem}
+h2{font-size:1.25rem}
+.lede{color:var(--muted);max-width:62ch;margin:6px 0 0}
+header{display:grid;gap:16px}
+.progress{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.slots{display:grid;grid-template-columns:repeat(13,22px);gap:3px}
+.slot{width:22px;height:22px;border:2px solid var(--line);background:var(--surface)}
+.slot.done{background:var(--ok);border-color:var(--ok)}
+.slot.wip{background:var(--wip);border-color:var(--wip)}
+.progress b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.feat{all:unset;cursor:pointer;display:grid;gap:4px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.feat:focus-visible,.item summary:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.feat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.feat .code{font-family:var(--mono);font-size:.78rem;color:var(--accent)}
+.feat strong{font-weight:600}
+.feat span.d{color:var(--muted);font-size:.86rem}
+.filterbar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.clear{background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:0}
+.phase{display:grid;gap:8px}
+.phase h3{margin:10px 0 0;font:600 .78rem var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.item summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:12px 14px}
+.item summary::-webkit-details-marker{display:none}
+.num{font-family:var(--display);font-size:1.3rem;text-align:center;color:var(--accent)}
+.ttl{min-width:0}
+.ttl strong{display:block;font-weight:600}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.tag{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.pill{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.pill.done{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.wip{background:var(--wip-soft);color:var(--wip);border-color:transparent}
+.body{padding:0 14px 16px 70px;display:grid;gap:10px;min-width:0}
+.body ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.branch{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+code{font-family:var(--mono);font-size:.82rem;background:var(--bg);border:1px solid var(--line);padding:2px 6px;border-radius:4px;word-break:break-all}
+.copy{font:500 .78rem var(--body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 9px;cursor:pointer}
+.done-when{border-left:3px solid var(--ok);padding-left:10px}
+.hidden{display:none}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:6px;min-width:0}
+.card p{margin:0;color:var(--muted);font-size:.9rem}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:520px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+footer{color:var(--muted);font-size:.85rem}
+@media (max-width:600px){
+  .split{grid-template-columns:1fr}
+  .body{padding-left:14px}
+  .item summary{grid-template-columns:34px 1fr;}
+  .item summary .pill{grid-column:2;justify-self:start}
+  .slots{grid-template-columns:repeat(13,16px)} .slot{width:16px;height:16px}
+}
+@media (prefers-reduced-motion:no-preference){.item summary{transition:background .15s}.item summary:hover{background:var(--accent-soft)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="label">Mod de qualidade de vida · Fabric + Forge/NeoForge</div>
+      <h1>StashLink Roadmap</h1>
+      <p class="lede">Use itens de shulker direto do inventário, construa com Litematica sem esvaziar shulkers, e organize baús com N e W. Um item por vez: uma branch, um PR, um handoff.</p>
+    </div>
+    <div class="progress">
+      <div class="slots" id="slots" aria-hidden="true"></div>
+      <div><b id="count"></b> <span class="label">itens concluídos</span></div>
+    </div>
+  </header>
+
+  <section class="split" aria-label="Onde cada coisa roda">
+    <div class="card"><div class="label">Só no servidor</div><strong>Reabastecer a mão e raio de fontes</strong><p>Funcionam mesmo com cliente vanilla, porque quem mexe no inventário é o servidor.</p></div>
+    <div class="card"><div class="label">Servidor + cliente</div><strong>Teclas N e W, Litematica</strong><p>O cliente precisa do mod para enviar o pedido. O servidor valida distância e permissão antes de mover itens.</p></div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <div class="filterbar"><h2>Funcionalidades</h2><button class="clear" id="clear" hidden>Mostrar todos os itens</button></div>
+    <div class="features" id="features"></div>
+  </section>
+
+  <section style="display:grid;gap:4px" aria-label="Itens do roadmap">
+    <h2>Itens</h2>
+    <div id="items"></div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <h2>Riscos conhecidos</h2>
+    <div class="card tablewrap" style="padding:4px 6px">
+      <table>
+        <thead><tr><th>Risco</th><th>Como evitar</th><th>Item</th></tr></thead>
+        <tbody id="risks"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Fonte: <code>docs/ROADMAP.md</code> no repositório Leoascenci0/stashlink. Esta página é atualizada quando um item é concluído.</footer>
+</div>
+
+<script>
+const FEATURES = [
+  {id:"F1", name:"Shulker direto do inventário", d:"Quando o item da mão acaba, puxa mais de dentro das shulkers."},
+  {id:"F2", name:"Integração Litematica", d:"Clicar na preview constrói usando os materiais das shulkers."},
+  {id:"F3", name:"Raio de fontes", d:"Shulkers e baús no chão, dentro do raio, também servem de fonte."},
+  {id:"F4", name:"Tecla N: guardar tudo", d:"Manda itens para baús próximos que já têm aquele item."},
+  {id:"F5", name:"Tecla W: puxar tudo", d:"Dentro de um baú, traz para o inventário tudo o que couber."},
+  {id:"F6", name:"Config, tela e comandos", d:"Raio, teclas e exclusões por tela ou /stashlink."}
+];
+// status: "todo" | "wip" | "done"
+const ITEMS = [
+  {n:0, phase:"Base", t:"Decisões de alvo e ferramentas", b:"chore/decisoes-alvo", f:[], s:"todo",
+   do:["Versão do Minecraft: a mais recente que o Litematica já suporte","Loaders: Fabric + NeoForge (Forge clássico só se houver demanda)","Template: MultiLoader-Template (common + fabric + neoforge)","Licença (sugestão MIT), nome definitivo e mod id"],
+   ok:"Decisões registradas em docs/ARCHITECTURE.md com justificativa."},
+  {n:1, phase:"Base", t:"Esqueleto multi-loader que compila e abre o jogo", b:"feat/esqueleto-multiloader", f:[], s:"todo",
+   do:["Módulos Gradle common, fabric e neoforge","Mod carrega e escreve uma linha no log nos dois loaders","CI no GitHub Actions rodando ./gradlew build em cada PR"],
+   ok:"Build verde local e no CI; o jogo abre nos dois loaders com o mod listado."},
+  {n:2, phase:"Núcleo", t:"Ler e gravar o conteúdo de uma shulker", b:"feat/shulker-storage-api", f:["F1"], s:"todo",
+   do:["Ler e gravar o conteúdo de qualquer shulker (componente container a partir da 1.20.5)","Operações count, extract e insert, sem tocar no jogador ainda","Testes com shulker cheia, vazia, itens encantados e stacks parciais"],
+   ok:"Testes provam que extrair e inserir não duplica nem perde item."},
+  {n:3, phase:"Núcleo", t:"Fonte de itens abstrata (ItemSource)", b:"feat/item-source", f:["F1","F3"], s:"todo",
+   do:["Interface ItemSource com available(item) e take(item, n)","Primeira implementação: shulker no inventário","Ordem de prioridade entre fontes configurável"],
+   ok:"Testes confirmam ordem de prioridade e soma total corretas."},
+  {n:4, phase:"Núcleo", t:"Reabastecer a mão a partir da shulker", b:"feat/refill-from-shulker", f:["F1"], s:"todo",
+   do:["Quando a mão esvazia (colocar bloco, comer, arremessar, ferramenta quebrar), puxar um stack da shulker","Cobre o caso: 1 bloco na hotbar e 3 packs na shulker","Não atua no criativo nem em shulker aberta na tela"],
+   ok:"Funciona em singleplayer e em servidor dedicado, inclusive com cliente vanilla."},
+  {n:5, phase:"Núcleo", t:"Robustez e testes contra dupe", b:"fix/robustez-shulker", f:["F1"], s:"todo",
+   do:["Shulker dentro de shulker bloqueado","Desconexão ou morte no meio da operação","Itens com nome/encantamento, hotbar cheia"],
+   ok:"Nenhuma sequência de testes cria ou some com itens."},
+  {n:6, phase:"Mundo", t:"Raio de fontes no chão", b:"feat/source-radius", f:["F3"], s:"todo",
+   do:["Shulkers colocadas e, opcionalmente, baús e barris dentro do raio","Raio padrão 8 blocos, teto definido pelo servidor (ex.: 64)","Índice de containers por chunk, sem varrer blocos a cada uso","Respeita proteções: só usa container que o jogador poderia abrir"],
+   ok:"Refill continua funcionando até o limite do raio e para fora dele; TPS estável com 200+ containers."},
+  {n:7, phase:"Mundo", t:"Integração com Litematica", b:"feat/litematica-compat", f:["F2"], s:"todo",
+   do:["Dependência opcional: o mod funciona sem Litematica","Pick block e Easy Place consideram itens das shulkers (inventário e raio)","Cliente pede o item ao servidor por pacote próprio antes do clique","Litematica é nativo de Fabric; no NeoForge só onde existir port"],
+   ok:"Schematic carregada, materiais na shulker, clicar na preview constrói sem tirar a shulker do inventário."},
+  {n:8, phase:"Teclas", t:"Tecla N: guardar tudo em baús próximos", b:"feat/quick-stack-n", f:["F4"], s:"todo",
+   do:["Tecla configurável, padrão N","Só envia para containers no raio que já têm o item","Ignora hotbar e slots travados; mostra resumo (ex.: 42 itens em 3 baús)"],
+   ok:"Baú duplo, barril e regras de casamento de item testados."},
+  {n:9, phase:"Teclas", t:"Tecla W no baú: puxar tudo", b:"feat/loot-all-w", f:["F5"], s:"todo",
+   do:["Em telas de baú, barril, shulker e ender chest","Um único pacote ao servidor, que move tudo o que couber","Desativada em telas com campo de texto (bigorna, criativo)"],
+   ok:"Nada some ou duplica; com inventário cheio o resto fica no baú."},
+  {n:10, phase:"Polimento", t:"Config, tela e comandos", b:"feat/config-ui", f:["F6","F3"], s:"todo",
+   do:["Arquivo de config comum aos loaders","Tela in-game (Mod Menu no Fabric, tela nativa no NeoForge)","/stashlink radius <n> e /stashlink reload"],
+   ok:"Mudar o raio pela tela ou comando vale na hora e persiste."},
+  {n:11, phase:"Polimento", t:"Carga, multiplayer e compatibilidade", b:"test/carga-e-compat", f:[], s:"todo",
+   do:["Servidor dedicado com 2+ jogadores usando o mesmo baú","Testar com Litematica, Tweakeroo, Carpet e mods de armazenamento"],
+   ok:"Sem dupe, sem crash e sem queda de TPS nos cenários testados."},
+  {n:12, phase:"Polimento", t:"Release 1.0", b:"chore/release-1.0", f:[], s:"todo",
+   do:["README com GIFs e changelog","Build por loader gerado no CI","Publicação no Modrinth e CurseForge"],
+   ok:"Versão 1.0 publicada e baixável para cada loader."}
+];
+const RISKS = [
+  ["Duplicar ou perder item em corrida","Simular a operação antes de aplicar; testes automáticos","5"],
+  ["Lentidão com muitos containers","Índice por chunk e teto de raio no servidor","6"],
+  ["Mexer em baú protegido (claims)","Só tocar container que o jogador poderia abrir","6"],
+  ["API do Litematica muda entre versões","Compatibilidade isolada e versão de teste fixa","7"],
+  ["Tecla W conflita com andar","Só dentro de telas de container, tecla configurável","9"],
+  ["Formato de item muda entre versões do jogo","Uma única camada de acesso ao conteúdo da shulker","2"]
+];
+const PILL = {todo:"A fazer", wip:"Em andamento", done:"Concluído"};
+let filter = null;
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+$("slots").innerHTML = ITEMS.map(i => `<div class="slot ${i.s}" title="Item ${i.n}"></div>`).join("");
+$("count").textContent = `${ITEMS.filter(i=>i.s==="done").length}/${ITEMS.length}`;
+$("risks").innerHTML = RISKS.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${r[2]}</td></tr>`).join("");
+
+function renderFeatures(){
+  $("features").innerHTML = FEATURES.map(f => `<button class="feat" data-f="${f.id}" aria-pressed="${filter===f.id}">
+    <span class="code">${f.id}</span><strong>${esc(f.name)}</strong><span class="d">${esc(f.d)}</span></button>`).join("");
+  $("clear").hidden = !filter;
+}
+function renderItems(){
+  const list = ITEMS.filter(i => !filter || i.f.includes(filter));
+  const phases = [...new Set(list.map(i => i.phase))];
+  $("items").innerHTML = phases.map(p => `<div class="phase"><h3>${p}</h3>` + list.filter(i=>i.phase===p).map(i => `
+    <details class="item" id="item-${i.n}">
+      <summary><span class="num">${i.n}</span>
+        <span class="ttl"><strong>${esc(i.t)}</strong><span class="tags">${i.f.map(x=>`<span class="tag">${x}</span>`).join("")}</span></span>
+        <span class="pill ${i.s}">${PILL[i.s]}</span></summary>
+      <div class="body">
+        <div class="branch"><span class="label">Branch</span><code>${i.b}</code><button class="copy" data-copy="${i.b}">Copiar</button></div>
+        <ul>${i.do.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+        <div class="done-when"><div class="label">Pronto quando</div>${esc(i.ok)}</div>
+      </div>
+    </details>`).join("") + `</div>`).join("");
+}
+document.addEventListener("click", e => {
+  const f = e.target.closest(".feat");
+  if (f){ filter = filter === f.dataset.f ? null : f.dataset.f; renderFeatures(); renderItems(); return; }
+  if (e.target.id === "clear"){ filter = null; renderFeatures(); renderItems(); return; }
+  const c = e.target.closest(".copy");
+  if (c){
+    const done = () => { c.textContent = "Copiado"; setTimeout(()=>c.textContent="Copiar",1500); };
+    navigator.clipboard?.writeText(c.dataset.copy).then(done).catch(() => {
+      const r = document.createRange(); r.selectNodeContents(c.previousElementSibling);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); c.textContent = "Selecionado";
+    });
+  }
+});
+renderFeatures(); renderItems();
+const first = ITEMS.find(i => i.s !== "done"); if (first) $("item-"+first.n).open = true;
+</script>
