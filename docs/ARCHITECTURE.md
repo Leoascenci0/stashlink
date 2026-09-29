@@ -40,9 +40,24 @@ Regra: tudo que dá para escrever sem tocar API de loader fica em `common`. Load
 | Tecla W conflita com movimento | Só em telas de container sem campo de texto; configurável |
 | Componentes de item mudam por versão | Camada única de acesso ao conteúdo de shulker (Item 2) |
 
-## Decisões (preencher no Item 0)
+## Decisões (Item 0 — 2026-09-29)
 
-- Versão do Minecraft: _a decidir_
-- Loaders: _a decidir (recomendado Fabric + NeoForge)_
-- Template: _a decidir (recomendado MultiLoader-Template)_
-- Licença / mod id: _a decidir_
+Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a linha 26.x exige Java 25.
+
+- **Versão do Minecraft: 26.1.2.**
+  - Regra original do roadmap ("a mais recente que o Litematica suporta") daria 26.3, mas nela o Litematica só
+    existe em Fabric (0.29.1); não há port NeoForge (Forgematica) para 26.3, e o NeoForge 26.3 só tem builds beta.
+  - Na 26.1.2 há Litematica em Fabric (0.27.14, release) **e** em NeoForge (Forgematica 0.5.1, beta), o
+    MultiLoader-Template tem branch `26.1.2` e a linha NeoForge 26.1 é a mais madura.
+  - Migrar de versão depois é barato: lógica em `common/`, loaders só como "cola".
+  - Descartadas: 26.3 (sem Litematica em NeoForge), 26.2 (meio-termo sem ganho claro), 1.21.11 (Java 21, versão antiga).
+- **Java: 25** (JDK Temurin). Exigido pela linha 26.x e pelo template.
+- **Loaders: Fabric + NeoForge.** Forge clássico só se houver demanda real (ecossistema migrou para NeoForge).
+- **Template: MultiLoader-Template** (Jared), branch `26.1.2` — projetos `common` + `fabric` + `neoforge`, menos
+  "mágica" que o Architectury.
+- **Licença: MIT.**
+- **Nome / mod id: StashLink / `stashlink`.** Verificado em 2026-09-29: sem mod com esse nome no Modrinth nem no
+  CurseForge (existem apenas "Stashlight" e "Stash", diferentes).
+- **Litematica:** oficial só Fabric; em NeoForge apenas o port não oficial Forgematica (+ MaFgLib), sempre atrás
+  em versão. Consequência: compat com Litematica (Item 7) é por loader e só testada onde houver build.
+- **Estado da máquina:** JDK 25 ainda não instalado; instalação fica no Item 1.
