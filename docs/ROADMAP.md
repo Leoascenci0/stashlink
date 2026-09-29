@@ -18,7 +18,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Decisões que travam o resto (Itens 0–1)
 
-### Item 0 — Decisões de alvo e ferramentas ⬜
+### Item 0 — Decisões de alvo e ferramentas ✅
 - **Branch:** `chore/decisoes-alvo`
 - Escolher: versão(ões) do Minecraft (recomendação: a estável mais recente que o **Litematica** já suporte),
   Java correspondente, e se Forge, NeoForge ou ambos (recomendação: **Fabric + NeoForge**, Forge clássico só se
