@@ -1,0 +1,6 @@
+{
+  "key.category.stashlink.main": "StashLink",
+  "key.stashlink.quick_stack": "Store items in nearby containers",
+  "stashlink.quick_stack.done": "%s items stored in %s containers",
+  "stashlink.quick_stack.nothing": "Nothing to store nearby"
+}

@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink;
 
 
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
+import io.github.leoascenci0.stashlink.network.QuickStackRequest;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,6 +12,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @Mod(Constants.MOD_ID)
 public class StashLinkNeoForge {
@@ -26,11 +29,15 @@ public class StashLinkNeoForge {
         // Reabastecimento da mão: só cola, a lógica está em common.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> RefillService.tick(event.getServer()));
 
-        // Pedido de item do cliente (Litematica). Só o lado servidor existe aqui: o Litematica oficial é
-        // Fabric; um port (Forgematica) poderá usar este mesmo pacote. "optional" deixa clientes sem o mod entrarem.
-        eventBus.addListener((RegisterPayloadHandlersEvent event) ->
-                event.registrar(Constants.MOD_ID).optional().playToServer(
-                        PullItemRequest.TYPE, PullItemRequest.STREAM_CODEC,
-                        (payload, context) -> PullItemService.handle((ServerPlayer) context.player(), payload)));
+        // Pedidos do cliente: item do Litematica e tecla N. Só o lado servidor de ambos vive aqui (o Litematica
+        // oficial é Fabric; um port poderá usar o mesmo pacote; a tecla N é registrada em StashLinkNeoForgeClient).
+        // "optional" deixa clientes sem o mod entrarem. Um único registrar por mod.
+        eventBus.addListener((RegisterPayloadHandlersEvent event) -> {
+            PayloadRegistrar registrar = event.registrar(Constants.MOD_ID).optional();
+            registrar.playToServer(PullItemRequest.TYPE, PullItemRequest.STREAM_CODEC,
+                    (payload, context) -> PullItemService.handle((ServerPlayer) context.player(), payload));
+            registrar.playToServer(QuickStackRequest.TYPE, QuickStackRequest.STREAM_CODEC,
+                    (payload, context) -> QuickStackService.handle((ServerPlayer) context.player()));
+        });
     }
 }

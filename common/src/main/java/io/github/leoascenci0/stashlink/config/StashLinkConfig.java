@@ -14,7 +14,18 @@ public final class StashLinkConfig {
     /** Se baús e barris (além de shulkers colocadas) servem de fonte. Desligado por padrão. */
     public static boolean includeChests = false;
 
+    /** Slots do inventário (0-8 hotbar, 9-35 mochila) que a tecla N nunca esvazia. A hotbar é sempre ignorada. */
+    public static java.util.Set<Integer> lockedSlots = new java.util.HashSet<>();
+
+    /** Tempo mínimo entre duas execuções da tecla N do mesmo jogador (impede spam de pacotes). */
+    public static final int QUICK_STACK_COOLDOWN_TICKS = 10;
+
     private StashLinkConfig() {
+    }
+
+    /** Vale {@code true} se a tecla N deve deixar este slot do inventário em paz. */
+    public static boolean isSlotLocked(int inventorySlot) {
+        return lockedSlots.contains(inventorySlot);
     }
 
     /** Raio realmente usado: sempre entre 0 e {@link #HARD_MAX_RADIUS}. */
