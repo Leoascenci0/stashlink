@@ -139,7 +139,7 @@ const ITEMS = [
   {n:2, phase:"Núcleo", t:"Ler e gravar o conteúdo de uma shulker", b:"feat/shulker-storage-api", f:["F1"], s:"done",
    do:["Ler e gravar o conteúdo de qualquer shulker (componente container a partir da 1.20.5)","Operações count, extract e insert, sem tocar no jogador ainda","Testes com shulker cheia, vazia, itens encantados e stacks parciais"],
    ok:"Testes provam que extrair e inserir não duplica nem perde item."},
-  {n:3, phase:"Núcleo", t:"Fonte de itens abstrata (ItemSource)", b:"feat/item-source", f:["F1","F3"], s:"todo",
+  {n:3, phase:"Núcleo", t:"Fonte de itens abstrata (ItemSource)", b:"feat/item-source", f:["F1","F3"], s:"done",
    do:["Interface ItemSource com available(item) e take(item, n)","Primeira implementação: shulker no inventário","Ordem de prioridade entre fontes configurável"],
    ok:"Testes confirmam ordem de prioridade e soma total corretas."},
   {n:4, phase:"Núcleo", t:"Reabastecer a mão a partir da shulker", b:"feat/refill-from-shulker", f:["F1"], s:"todo",

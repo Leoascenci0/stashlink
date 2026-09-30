@@ -45,7 +45,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - Testes unitários/GameTest: extrair de shulker cheia, vazia, com itens com NBT/componentes, stacks parciais.
 - **Pronto quando:** testes cobrem extrair/inserir sem duplicar nem perder item.
 
-### Item 3 — Fonte de itens abstrata (`ItemSource`) ⬜
+### Item 3 — Fonte de itens abstrata (`ItemSource`) ✅
 - **Branch:** `feat/item-source`
 - Interface `ItemSource` (`available(item)`, `take(item, n)`) com implementações: shulker no inventário do
   jogador. Já desenhada para aceitar depois: shulker/baú no chão (Item 6). Ordem de prioridade configurável.
