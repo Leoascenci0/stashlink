@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink;
 
 
+import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -29,8 +31,8 @@ public class StashLinkNeoForge {
         // Reabastecimento da mão: só cola, a lógica está em common.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> RefillService.tick(event.getServer()));
 
-        // Pedidos do cliente: item do Litematica e tecla N. Só o lado servidor de ambos vive aqui (o Litematica
-        // oficial é Fabric; um port poderá usar o mesmo pacote; a tecla N é registrada em StashLinkNeoForgeClient).
+        // Pedidos do cliente: item do Litematica e teclas N e W. Só o lado servidor vive aqui (o Litematica
+        // oficial é Fabric; um port poderá usar o mesmo pacote; as teclas são registradas em StashLinkNeoForgeClient).
         // "optional" deixa clientes sem o mod entrarem. Um único registrar por mod.
         eventBus.addListener((RegisterPayloadHandlersEvent event) -> {
             PayloadRegistrar registrar = event.registrar(Constants.MOD_ID).optional();
@@ -38,6 +40,8 @@ public class StashLinkNeoForge {
                     (payload, context) -> PullItemService.handle((ServerPlayer) context.player(), payload));
             registrar.playToServer(QuickStackRequest.TYPE, QuickStackRequest.STREAM_CODEC,
                     (payload, context) -> QuickStackService.handle((ServerPlayer) context.player()));
+            registrar.playToServer(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC,
+                    (payload, context) -> LootAllService.handle((ServerPlayer) context.player()));
         });
     }
 }

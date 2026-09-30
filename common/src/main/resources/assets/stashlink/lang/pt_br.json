@@ -1,6 +1,11 @@
 {
   "key.category.stashlink.main": "StashLink",
   "key.stashlink.quick_stack": "Guardar itens em baús próximos",
+  "key.stashlink.loot_all": "Puxar tudo do container aberto",
   "stashlink.quick_stack.done": "%s itens em %s baús",
-  "stashlink.quick_stack.nothing": "Nada para guardar por perto"
+  "stashlink.quick_stack.nothing": "Nada para guardar por perto",
+  "stashlink.loot_all.done": "%s itens trazidos",
+  "stashlink.loot_all.partial": "%s itens trazidos, %s não couberam",
+  "stashlink.loot_all.full": "Sem espaço no inventário",
+  "stashlink.loot_all.empty": "O container está vazio"
 }

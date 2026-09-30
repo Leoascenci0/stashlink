@@ -1,6 +1,11 @@
 {
   "key.category.stashlink.main": "StashLink",
   "key.stashlink.quick_stack": "Store items in nearby containers",
+  "key.stashlink.loot_all": "Take everything from the open container",
   "stashlink.quick_stack.done": "%s items stored in %s containers",
-  "stashlink.quick_stack.nothing": "Nothing to store nearby"
+  "stashlink.quick_stack.nothing": "Nothing to store nearby",
+  "stashlink.loot_all.done": "%s items taken",
+  "stashlink.loot_all.partial": "%s items taken, %s did not fit",
+  "stashlink.loot_all.full": "No room in your inventory",
+  "stashlink.loot_all.empty": "The container is empty"
 }

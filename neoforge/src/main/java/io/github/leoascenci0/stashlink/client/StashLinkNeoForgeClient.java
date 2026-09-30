@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -8,6 +9,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -18,6 +20,18 @@ public class StashLinkNeoForgeClient {
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
+            event.register(LootAllKey.KEY);
+        });
+        // Tecla W: gatilho é a tela de container. Cancelar o evento engole a tecla (não fecha a tela etc.).
+        NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre event) -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (LootAllKey.onKeyPressed(mc, event.getScreen(), event.getKeyEvent(), () -> {
+                if (mc.getConnection() != null && mc.getConnection().hasChannel(LootAllRequest.TYPE)) {
+                    ClientPacketDistributor.sendToServer(LootAllRequest.INSTANCE);
+                }
+            })) {
+                event.setCanceled(true);
+            }
         });
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> {
             Minecraft mc = Minecraft.getInstance();

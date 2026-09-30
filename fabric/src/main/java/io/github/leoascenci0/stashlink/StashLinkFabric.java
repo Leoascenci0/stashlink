@@ -1,5 +1,7 @@
 package io.github.leoascenci0.stashlink;
 
+import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -34,5 +36,10 @@ public class StashLinkFabric implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(QuickStackRequest.TYPE, QuickStackRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(QuickStackRequest.TYPE,
                 (payload, context) -> QuickStackService.handle(context.player()));
+
+        // Tecla W numa tela de container: pedido sem dados; o servidor olha o container que ele sabe estar aberto.
+        PayloadTypeRegistry.serverboundPlay().register(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(LootAllRequest.TYPE,
+                (payload, context) -> LootAllService.handle(context.player()));
     }
 }
