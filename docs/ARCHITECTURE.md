@@ -119,3 +119,36 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   vanilla não abriria); o evento sintético de "usar bloco" pode ser visto por outros mods como uma interação.
 - **Não medido:** o critério "sem queda de TPS com 200+ containers" não foi medido em servidor real (só há testes
   unitários de lógica). Ver handoff.
+
+## Item 7 — Integração Litematica (2026-09-30)
+
+- **Investigação (Litematica 0.27.14, código de `sakura-ryoko/litematica`, branch `LTS/26.1`):**
+  - Existe uma API de eventos de pick block (`ISchematicPickBlockEventListener`, `SchematicPickBlockEventHandler`),
+    feita para mods de terceiros. **Não serve:** só é chamada pela tecla de pick block
+    (`WorldUtils.doSchematicWorldPickBlock`); o **Easy Place** chama `InventoryUtils.schematicWorldPickBlock`
+    direto, sem passar pelos eventos.
+  - `InventoryUtils.schematicWorldPickBlock(ItemStack, BlockPos, Level, Minecraft)` é o funil comum: pick block
+    (depois dos eventos) e as duas rotas do Easy Place terminam nele. Assinatura conferida com `javap` no jar
+    0.27.14 do Modrinth. Se o item não está no inventário, o Litematica (opção `PICK_BLOCK_SHULKERS`) põe a
+    *shulker* inteira na mão, o que não queremos.
+- **Decisão:** um mixin no início desse método (`InventoryUtilsMixin`). Alvo por nome (`targets = "..."`), então
+  o Litematica **não** é dependência de compilação; `require = 0` + plugin de mixin
+  (`LitematicaMixinPlugin`, liga só se `litematica` estiver carregado) tornam a dependência opcional de verdade.
+  Assinatura mudou numa versão futura → a integração se desliga sozinha (não derruba o jogo).
+- **Fluxo:** cliente sem o item em nenhum slot (nem mão secundária) → `LitematicaPull.onPickBlock` manda
+  `PullItemRequest(item, quantidade)` e **cancela** o método do Litematica (evita a shulker ir para a mão). Já tem
+  o item → não faz nada, o Litematica troca de slot como sempre. Servidor sem o StashLink
+  (`ClientPlayNetworking.canSend` falso) → não cancela, comportamento original. Freio no cliente:
+  `PullRequestThrottle` (1 pedido por item a cada 6 ticks; o Easy Place pede todo tick).
+- **Servidor (`PullItemService`, tudo revalidado):** ignora item inválido/quantidade < 1; quantidade limitada ao
+  stack cheio; ignora jogador morto, criativo, espectador ou com container aberto; no máximo 1 pedido a cada 4
+  ticks por jogador. As fontes são as mesmas do refill (`PlayerSources`: shulkers do inventário → shulkers no
+  raio → baús), então raio, teto de 64, trancas e claims valem igual. O item vai para a hotbar
+  (`PullLogic`: slot selecionado se livre → slot com o mesmo item → primeiro vazio; hotbar cheia de outras
+  coisas → nada é movido) e o slot é selecionado (`ClientboundSetHeldSlotPacket`).
+- **Loaders:** o pacote é registrado em Fabric (`PayloadTypeRegistry`) e NeoForge (`optional()`, clientes sem o
+  mod entram). O mixin e o envio ficam **só no Fabric**: Litematica oficial só existe lá. NeoForge (Forgematica
+  0.5.1 beta) tem o receptor pronto, mas não há lado cliente — não testável sem build.
+- **Não testado no jogo:** compilação, 9 testes novos (`PullLogicTest`) e assinatura do alvo verificados; o
+  fluxo real (schematic carregada + Easy Place) precisa de um teste manual com Litematica 0.27.14 + MaLiLib
+  0.28.12 num cliente Fabric.

@@ -14,12 +14,16 @@
     "license": "${license}",
     "environment": "*",
     "mixins": [
-        "stashlink.mixins.json"
+        "stashlink.mixins.json",
+        "stashlink.litematica.mixins.json"
     ],
     "entrypoints": {
         "main": [
             "io.github.leoascenci0.stashlink.StashLinkFabric"
         ]
+    },
+    "suggests": {
+        "litematica": ">=0.27.14"
     },
     "depends": {
         "fabricloader": ">=${fabric_loader_version}",
