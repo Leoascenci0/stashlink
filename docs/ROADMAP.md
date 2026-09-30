@@ -28,7 +28,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - Escolher licença (sugestão MIT) e nome definitivo/mod id.
 - **Pronto quando:** decisões registradas em `docs/ARCHITECTURE.md` (seção "Decisões") com justificativa.
 
-### Item 1 — Esqueleto do projeto que compila e abre o jogo ⬜
+### Item 1 — Esqueleto do projeto que compila e abre o jogo ✅
 - **Branch:** `feat/esqueleto-multiloader`
 - Projeto Gradle com módulos `common`, `fabric`, `neoforge` (e `forge` se decidido). Mod carrega e imprime uma
   linha de log no Fabric **e** no NeoForge; `runClient` de cada loader abre o jogo.

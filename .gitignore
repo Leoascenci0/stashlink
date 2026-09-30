@@ -1,9 +1,29 @@
-.gradle/
-build/
-run/
-out/
-.idea/
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
 *.iml
+.idea/*
+!.idea/scopes
+
+# gradle
+build
+.gradle
+
+# other
+eclipse
+run
+runs
+
+# stashlink
 .vscode/
 graphify-out/
 *.log
