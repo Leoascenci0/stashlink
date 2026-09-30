@@ -85,8 +85,14 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   estatística `DROP` mudou) e troca de mão com F (o item apareceu na outra mão).
 - **O que puxa:** um stack cheio (`getMaxStackSize`) do mesmo item. Ferramenta quebrada: ignora o desgaste e
   exige o resto igual (encantamentos, nome).
-- **Limites conhecidos:** só reabastece quando a mão fica *vazia* (balde → balde vazio, sopa → tigela não
-  contam); mover o último item da mão pela tela de inventário com shift-click pode puxar um stack extra.
+- **Recipiente vazio:** último balde de água/lava/leite, sopa ou poção que vira balde/tigela/garrafa também
+  reabastece: o recipiente vai para o inventário e o item original entra na mão. Sem lugar no inventário, o
+  estoque volta à shulker e nada muda (`PlayerShulkerSource.give`).
+- **Sem mão vazia visível:** um mixin em `ServerPlayer.tick` (início do tick, antes de o servidor enviar o
+  inventário ao cliente) chama `RefillService.tickPlayer`. O tick do servidor continua como reserva (é
+  idempotente). Efeitos que terminam dentro do próprio tick (comer) podem levar 1 tick.
+- **Limite conhecido:** mover o último item da mão pela tela de inventário com shift-click pode puxar um stack
+  extra.
 - **Sincronia:** `setItemInHand` altera o slot do inventário; o servidor envia a mudança ao cliente no envio
-  normal de inventário (até 1 tick depois). Cliente vanilla funciona.
-- Testes: `RefillTest` (vigia, lógica de refill, swap). Servidor dedicado Fabric sobe com o mod sem erros.
+  normal de inventário. Cliente vanilla funciona (o mixin roda só no servidor).
+- Testes: `RefillTest` (vigia, lógica de refill, swap). Servidores dedicados Fabric e NeoForge sobem com o mod e o mixin sem erros.

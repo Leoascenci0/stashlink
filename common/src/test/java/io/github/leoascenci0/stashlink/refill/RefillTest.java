@@ -138,4 +138,34 @@ class RefillTest {
         assertFalse(RefillLogic.movedToOtherHand(stone, new ItemStack(Items.COBBLESTONE, 5),
                 new ItemStack(Items.COBBLESTONE, 5)));
     }
+
+    // ---- recipiente vazio (balde, tigela, garrafa) ----
+
+    @Test
+    void watcherFiresWhenLastWaterBucketBecomesEmptyBucket() {
+        HandWatcher w = new HandWatcher();
+        w.observe(2, new ItemStack(Items.WATER_BUCKET), true);
+        ItemStack gone = w.observe(2, new ItemStack(Items.BUCKET), true);
+        assertTrue(ItemStack.isSameItem(gone, new ItemStack(Items.WATER_BUCKET)));
+    }
+
+    @Test
+    void watcherIgnoresOtherItemAppearingInHand() {
+        HandWatcher w = new HandWatcher();
+        w.observe(2, new ItemStack(Items.COBBLESTONE), true);
+        assertTrue(w.observe(2, new ItemStack(Items.DIRT), true).isEmpty());
+        w.observe(2, new ItemStack(Items.COBBLESTONE, 2), true);
+        assertTrue(w.observe(2, new ItemStack(Items.BUCKET), true).isEmpty(), "havia 2, não é o último");
+    }
+
+    @Test
+    void giveReturnsStockToShulkerAndReportsWhatDidNotFit() {
+        ItemStack box = shulkerWith(new ItemStack(Items.WATER_BUCKET));
+        PlayerShulkerSource src = inventoryOf(box);
+        ItemStack got = RefillLogic.refill(new ItemStack(Items.WATER_BUCKET), src);
+        assertEquals(1, got.getCount());
+        assertEquals(0, ShulkerStorage.count(box, s -> true));
+        assertTrue(src.give(got).isEmpty());
+        assertEquals(1, ShulkerStorage.count(box, s -> true));
+    }
 }

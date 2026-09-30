@@ -51,6 +51,22 @@ public final class PlayerShulkerSource implements ItemSource {
         return taken;
     }
 
+    /**
+     * Devolve um stack às shulkers do inventário (desfazer um {@link #take}). Retorna o que não coube.
+     */
+    public ItemStack give(ItemStack stack) {
+        ItemStack rest = stack.copy();
+        for (ItemStack box : inventory) {
+            if (rest.isEmpty()) {
+                break;
+            }
+            if (ShulkerStorage.isShulker(box)) {
+                rest = ShulkerStorage.insert(box, rest);
+            }
+        }
+        return rest;
+    }
+
     private static Predicate<ItemStack> matcher(ItemStack item) {
         ItemStack model = item.copyWithCount(1);
         return s -> ItemStack.isSameItemSameComponents(s, model);

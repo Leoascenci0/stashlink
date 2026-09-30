@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.refill;
 
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * Vigia uma mão do jogador, tick a tick, e avisa quando o stack que estava nela sumiu.
@@ -10,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
  * esses casos e mantém a lógica em {@code common}. O custo é uma comparação por mão por jogador.
  *
  * <p>O vigia só dispara quando: a mão estava com item no tick anterior, o slot selecionado é o mesmo e agora está
- * vazia. Trocar de slot da hotbar nunca dispara.
+ * vazia (ou com o recipiente vazio do item, ver {@link #isLeftover}). Trocar de slot da hotbar nunca dispara.
  */
 public final class HandWatcher {
     private int lastKey = Integer.MIN_VALUE;
@@ -33,9 +34,20 @@ public final class HandWatcher {
         boolean sameSlot = key == lastKey;
         lastKey = key;
         last = current.isEmpty() ? ItemStack.EMPTY : current.copy();
-        if (active && sameSlot && !before.isEmpty() && current.isEmpty()) {
+        if (active && sameSlot && !before.isEmpty() && (current.isEmpty() || isLeftover(before, current))) {
             return before;
         }
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * O último item virou o "recipiente vazio" dele: balde de água → balde, sopa → tigela, poção → garrafa.
+     * Só vale se havia 1 só e sobrou 1 só, para o recipiente poder ser guardado no inventário sem sobra.
+     */
+    static boolean isLeftover(ItemStack before, ItemStack current) {
+        return before.getCount() == 1
+                && current.getCount() == 1
+                && !ItemStack.isSameItem(before, current)
+                && (current.is(Items.BUCKET) || current.is(Items.BOWL) || current.is(Items.GLASS_BOTTLE));
     }
 }

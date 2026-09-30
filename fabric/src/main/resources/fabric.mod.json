@@ -13,6 +13,9 @@
     },
     "license": "${license}",
     "environment": "*",
+    "mixins": [
+        "stashlink.mixins.json"
+    ],
     "entrypoints": {
         "main": [
             "io.github.leoascenci0.stashlink.StashLinkFabric"

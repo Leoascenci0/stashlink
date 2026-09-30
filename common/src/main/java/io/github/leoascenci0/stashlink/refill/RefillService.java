@@ -48,7 +48,8 @@ public final class RefillService {
         }
     }
 
-    private static void tickPlayer(ServerPlayer player) {
+    /** Chamado pelo mixin (início do tick do jogador) e pelo fim do tick do servidor; é idempotente. */
+    public static void tickPlayer(ServerPlayer player) {
         PlayerState state = STATES.computeIfAbsent(player.getUUID(), id -> new PlayerState());
 
         // Q (soltar item) esvazia a mão de propósito: o contador de "itens soltos" sobe e ignoramos este tick.
@@ -82,13 +83,26 @@ public final class RefillService {
     }
 
     private static void refillHand(ServerPlayer player, InteractionHand hand, ItemStack lastSeen) {
-        // As shulkers estão nos slots normais do inventário; as mãos estão vazias, então não se misturam.
-        ItemSource source = new PrioritizedItemSource(List.of(
-                new PlayerShulkerSource(player.getInventory().getNonEquipmentItems())));
-        ItemStack refill = RefillLogic.refill(lastSeen, source);
-        if (!refill.isEmpty()) {
-            // O servidor sincroniza o slot alterado com o cliente no próximo envio de inventário do jogador.
-            player.setItemInHand(hand, refill);
+        // As shulkers estão nos slots normais do inventário; as mãos ficam fora desta lista.
+        PlayerShulkerSource shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
+        ItemStack refill = RefillLogic.refill(lastSeen, new PrioritizedItemSource(List.of(shulkers)));
+        if (refill.isEmpty()) {
+            return;
         }
+        // Mão com o recipiente vazio (balde, tigela, garrafa): guarda no inventário para abrir espaço.
+        ItemStack leftover = player.getItemInHand(hand);
+        if (!leftover.isEmpty()) {
+            ItemStack toStore = leftover.copy();
+            if (!player.getInventory().add(toStore) || !toStore.isEmpty()) {
+                // Sem lugar: desfaz, nada some (o recipiente continua na mão, o estoque volta à shulker).
+                ItemStack rest = shulkers.give(refill);
+                if (!rest.isEmpty()) {
+                    player.getInventory().placeItemBackInInventory(rest);
+                }
+                return;
+            }
+        }
+        // O servidor sincroniza o slot alterado com o cliente no próximo envio de inventário do jogador.
+        player.setItemInHand(hand, refill);
     }
 }
