@@ -59,7 +59,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - Regras: não puxar em criativo; ignorar shulker "aberta" na GUI; sincronizar inventário com o cliente.
 - **Pronto quando:** testado em SP e servidor dedicado; funciona com cliente vanilla conectando (mod só no server).
 
-### Item 5 — Robustez e anti-dupe da fase 1 ⬜
+### Item 5 — Robustez e anti-dupe da fase 1 ✅
 - **Branch:** `fix/robustez-shulker`
 - GameTests de: shulker dentro de shulker (proibido), desconexão no meio da operação, morte, itens com
   encantamento/nome, hotbar cheia, item de shulker igual ao item da mão que é a própria shulker.

@@ -29,9 +29,16 @@ public final class RefillService {
     }
 
     private static final class PlayerState {
+        /** Quem é o dono deste estado. Relogar ou renascer cria outro objeto de jogador: o estado velho não vale. */
+        final ServerPlayer owner;
         final HandWatcher mainHand = new HandWatcher();
         final HandWatcher offHand = new HandWatcher();
         int drops;
+
+        PlayerState(ServerPlayer owner) {
+            this.owner = owner;
+            this.drops = owner.getStats().getValue(Stats.CUSTOM.get(Stats.DROP));
+        }
     }
 
     public static void tick(MinecraftServer server) {
@@ -50,7 +57,12 @@ public final class RefillService {
 
     /** Chamado pelo mixin (início do tick do jogador) e pelo fim do tick do servidor; é idempotente. */
     public static void tickPlayer(ServerPlayer player) {
-        PlayerState state = STATES.computeIfAbsent(player.getUUID(), id -> new PlayerState());
+        PlayerState state = STATES.get(player.getUUID());
+        if (state == null || state.owner != player) {
+            // Primeiro tick, relogin ou respawn: recomeça do zero, sem "lembrar" da mão da sessão anterior.
+            state = new PlayerState(player);
+            STATES.put(player.getUUID(), state);
+        }
 
         // Q (soltar item) esvazia a mão de propósito: o contador de "itens soltos" sobe e ignoramos este tick.
         int drops = player.getStats().getValue(Stats.CUSTOM.get(Stats.DROP));
@@ -95,6 +107,8 @@ public final class RefillService {
             ItemStack toStore = leftover.copy();
             if (!player.getInventory().add(toStore) || !toStore.isEmpty()) {
                 // Sem lugar: desfaz, nada some (o recipiente continua na mão, o estoque volta à shulker).
+                // Se o inventário guardou só parte do stack, a mão fica só com o que sobrou (senão duplicaria).
+                leftover.setCount(toStore.getCount());
                 ItemStack rest = shulkers.give(refill);
                 if (!rest.isEmpty()) {
                     player.getInventory().placeItemBackInInventory(rest);
