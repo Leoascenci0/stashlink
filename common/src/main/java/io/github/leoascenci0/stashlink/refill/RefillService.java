@@ -1,7 +1,9 @@
 package io.github.leoascenci0.stashlink.refill;
 
 import io.github.leoascenci0.stashlink.Constants;
-import io.github.leoascenci0.stashlink.source.ItemSource;
+import io.github.leoascenci0.stashlink.source.ContainerSource;
+import io.github.leoascenci0.stashlink.source.LazyItemSource;
+import io.github.leoascenci0.stashlink.source.NearbyContainers;
 import io.github.leoascenci0.stashlink.source.PlayerShulkerSource;
 import io.github.leoascenci0.stashlink.source.PrioritizedItemSource;
 import net.minecraft.server.MinecraftServer;
@@ -11,10 +13,12 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Reabastecimento automático das mãos (F1). Roda só no servidor; os loaders apenas chamam {@link #tick} no fim
@@ -94,10 +98,27 @@ public final class RefillService {
         }
     }
 
+    private static <T> Supplier<T> memoize(Supplier<T> factory) {
+        List<T> box = new ArrayList<>(1);
+        return () -> {
+            if (box.isEmpty()) {
+                box.add(factory.get());
+            }
+            return box.get(0);
+        };
+    }
+
     private static void refillHand(ServerPlayer player, InteractionHand hand, ItemStack lastSeen) {
         // As shulkers estão nos slots normais do inventário; as mãos ficam fora desta lista.
         PlayerShulkerSource shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
-        ItemStack refill = RefillLogic.refill(lastSeen, new PrioritizedItemSource(List.of(shulkers)));
+        // Prioridade: shulkers no inventário, shulkers colocadas no raio, baús/barris no raio. As duas últimas
+        // são preguiçosas: a varredura só acontece se as anteriores não bastarem.
+        Supplier<NearbyContainers.Found> nearby = memoize(() -> NearbyContainers.find(player));
+        PrioritizedItemSource sources = new PrioritizedItemSource(List.of(
+                shulkers,
+                new LazyItemSource(() -> new ContainerSource(nearby.get().shulkers())),
+                new LazyItemSource(() -> new ContainerSource(nearby.get().storage()))));
+        ItemStack refill = RefillLogic.refill(lastSeen, sources);
         if (refill.isEmpty()) {
             return;
         }
@@ -109,7 +130,7 @@ public final class RefillService {
                 // Sem lugar: desfaz, nada some (o recipiente continua na mão, o estoque volta à shulker).
                 // Se o inventário guardou só parte do stack, a mão fica só com o que sobrou (senão duplicaria).
                 leftover.setCount(toStore.getCount());
-                ItemStack rest = shulkers.give(refill);
+                ItemStack rest = sources.give(refill);
                 if (!rest.isEmpty()) {
                     player.getInventory().placeItemBackInInventory(rest);
                 }

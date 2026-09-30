@@ -67,7 +67,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Fontes no mundo (Item 6)
 
-### Item 6 — Raio de fontes (F3) ⬜
+### Item 6 — Raio de fontes (F3) ✅
 - **Branch:** `feat/source-radius`
 - Novas `ItemSource`: **shulker boxes colocadas** e (opcional, config) baús/barris **dentro do raio** do jogador.
   Raio padrão pequeno (ex.: 8 blocos), teto duro no servidor (ex.: 64) por performance.

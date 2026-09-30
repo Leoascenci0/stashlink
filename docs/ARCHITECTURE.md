@@ -96,3 +96,26 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Sincronia:** `setItemInHand` altera o slot do inventário; o servidor envia a mudança ao cliente no envio
   normal de inventário. Cliente vanilla funciona (o mixin roda só no servidor).
 - Testes: `RefillTest` (vigia, lógica de refill, swap). Servidores dedicados Fabric e NeoForge sobem com o mod e o mixin sem erros.
+
+## Item 6 — Raio de fontes (2026-09-29)
+
+- **Novas fontes:** `ContainerSource` (qualquer `Container`: shulker colocada, baú, barril) e `NearbyContainers`
+  (acha os containers perto do jogador). Prioridade no refill: shulkers do inventário → shulkers colocadas →
+  baús/barris (esses só com `includeChests`, desligado por padrão).
+- **Índice:** em vez de cache próprio, usa o mapa de block entities que cada chunk carregado já mantém
+  (`LevelChunk.getBlockEntities`). O jogo o atualiza sozinho (colocar/quebrar/carregar/descarregar), então não há
+  cache para ficar velho — e cache velho aqui significaria item duplicado ou fantasma. Custo: percorrer só as
+  block entities dos chunks no raio, nunca o cubo de blocos; só quando um stack esgota, e só se as shulkers do
+  inventário não bastaram (`LazyItemSource`). Chunk descarregado não é carregado à força.
+- **Raio:** padrão 8, teto duro 64 imposto no servidor (`StashLinkConfig.effectiveRadius`). Config real: Item 10.
+- **Proteção:** (1) o jogo: container trancado e baú de loot ainda não aberto são ignorados (ler baú de loot o
+  geraria à distância); (2) mods de claim: `IPlatformHelper.canPlayerUseBlock` dispara o evento de "usar bloco"
+  do loader (Fabric `UseBlockCallback`, NeoForge `PlayerInteractEvent.RightClickBlock`) e respeita o
+  cancelamento. Só é perguntado para containers que **têm** o item, uma vez por refill.
+- **Desfazer:** `ItemSource.give` (novo, padrão "não guarda nada"). `ContainerSource.give` devolve só aos
+  containers de onde saiu item naquela operação. `RefillService` usa `sources.give` no caminho "sem lugar no
+  inventário".
+- **Limites conhecidos:** baú duplo conta cada metade como container; baú com bloco em cima ainda serve (o
+  vanilla não abriria); o evento sintético de "usar bloco" pode ser visto por outros mods como uma interação.
+- **Não medido:** o critério "sem queda de TPS com 200+ containers" não foi medido em servidor real (só há testes
+  unitários de lógica). Ver handoff.
