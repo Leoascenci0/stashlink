@@ -54,6 +54,7 @@ public final class PlayerShulkerSource implements ItemSource {
     /**
      * Devolve um stack às shulkers do inventário (desfazer um {@link #take}). Retorna o que não coube.
      */
+    @Override
     public ItemStack give(ItemStack stack) {
         ItemStack rest = stack.copy();
         for (ItemStack box : inventory) {

@@ -24,6 +24,14 @@ public interface ItemSource {
      */
     List<ItemStack> take(ItemStack item, int n);
 
+    /**
+     * Desfaz um {@link #take}: devolve um stack à fonte e retorna o que <b>não</b> coube (o stack inteiro, se a
+     * fonte não sabe guardar). Nunca altera o stack recebido.
+     */
+    default ItemStack give(ItemStack stack) {
+        return stack;
+    }
+
     /** Soma das quantidades de uma lista de stacks. */
     static int sum(List<ItemStack> stacks) {
         int total = 0;

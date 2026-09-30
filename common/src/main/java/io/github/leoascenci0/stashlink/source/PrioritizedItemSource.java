@@ -57,4 +57,21 @@ public final class PrioritizedItemSource implements ItemSource {
         }
         return taken;
     }
+
+    /** Devolve o stack às fontes, na ordem de prioridade; retorna o que nenhuma quis. */
+    @Override
+    public ItemStack give(ItemStack stack) {
+        ItemStack rest = stack.copy();
+        for (ItemSource source : sources) {
+            if (rest.isEmpty()) {
+                break;
+            }
+            try {
+                rest = source.give(rest);
+            } catch (RuntimeException e) {
+                // fonte com problema não aceita nada; o resto vai para a próxima
+            }
+        }
+        return rest;
+    }
 }
