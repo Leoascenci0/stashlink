@@ -79,7 +79,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Litematica (Item 7)
 
-### Item 7 — Integração Litematica (F2) ⬜
+### Item 7 — Integração Litematica (F2) ✅
 - **Branch:** `feat/litematica-compat`
 - **Soft dependency**: o mod funciona sem Litematica. Quando presente, o *pick block* da pré-visualização e o
   Easy Place passam a considerar `ItemSource`s: se o item não está no inventário mas está em shulker (inventário
