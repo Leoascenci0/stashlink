@@ -1,18 +1,14 @@
 package io.github.leoascenci0.stashlink.storage;
 
-import net.minecraft.SharedConstants;
+import io.github.leoascenci0.stashlink.MinecraftTestSetup;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentInitializers;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,12 +28,7 @@ class ShulkerStorageTest {
 
     @BeforeAll
     static void bootstrap() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-        // No jogo real, os componentes padrão dos itens (ex.: tamanho de stack) são ligados ao carregar o
-        // mundo. Sem isso, "new ItemStack(...)" falha com "Components not bound yet".
-        lookup = VanillaRegistries.createLookup();
-        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(lookup).forEach(DataComponentInitializers.PendingComponents::apply);
+        lookup = MinecraftTestSetup.init();
     }
 
     private static HolderLookup.Provider lookup;
