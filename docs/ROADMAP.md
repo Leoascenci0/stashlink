@@ -51,7 +51,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   jogador. Já desenhada para aceitar depois: shulker/baú no chão (Item 6). Ordem de prioridade configurável.
 - **Pronto quando:** testes provam que a ordem de prioridade e a soma total estão corretas.
 
-### Item 4 — Reabastecimento automático da mão (F1, versão servidor) ⬜
+### Item 4 — Reabastecimento automático da mão (F1, versão servidor) ✅
 - **Branch:** `feat/refill-from-shulker`
 - Hook **no servidor**: quando o stack da mão principal/secundária se esgota (colocar bloco, comer, arremessar,
   usar ferramenta que quebra), puxar um stack do mesmo item de uma shulker do inventário.

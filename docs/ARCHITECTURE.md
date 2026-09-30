@@ -73,3 +73,26 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - Testes (JUnit 5, `./gradlew :common:test`): o plugin do `common` não expõe o Minecraft ao `src/test`, então o
   `common/build.gradle` reaproveita o classpath principal. No 26.x é preciso ligar os componentes padrão dos
   itens no setup (`DATA_COMPONENT_INITIALIZERS`) — ver `ShulkerStorageTest`.
+
+## Item 4 — Reabastecimento da mão (2026-09-29)
+
+- **Como detecta:** sem mixin. `RefillService.tick` roda no fim de cada tick do servidor (Fabric:
+  `END_SERVER_TICK`; NeoForge: `ServerTickEvent.Post`) e um `HandWatcher` por mão compara "o que havia no tick
+  anterior" com "o que há agora". Mão que tinha item, no mesmo slot da hotbar, e agora está vazia = esgotou.
+  Serve igual para colocar bloco, comer, arremessar e ferramenta quebrada, nos dois loaders.
+- **Quando NÃO age:** criativo/espectador, jogador morto, GUI de container aberta (`containerMenu !=
+  inventoryMenu`, cobre a shulker aberta), item na "mão do cursor", troca de slot da hotbar, Q (contador de
+  estatística `DROP` mudou) e troca de mão com F (o item apareceu na outra mão).
+- **O que puxa:** um stack cheio (`getMaxStackSize`) do mesmo item. Ferramenta quebrada: ignora o desgaste e
+  exige o resto igual (encantamentos, nome).
+- **Recipiente vazio:** último balde de água/lava/leite, sopa ou poção que vira balde/tigela/garrafa também
+  reabastece: o recipiente vai para o inventário e o item original entra na mão. Sem lugar no inventário, o
+  estoque volta à shulker e nada muda (`PlayerShulkerSource.give`).
+- **Sem mão vazia visível:** um mixin em `ServerPlayer.tick` (início do tick, antes de o servidor enviar o
+  inventário ao cliente) chama `RefillService.tickPlayer`. O tick do servidor continua como reserva (é
+  idempotente). Efeitos que terminam dentro do próprio tick (comer) podem levar 1 tick.
+- **Limite conhecido:** mover o último item da mão pela tela de inventário com shift-click pode puxar um stack
+  extra.
+- **Sincronia:** `setItemInHand` altera o slot do inventário; o servidor envia a mudança ao cliente no envio
+  normal de inventário. Cliente vanilla funciona (o mixin roda só no servidor).
+- Testes: `RefillTest` (vigia, lógica de refill, swap). Servidores dedicados Fabric e NeoForge sobem com o mod e o mixin sem erros.
