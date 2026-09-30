@@ -37,7 +37,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Núcleo (Itens 2–5) — só lógica, sem UI
 
-### Item 2 — Motor de leitura/escrita de conteúdo de shulker ⬜
+### Item 2 — Motor de leitura/escrita de conteúdo de shulker ✅
 - **Branch:** `feat/shulker-storage-api`
 - Em `common`: classe que, dado um `ItemStack` de shulker box (qualquer cor), **lê e grava** seu conteúdo
   (componente `container` nas versões 1.20.5+; `BlockEntityTag` nas anteriores). Operações: `count(item)`,
