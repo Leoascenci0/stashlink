@@ -6,7 +6,9 @@ import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -16,7 +18,11 @@ import net.neoforged.neoforge.common.NeoForge;
 /** Cola do cliente no NeoForge: só carrega no cliente (dist), então o servidor dedicado nunca toca em KeyMapping. */
 @Mod(value = Constants.MOD_ID, dist = Dist.CLIENT)
 public class StashLinkNeoForgeClient {
-    public StashLinkNeoForgeClient(IEventBus modBus) {
+    public StashLinkNeoForgeClient(ModContainer container, IEventBus modBus) {
+        // Botão "Config" na lista de mods abre a nossa tela (a mesma do Fabric).
+        container.registerExtensionPoint(IConfigScreenFactory.class,
+                (mod, parent) -> new StashLinkConfigScreen(parent));
+
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);

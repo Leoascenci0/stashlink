@@ -110,7 +110,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Configuração e polimento (Itens 10–12)
 
-### Item 10 — Config, tela e comandos (F6) ⬜
+### Item 10 — Config, tela e comandos (F6) ✅
 - **Branch:** `feat/config-ui`
 - Arquivo de config comum aos loaders; tela in-game (Mod Menu/Cloth no Fabric, tela de config no NeoForge);
   comandos `/stashlink radius <n>`, `/stashlink reload`. Teto do raio definido pelo servidor.
@@ -118,6 +118,12 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   reabastecimento da mão e o Litematica funcionarem também com baús, como já funcionam com shulkers. A tecla N
   já usa baús sempre. Também expor os slots travados (`lockedSlots`) e, se quiser, "incluir hotbar" na tecla N.
 - **Pronto quando:** mudar raio na tela e por comando tem efeito imediato e persiste.
+- **Feito:** `config/stashlink.json` (JSON, igual nos dois loaders; campos `sourceRadius`, `maxRadius`,
+  `includeChests`, `lockedSlots`). `maxRadius` é o teto do servidor (só no arquivo; nem tela nem comando passam
+  dele, e o código limita a 64). Tela própria em `common` (widgets do jogo, sem Cloth): Mod Menu no Fabric
+  (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela fica somente leitura.
+  `/stashlink radius [n]` e `/stashlink reload`, só operadores. "Incluir hotbar" na tecla N **não** foi feito.
+  Teste manual em jogo pendente (tela e comandos).
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`

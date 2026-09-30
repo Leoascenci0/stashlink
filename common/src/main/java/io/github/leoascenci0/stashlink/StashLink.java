@@ -7,6 +7,7 @@ import io.github.leoascenci0.stashlink.platform.Services;
 public class StashLink {
 
     public static void init() {
+        io.github.leoascenci0.stashlink.config.StashLinkConfig.load();
         Constants.LOG.info("StashLink carregado em {} ({})", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
     }
 }

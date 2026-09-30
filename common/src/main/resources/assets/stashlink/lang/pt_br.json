@@ -7,5 +7,16 @@
   "stashlink.loot_all.done": "%s itens trazidos",
   "stashlink.loot_all.partial": "%s itens trazidos, %s não couberam",
   "stashlink.loot_all.full": "Sem espaço no inventário",
-  "stashlink.loot_all.empty": "O container está vazio"
+  "stashlink.loot_all.empty": "O container está vazio",
+  "stashlink.config.title": "Configurações do StashLink",
+  "stashlink.config.radius": "Raio de fontes: %s blocos",
+  "stashlink.config.include_chests": "Usar baús e barris como fonte: %s",
+  "stashlink.config.locked_slots": "Slots travados",
+  "stashlink.config.locked_slots_hint": "Slots travados (0-35, separados por vírgula; 0-8 = hotbar)",
+  "stashlink.config.remote": "Conectado a um servidor: use /stashlink ou o stashlink.json do servidor",
+  "stashlink.command.radius.show": "Raio de fontes: %s blocos (limite do servidor: %s)",
+  "stashlink.command.radius.set": "Raio de fontes definido para %s blocos",
+  "stashlink.command.radius.too_big": "O raio %s passa do limite do servidor (%s)",
+  "stashlink.command.reload.ok": "Config do StashLink recarregada (raio %s)",
+  "stashlink.command.reload.fail": "Não consegui ler o stashlink.json; mantive os valores atuais (veja o log)"
 }
