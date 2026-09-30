@@ -101,7 +101,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - Servidor valida distância, permissão e se o container não está aberto por outro jogador.
 - **Pronto quando:** regras de casamento (mesmo item, mesmas propriedades), baú duplo e barril testados.
 
-### Item 9 — Tecla W na GUI do container: puxar tudo (F5) ⬜
+### Item 9 — Tecla W na GUI do container: puxar tudo (F5) ✅
 - **Branch:** `feat/loot-all-w`
 - Cliente: em telas de container (baú, barril, shulker, ender chest), tecla configurável (padrão W) envia **um
   único pacote** ao servidor, que move para o inventário tudo o que couber. Não ativa em telas com campo de
