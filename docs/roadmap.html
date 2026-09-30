@@ -136,7 +136,7 @@ const ITEMS = [
   {n:1, phase:"Base", t:"Esqueleto multi-loader que compila e abre o jogo", b:"feat/esqueleto-multiloader", f:[], s:"done",
    do:["Módulos Gradle common, fabric e neoforge","Mod carrega e escreve uma linha no log nos dois loaders","CI no GitHub Actions rodando ./gradlew build em cada PR"],
    ok:"Build verde local e no CI; o jogo abre nos dois loaders com o mod listado."},
-  {n:2, phase:"Núcleo", t:"Ler e gravar o conteúdo de uma shulker", b:"feat/shulker-storage-api", f:["F1"], s:"todo",
+  {n:2, phase:"Núcleo", t:"Ler e gravar o conteúdo de uma shulker", b:"feat/shulker-storage-api", f:["F1"], s:"done",
    do:["Ler e gravar o conteúdo de qualquer shulker (componente container a partir da 1.20.5)","Operações count, extract e insert, sem tocar no jogador ainda","Testes com shulker cheia, vazia, itens encantados e stacks parciais"],
    ok:"Testes provam que extrair e inserir não duplica nem perde item."},
   {n:3, phase:"Núcleo", t:"Fonte de itens abstrata (ItemSource)", b:"feat/item-source", f:["F1","F3"], s:"todo",

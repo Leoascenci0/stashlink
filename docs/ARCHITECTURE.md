@@ -61,3 +61,15 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Litematica:** oficial só Fabric; em NeoForge apenas o port não oficial Forgematica (+ MaFgLib), sempre atrás
   em versão. Consequência: compat com Litematica (Item 7) é por loader e só testada onde houver build.
 - **Estado da máquina:** JDK 25 ainda não instalado; instalação fica no Item 1.
+
+## Item 2 — Armazenamento de shulker (2026-09-29)
+
+- Classe única de acesso: `storage/ShulkerStorage` (em `common`). Lê/grava o componente `container`
+  (`ItemContainerContents`); sempre 27 slots, posições preservadas; cópias na leitura.
+- Operações atômicas: calcula numa cópia e grava uma vez. `insert` devolve o que não coube (nunca altera o stack
+  recebido) e recusa shulker dentro de shulker (`canFitInsideContainerItems`).
+- Shulker vazia grava `ItemContainerContents.EMPTY` (o valor padrão), não remove o componente — senão ela deixa
+  de ser igual a uma recém-craftada.
+- Testes (JUnit 5, `./gradlew :common:test`): o plugin do `common` não expõe o Minecraft ao `src/test`, então o
+  `common/build.gradle` reaproveita o classpath principal. No 26.x é preciso ligar os componentes padrão dos
+  itens no setup (`DATA_COMPONENT_INITIALIZERS`) — ver `ShulkerStorageTest`.
