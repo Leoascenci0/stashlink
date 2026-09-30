@@ -33,7 +33,7 @@ Regra: tudo que dá para escrever sem tocar API de loader fica em `common`. Load
 
 | Risco | Mitigação |
 |-------|-----------|
-| Dupe/perda de item em corrida | Operações atômicas (simular → aplicar), GameTests (Item 5) |
+| Dupe/perda de item em corrida | Operações atômicas (simular → aplicar), testes de conservação de itens (Item 5) |
 | Performance com muitos containers | Índice + raio com teto no servidor (Item 6) |
 | Anti-grief/claims | Checar interação permitida antes de tocar container alheio |
 | Litematica muda API entre versões | Compat isolada, fixar versão de teste, documentar |
