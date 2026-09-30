@@ -18,6 +18,9 @@
         "stashlink.litematica.mixins.json"
     ],
     "entrypoints": {
+        "client": [
+            "io.github.leoascenci0.stashlink.client.StashLinkFabricClient"
+        ],
         "main": [
             "io.github.leoascenci0.stashlink.StashLinkFabric"
         ]

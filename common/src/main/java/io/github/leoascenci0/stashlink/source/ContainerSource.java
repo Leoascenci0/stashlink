@@ -54,7 +54,7 @@ public final class ContainerSource implements ItemSource {
         ItemStack model = item.copyWithCount(1);
         int total = 0;
         for (Node node : nodes) {
-            int count = count(node.container, model);
+            int count = ContainerInsert.count(node.container, model);
             if (count > 0 && node.allowed()) {
                 total += count;
             }
@@ -71,7 +71,7 @@ public final class ContainerSource implements ItemSource {
             if (remaining <= 0) {
                 break;
             }
-            if (count(node.container, model) <= 0 || !node.allowed()) {
+            if (ContainerInsert.count(node.container, model) <= 0 || !node.allowed()) {
                 continue;
             }
             Container c = node.container;
@@ -105,52 +105,10 @@ public final class ContainerSource implements ItemSource {
                 break;
             }
             if (node.touched) {
-                rest = insert(node.container, rest);
+                rest = ContainerInsert.insert(node.container, rest);
             }
         }
         return rest;
     }
 
-    private static int count(Container c, ItemStack model) {
-        int total = 0;
-        for (int slot = 0; slot < c.getContainerSize(); slot++) {
-            ItemStack stack = c.getItem(slot);
-            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, model)) {
-                total += stack.getCount();
-            }
-        }
-        return total;
-    }
-
-    /** Guarda o máximo possível no container (primeiro completando stacks iguais, depois slots vazios). */
-    private static ItemStack insert(Container c, ItemStack in) {
-        ItemStack rest = in.copy();
-        boolean changed = false;
-        for (int pass = 0; pass < 2 && !rest.isEmpty(); pass++) {
-            for (int slot = 0; slot < c.getContainerSize() && !rest.isEmpty(); slot++) {
-                ItemStack cur = c.getItem(slot);
-                if (!c.canPlaceItem(slot, rest)) {
-                    continue;
-                }
-                int limit = Math.min(c.getMaxStackSize(rest), rest.getMaxStackSize());
-                if (pass == 0 && !cur.isEmpty() && ItemStack.isSameItemSameComponents(cur, rest)) {
-                    int move = Math.min(rest.getCount(), limit - cur.getCount());
-                    if (move > 0) {
-                        cur.grow(move);
-                        rest.shrink(move);
-                        changed = true;
-                    }
-                } else if (pass == 1 && cur.isEmpty()) {
-                    int move = Math.min(rest.getCount(), limit);
-                    c.setItem(slot, rest.copyWithCount(move));
-                    rest.shrink(move);
-                    changed = true;
-                }
-            }
-        }
-        if (changed) {
-            c.setChanged();
-        }
-        return rest;
-    }
 }

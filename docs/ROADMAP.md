@@ -93,7 +93,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ## Teclas (Itens 8–9)
 
-### Item 8 — Tecla N: guardar tudo em baús próximos (F4) ⬜
+### Item 8 — Tecla N: guardar tudo em baús próximos (F4) ✅
 - **Branch:** `feat/quick-stack-n`
 - Cliente: keybind configurável (padrão N) → pacote → servidor faz: para cada container dentro do raio que
   **já contém** o item, mover o que couber. Ignora hotbar e slots travados (config). Mostra resumo no chat/HUD
