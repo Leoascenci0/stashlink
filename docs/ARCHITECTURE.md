@@ -73,3 +73,20 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - Testes (JUnit 5, `./gradlew :common:test`): o plugin do `common` não expõe o Minecraft ao `src/test`, então o
   `common/build.gradle` reaproveita o classpath principal. No 26.x é preciso ligar os componentes padrão dos
   itens no setup (`DATA_COMPONENT_INITIALIZERS`) — ver `ShulkerStorageTest`.
+
+## Item 4 — Reabastecimento da mão (2026-09-29)
+
+- **Como detecta:** sem mixin. `RefillService.tick` roda no fim de cada tick do servidor (Fabric:
+  `END_SERVER_TICK`; NeoForge: `ServerTickEvent.Post`) e um `HandWatcher` por mão compara "o que havia no tick
+  anterior" com "o que há agora". Mão que tinha item, no mesmo slot da hotbar, e agora está vazia = esgotou.
+  Serve igual para colocar bloco, comer, arremessar e ferramenta quebrada, nos dois loaders.
+- **Quando NÃO age:** criativo/espectador, jogador morto, GUI de container aberta (`containerMenu !=
+  inventoryMenu`, cobre a shulker aberta), item na "mão do cursor", troca de slot da hotbar, Q (contador de
+  estatística `DROP` mudou) e troca de mão com F (o item apareceu na outra mão).
+- **O que puxa:** um stack cheio (`getMaxStackSize`) do mesmo item. Ferramenta quebrada: ignora o desgaste e
+  exige o resto igual (encantamentos, nome).
+- **Limites conhecidos:** só reabastece quando a mão fica *vazia* (balde → balde vazio, sopa → tigela não
+  contam); mover o último item da mão pela tela de inventário com shift-click pode puxar um stack extra.
+- **Sincronia:** `setItemInHand` altera o slot do inventário; o servidor envia a mudança ao cliente no envio
+  normal de inventário (até 1 tick depois). Cliente vanilla funciona.
+- Testes: `RefillTest` (vigia, lógica de refill, swap). Servidor dedicado Fabric sobe com o mod sem erros.
