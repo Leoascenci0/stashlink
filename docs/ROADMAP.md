@@ -124,7 +124,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela fica somente leitura. A tela também abre pela tecla **K**
   (configurável; `ConfigKey`), sem precisar de Mod Menu.
   `/stashlink radius [n]` e `/stashlink reload`, só operadores. "Incluir hotbar" na tecla N **não** foi feito.
-  Teste manual em jogo pendente (tela e comandos).
+  Testado em jogo (tela, tecla K, comandos): ok.
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`
