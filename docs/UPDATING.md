@@ -94,7 +94,7 @@ sem reflexão.
 
 Fora do compat, de propósito: a "cola" dos loaders (`fabric/`, `neoforge/`) — usa API do Fabric/NeoForge (eventos,
 registro de pacotes, teclas), que muda com versões *deles*, não do Minecraft. Se quebrar, conserte lá mesmo; ela
-já é a camada fina por design. A integração Litematica (`fabric/.../compat/litematica`) depende de classes de outro
+já é a camada fina por design. A integração Litematica (`fabric/.../compat/litematica`; os mixins ficam no subpacote `mixin`, porque o Mixin proíbe chamar diretamente classes do pacote que ele possui) depende de classes de outro
 mod: se o Litematica mudar, é lá. Também fora: os tipos do Minecraft usados como dado (`ItemStack`, `Container`,
 `BlockPos`...) — são o vocabulário do mod e raramente mudam de nome.
 

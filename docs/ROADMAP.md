@@ -90,6 +90,9 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   testar só onde existir build.
 - **Pronto quando:** fluxo real: schematic carregada → itens em shulker no inventário → clicar na preview
   constrói sem tirar a shulker do inventário.
+- **Correção (fix/litematica-mixin-package):** o primeiro build derrubava o jogo ao usar o Easy Place/pick block do
+  Litematica 0.29.0 (`IllegalClassLoadError`): o Mixin proíbe chamar direto uma classe do pacote que ele possui, e o
+  `InventoryUtilsMixin` chamava `LitematicaPull` no mesmo pacote. Os mixins agora ficam em `compat/litematica/mixin`.
 
 ## Teclas (Itens 8–9)
 
@@ -140,7 +143,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ### Item 10.2 — Modo cliente: funcionar sem o mod no servidor (Realms) ✅
 - **Branch:** `feat/modo-cliente`
-- Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W, tecla N e reabastecer a mão a partir de container/shulker colocados perto (shulker no inventário fica fora; repõe só o mesmo item, sem a troca balde/tigela/garrafa).
+- Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W e tecla N com containers no alcance normal do jogo (reabastecer a mão ficou para o Item 10.3).
 - **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W e N funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
 - **Feito:** o motor do modo cliente (`ClientMode.active()` = servidor remoto sem o mod + opção ligada) usa só o que um
   jogador comum faz: abrir o container no alcance de interação do jogo (~4,5 blocos), mover itens por **cliques de

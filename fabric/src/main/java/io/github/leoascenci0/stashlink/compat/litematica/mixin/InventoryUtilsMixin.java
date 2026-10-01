@@ -1,4 +1,6 @@
-package io.github.leoascenci0.stashlink.compat.litematica;
+package io.github.leoascenci0.stashlink.compat.litematica.mixin;
+
+import io.github.leoascenci0.stashlink.compat.litematica.LitematicaPull;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
