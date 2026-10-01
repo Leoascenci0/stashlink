@@ -199,10 +199,38 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
      o primeiro a abrir (cache).
   6. **Não deve agir:** soltar com Q, trocar com F, criativo, agachado.
 
-### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
+### Item 11 — Testes de carga, multiplayer e compat com outros mods ✅
 - **Branch:** `test/carga-e-compat`
 - Servidor dedicado com 2+ jogadores; verificar corridas entre jogadores no mesmo baú; testar com mods comuns
   (Litematica, Tweakeroo, Carpet, mods de armazenamento como Sophisticated/Iron Chests).
+- **Feito:** novo harness de teste com **GameTest do Fabric** em `fabric/src/gametest` (source set separado, fora do
+  jar). Roda com `./gradlew :fabric:runGameTest` (~25 s; precisa de internet na 1ª vez para baixar Carpet e Upgraded
+  Iron Chests, carregados só nos testes). Servidor real, baús reais e jogadores simulados em **sobrevivência** (o
+  mock do vanilla é criativo e o mod ignora criativo). Classes: `Lab.java` e `StashLinkGameTests.java`.
+- **14 cenários, todos passam:** 2 jogadores N no mesmo baú; N pula baú aberto por outro e volta a valer ao fechar;
+  2 jogadores W no mesmo baú; W parcial com inventário cheio; reabastecer da mão com baú aberto por outro; jogador que
+  cai com baú aberto não trava o baú; baú duplo = 1 container; baú com bloco em cima ainda é fonte (limite
+  documentado); W respeita slots travados por jogador; 289 containers de carga; **fuzz de corrida** (2 jogadores,
+  3000 ações aleatórias N/W/abrir/fechar/shift-clique/pedir item/reabastecer/embaralhar, ~400 moveram itens; soma de
+  itens conferida após **cada** ação); Carpet carregado; mod de baús de terceiros inofensivo.
+- **Teste de mutação:** injetar de propósito um dupe em `ContainerSource.take` foi pego por 2 testes (fuzz e
+  reabastecer), ou seja, os testes realmente enxergam o defeito que deveriam enxergar.
+- **Desempenho** (289 containers, raio 16, 100 repetições; média/pior em µs): find 181/1438, findAll 75/231,
+  N 297/1770, reabastecer pior caso 226/7833 (pior caso = JIT frio), pedir item ausente 403/2263, tick parado ~0.
+  Orçamento do teste: média < 5 ms (10% de um tick de 50 ms). Conclusão: sem risco de queda de TPS; fecha o "sem queda
+  de TPS com 200+ containers" do Item 6. (Mede custo por operação, não TPS global.)
+- **Bug achado e corrigido:** `LootAllService` (tecla W) usava os slots travados globais
+  (`StashLinkConfig::isSlotLocked`) e ignorava os travados por jogador do Item 10.1; agora usa
+  `PlayerPrefsStore.isSlotLocked(player, slot)`.
+- **Política observada (não é bug):** reabastecer/pedir item podem tirar de baú que outro jogador tem aberto (como um
+  funil); só a tecla N pula baú aberto por outro. O servidor roda tudo numa thread, então não há corrida de dados; a
+  invariante de soma de itens se mantém.
+- **Mods de terceiros:** Carpet 26.3 carregado junto no servidor: tudo passa. Upgraded Iron Chests (6 baús; estendem
+  o baú vanilla) são vistos pelo StashLink e nada duplica/some. Sophisticated Storage/Backpacks 26.3 existem só para
+  NeoForge: sem harness NeoForge, **não testado**. Litematica/Tweakeroo/MaLiLib (0.29.1/0.30.1/0.30.2) são só
+  cliente: Litematica 0.29.1 + MaLiLib 0.30.2 + Tweakeroo 0.30.1 (só cliente) carregam junto do StashLink no menu principal, sem erro de Mixin nos logs (com o fix do crash do Easy Place). NÃO testado em jogo: Easy Place/pick block precisa de mundo e clique humano (roteiro: `./gradlew :fabric:runClient -PcompatMods`, schematic + Tweakeroo easy place, bloco na hotbar e um baú com mais dele; conferir colocação, reabastecer ao esgotar e pick block sem duplicar).
+- **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; os roteiros do 10.2/10.3
+  continuam valendo) e GameTest no NeoForge.
 
 ### Item 12 — Release ⬜
 - **Branch:** `chore/release-1.0`

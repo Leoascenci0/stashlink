@@ -8,6 +8,11 @@ repositories {
         url = 'https://maven.terraformersmc.com/releases/'
         content { includeGroup 'com.terraformersmc' }
     }
+    // Mods de terceiros só para os testes de compatibilidade (Item 11); nunca entram no jar do StashLink.
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
 }
 
 dependencies {
@@ -15,6 +20,33 @@ dependencies {
     minecraft("com.mojang:minecraft:${minecraft_version}")
     implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
+}
+
+// Item 11: testes em servidor de verdade (GameTest) com jogadores simulados. `./gradlew :fabric:runGameTest`.
+// Fica num source set separado (src/gametest): nada disso entra no jar do mod.
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'stashlink-gametest'
+        eula = true
+        enableGameTests = true
+        enableClientGameTests = false
+    }
+}
+
+dependencies {
+    // Item 11: mods comuns carregados junto no servidor de teste (`:fabric:runGameTest`).
+    gametestRuntimeOnly("maven.modrinth:carpet:yt9oDFOj")
+    gametestRuntimeOnly("maven.modrinth:upgraded-iron-chests:LbC7gT0a")
+}
+
+// Compat cliente (Item 11): ./gradlew :fabric:runClient -PcompatMods
+if (project.hasProperty('compatMods')) {
+    dependencies {
+        runtimeOnly("maven.modrinth:litematica:ZqV316KY")
+        runtimeOnly("maven.modrinth:malilib:JX9bESec")
+        runtimeOnly("maven.modrinth:tweakeroo:fWxKATn6")
+    }
 }
 
 loom {

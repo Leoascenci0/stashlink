@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "stashlink-gametest",
+  "version": "1.0.0",
+  "name": "StashLink GameTests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["io.github.leoascenci0.stashlink.gametest.StashLinkGameTests"]
+  },
+  "depends": { "stashlink": "*" }
+}

@@ -208,3 +208,28 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Limites.** Não faz a troca balde/tigela/garrafa do modo servidor (só repõe com a mão vazia). Shulker no
   inventário fica fora. Alcance de interação do jogo, não o raio do servidor.
 - **Não testado em jogo ainda** (roteiro no `ROADMAP.md`, Item 10.3).
+
+## Testes de carga/multiplayer (Item 11)
+
+- **Harness.** GameTest do Fabric em `fabric/src/gametest` (source set separado, fora do jar). Roda com
+  `./gradlew :fabric:runGameTest` (~25 s; na 1ª vez precisa de internet para baixar Carpet e Upgraded Iron Chests,
+  carregados só nos testes). Servidor real, baús reais, jogadores simulados em **sobrevivência** (o mock do vanilla é
+  criativo e o mod ignora criativo). Classes: `Lab.java` (montagem do cenário) e `StashLinkGameTests.java`.
+- **Cobertura (14 cenários).** Dois jogadores em N/W no mesmo baú, N pulando baú aberto por outro, W parcial com
+  inventário cheio, reabastecer com baú aberto, queda com baú aberto, baú duplo = 1 container, W com slots travados
+  por jogador, 289 containers, fuzz de corrida (3000 ações aleatórias; soma de itens conferida após cada uma), Carpet
+  e baús de terceiros. Teste de mutação: um dupe injetado em `ContainerSource.take` foi pego por 2 testes.
+- **Política de concorrência.** O servidor roda tudo numa thread, então não há corrida de dados; a invariante "soma de
+  itens não muda" se mantém. Só a tecla N pula baú aberto por outro jogador; reabastecer e pedir item podem tirar de
+  baú aberto por outro (como um funil). Baú com bloco em cima ainda é fonte (limite documentado).
+- **Desempenho** (289 containers, raio 16, 100 repetições, média/pior em µs): find 181/1438, findAll 75/231,
+  N 297/1770, reabastecer 226/7833 (pior caso = JIT frio), pedir item ausente 403/2263, tick parado ~0. Orçamento:
+  média < 5 ms (10% de um tick de 50 ms). Mede custo por operação, não TPS global; fecha o "sem queda de TPS com
+  200+ containers" do Item 6.
+- **Bug achado:** `LootAllService` (W) usava os slots travados globais e ignorava os por jogador (Item 10.1); agora usa
+  `PlayerPrefsStore.isSlotLocked(player, slot)`.
+- **Compatibilidade.** Carpet 26.3 e Upgraded Iron Chests (estendem o baú vanilla): tudo passa. Sophisticated
+  Storage/Backpacks 26.3 só existem para NeoForge: sem harness NeoForge, **não testado**. Litematica/Tweakeroo/MaLiLib
+  (só cliente): Litematica 0.29.1 + MaLiLib 0.30.2 + Tweakeroo 0.30.1 (só cliente) carregam junto do StashLink no menu principal, sem erro de Mixin nos logs (com o fix do crash do Easy Place). NÃO testado em jogo: Easy Place/pick block precisa de mundo e clique humano (roteiro: `./gradlew :fabric:runClient -PcompatMods`, schematic + Tweakeroo easy place, bloco na hotbar e um baú com mais dele; conferir colocação, reabastecer ao esgotar e pick block sem duplicar).
+- **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; roteiros do 10.2/10.3), e
+  GameTest no NeoForge.
