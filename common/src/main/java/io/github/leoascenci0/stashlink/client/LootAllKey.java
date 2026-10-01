@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.client;
 
+import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -34,7 +35,7 @@ public final class LootAllKey {
                 // Digitando num campo de texto a tecla é letra, não comando (as telas suportadas não têm um,
                 // mas se algum mod acrescentar, não roubamos a digitação).
                 || screen.getFocused() instanceof EditBox
-                || !KEY.matches(event)) {
+                || !ClientCompat.keyMatches(KEY, event)) {
             return false;
         }
         if (mc.player == null || mc.level == null || mc.player.isSpectator()) {

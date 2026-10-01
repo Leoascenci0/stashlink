@@ -1,7 +1,7 @@
 package io.github.leoascenci0.stashlink.refill;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.source.ItemSource;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -28,9 +28,7 @@ public final class RefillLogic {
             return ItemStack.EMPTY;
         }
         ItemStack model = lastSeen.copyWithCount(1);
-        if (model.has(DataComponents.DAMAGE)) {
-            model.set(DataComponents.DAMAGE, 0);
-        }
+        McCompat.resetDamage(model);
         List<ItemStack> taken = source.take(model, lastSeen.getMaxStackSize());
         int total = ItemSource.sum(taken);
         if (total <= 0) {

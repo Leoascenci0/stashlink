@@ -2,6 +2,7 @@
 
 Mod de QoL para Minecraft (Fabric + Forge/NeoForge). Plano em `docs/ROADMAP.md`, arquitetura em
 `docs/ARCHITECTURE.md`. Regras pessoais globais do Eliel (`~/.claude/CLAUDE.md`) valem aqui.
+Atualizar versão do Minecraft: seguir `docs/UPDATING.md`; API frágil do MC só dentro de `compat/mc/`.
 
 ## Fluxo
 

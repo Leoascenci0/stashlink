@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.lootall;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import net.minecraft.network.chat.Component;
@@ -49,7 +50,7 @@ public final class LootAllService {
                 || !menu.stillValid(player)) {
             return;
         }
-        long now = player.level().getGameTime();
+        long now = McCompat.gameTime(player);
         Long last = LAST_REQUEST.get(player);
         if (last != null && now >= last && now - last < StashLinkConfig.LOOT_ALL_COOLDOWN_TICKS) {
             return;

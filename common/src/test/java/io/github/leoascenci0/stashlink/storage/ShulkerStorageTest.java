@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.storage;
 
+import io.github.leoascenci0.stashlink.compat.mc.TestCompat;
 import io.github.leoascenci0.stashlink.MinecraftTestSetup;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
@@ -9,6 +10,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,8 +58,8 @@ class ShulkerStorageTest {
     @Test
     void detectsAllShulkerColorsButNotOtherItems() {
         assertTrue(ShulkerStorage.isShulker(new ItemStack(Items.SHULKER_BOX)));
-        assertTrue(ShulkerStorage.isShulker(new ItemStack(Items.RED_SHULKER_BOX)));
-        assertTrue(ShulkerStorage.isShulker(new ItemStack(Items.BLACK_SHULKER_BOX)));
+        assertTrue(ShulkerStorage.isShulker(new ItemStack(TestCompat.dyedShulker(DyeColor.RED))));
+        assertTrue(ShulkerStorage.isShulker(new ItemStack(TestCompat.dyedShulker(DyeColor.BLACK))));
         assertFalse(ShulkerStorage.isShulker(new ItemStack(Items.CHEST)));
         assertFalse(ShulkerStorage.isShulker(ItemStack.EMPTY));
     }
@@ -234,7 +236,7 @@ class ShulkerStorageTest {
     @Test
     void shulkerInsideShulkerIsRejected() {
         ItemStack box = shulker();
-        ItemStack left = ShulkerStorage.insert(box, new ItemStack(Items.RED_SHULKER_BOX));
+        ItemStack left = ShulkerStorage.insert(box, new ItemStack(TestCompat.dyedShulker(DyeColor.RED)));
         assertEquals(1, left.getCount());
         assertEquals(0, total(box));
     }

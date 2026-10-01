@@ -152,3 +152,13 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Não testado no jogo:** compilação, 9 testes novos (`PullLogicTest`) e assinatura do alvo verificados; o
   fluxo real (schematic carregada + Easy Place) precisa de um teste manual com Litematica 0.27.14 + MaLiLib
   0.28.12 num cliente Fabric.
+
+## Atualização de versão: Minecraft 26.3 (2026-09-30)
+
+- **Decisão:** o projeto passa do Minecraft 26.1.2 para **26.3** (Fabric API 0.161.0+26.3, loader 0.19.5,
+  NeoForge 26.3.0.39-beta, NeoForm 26.3-1). Isso supera a decisão anterior (26.1.2, por causa do Forgematica).
+- **Litematica é Fabric-only na 26.3:** Litematica 0.29.1 tem build para Fabric; ainda não há Forgematica para
+  NeoForge 26.3. A integração (Item 7) segue só no Fabric; reavaliar quando o Forgematica sair.
+- **Regra do compat layer: nenhum uso direto de API do Minecraft sujeita a mudar fora de `compat/`.** No `common`:
+  `compat/mc/McCompat` e `ClientCompat` (testes: `TestCompat`). Uma atualização quebra em poucos pontos conhecidos.
+  Passo a passo em [UPDATING.md](UPDATING.md).

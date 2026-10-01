@@ -1,11 +1,11 @@
 package io.github.leoascenci0.stashlink.refill;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -35,7 +35,7 @@ public final class RefillService {
 
         PlayerState(ServerPlayer owner) {
             this.owner = owner;
-            this.drops = owner.getStats().getValue(Stats.CUSTOM.get(Stats.DROP));
+            this.drops = McCompat.dropCount(owner);
         }
     }
 
@@ -63,7 +63,7 @@ public final class RefillService {
         }
 
         // Q (soltar item) esvazia a mão de propósito: o contador de "itens soltos" sobe e ignoramos este tick.
-        int drops = player.getStats().getValue(Stats.CUSTOM.get(Stats.DROP));
+        int drops = McCompat.dropCount(player);
         boolean dropped = drops != state.drops;
         state.drops = drops;
 
@@ -108,7 +108,7 @@ public final class RefillService {
                 leftover.setCount(toStore.getCount());
                 ItemStack rest = sources.give(refill);
                 if (!rest.isEmpty()) {
-                    player.getInventory().placeItemBackInInventory(rest);
+                    McCompat.placeBackInInventory(player, rest);
                 }
                 return;
             }

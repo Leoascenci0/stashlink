@@ -1,9 +1,9 @@
 package io.github.leoascenci0.stashlink.pull;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
-import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -47,7 +47,7 @@ public final class PullItemService {
                 || player.containerMenu != player.inventoryMenu) {
             return;
         }
-        long now = player.level().getGameTime();
+        long now = McCompat.gameTime(player);
         Long last = LAST_REQUEST.get(player);
         if (last != null && now >= last && now - last < MIN_TICKS_BETWEEN_REQUESTS) {
             return;
@@ -67,7 +67,7 @@ public final class PullItemService {
         // selecionado por este pacote e o conteúdo pelo envio normal de inventário no fim do tick.
         if (inventory.getSelectedSlot() != slot) {
             inventory.setSelectedSlot(slot);
-            player.connection.send(new ClientboundSetHeldSlotPacket(slot));
+            McCompat.sendHeldSlot(player, slot);
         }
     }
 }
