@@ -166,3 +166,26 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Regra do compat layer: nenhum uso direto de API do Minecraft sujeita a mudar fora de `compat/`.** No `common`:
   `compat/mc/McCompat` e `ClientCompat` (testes: `TestCompat`). Uma atualização quebra em poucos pontos conhecidos.
   Passo a passo em [UPDATING.md](UPDATING.md).
+
+## Item 10.2 — Modo cliente (servidor sem o mod)
+
+- **Dois modos.** (1) *Servidor com o mod*: pacotes próprios, o servidor valida e mexe no inventário (tudo acima).
+  (2) *Modo cliente*: o servidor não conhece o StashLink (ex.: Realms). `ClientMode.active()` é verdadeiro quando há
+  servidor remoto **sem** o mod **e** a opção `clientModeEnabled` (em `stashlink-client.json`, padrão ligada) está
+  ligada. Nesse caso o cliente faz o trabalho sozinho; com o mod no servidor o comportamento não muda.
+- **O que o modo cliente faz.** W (puxar tudo do container aberto) e N (guardar em containers próximos que já têm o
+  item). Reabastecer a mão a partir de container/shulker colocados perto fica para o **próximo item (10.3)**. Para cada container: abre (interação
+  normal de bloco), move itens por cliques de inventário, fecha.
+- **Decisão: por que cliques de inventário.** O cliente não pode editar inventário; só pode pedir ao servidor o que
+  um jogador pode pedir. Clique de inventário é exatamente isso, e o **servidor vanilla valida tudo** (distância,
+  permissão, claims, regras do container). É a mesma abordagem do Litematica. Assim o mod não precisa de pacote
+  próprio e nunca manda pacote desconhecido a servidor que não o conhece.
+- **Sem duplicar nem perder item.** Depois de cada clique o mod confere o resultado (o que ficou no slot e no
+  cursor) antes do próximo passo. Se o servidor recusou ou algo não bate, o mod para, devolve o que está no cursor
+  e fecha o container, em vez de seguir às cegas.
+- **Limites.** Alcance = o de interação do jogo (~4,5 blocos), não o raio do servidor (até 64). O conteúdo de um
+  container só é conhecido ao abri-lo. Sem reabastecer a partir de shulker **no inventário**. Proteções/claims do
+  servidor valem sozinhas (se não abre, o mod não abre). Containers abrem e fecham de forma visível.
+- **Tela de config.** Botão "Modo cliente" em servidor remoto. Com o modo ativo, a tela mostra um aviso e esconde o
+  raio do servidor e "usar baús e barris" (não se aplicam); os slots travados continuam valendo, usados localmente.
+- **Não testado em jogo ainda** (roteiro no `ROADMAP.md`, Item 10.2).

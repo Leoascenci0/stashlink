@@ -24,11 +24,18 @@ public class StashLinkFabricClient implements ClientModInitializer {
         });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> ClientPrefs.sync());
 
+        // Modo cliente: "o servidor conhece o nosso pacote?" no Fabric é canSend. Só consultado com conexão aberta.
+        ClientMode.setServerHasModCheck(() -> ClientPlayNetworking.canSend(QuickStackRequest.TYPE));
+        // O motor do modo cliente (abre/clica/fecha) anda um passo por tick; fora do modo cliente não faz nada.
+        ClientTickEvents.END_CLIENT_TICK.register(ClientMode::tick);
+
         KeyMappingHelper.registerKeyMapping(QuickStackKey.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(mc -> QuickStackKey.poll(mc, () -> {
-            // Servidor sem o StashLink: não há quem atenda; não manda pacote que ele não conhece.
             if (ClientPlayNetworking.canSend(QuickStackRequest.TYPE)) {
                 ClientPlayNetworking.send(QuickStackRequest.INSTANCE);
+            } else {
+                // Servidor sem o StashLink: não manda pacote que ele não conhece; o modo cliente assume (se ativo).
+                ClientMode.onQuickStackKey();
             }
         }));
 
@@ -44,6 +51,8 @@ public class StashLinkFabricClient implements ClientModInitializer {
                         !LootAllKey.onKeyPressed(mc, s, event, () -> {
                             if (ClientPlayNetworking.canSend(LootAllRequest.TYPE)) {
                                 ClientPlayNetworking.send(LootAllRequest.INSTANCE);
+                            } else {
+                                ClientMode.onLootAllKey();
                             }
                         })));
     }
