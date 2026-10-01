@@ -121,10 +121,22 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Feito:** `config/stashlink.json` (JSON, igual nos dois loaders; campos `sourceRadius`, `maxRadius`,
   `includeChests`, `lockedSlots`). `maxRadius` é o teto do servidor (só no arquivo; nem tela nem comando passam
   dele, e o código limita a 64). Tela própria em `common` (widgets do jogo, sem Cloth): Mod Menu no Fabric
-  (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela fica somente leitura. A tela também abre pela tecla **K**
+  (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela ficava somente leitura (superado pelo Item 10.1). A tela também abre pela tecla **K**
   (configurável; `ConfigKey`), sem precisar de Mod Menu.
   `/stashlink radius [n]` e `/stashlink reload`, só operadores. "Incluir hotbar" na tecla N **não** foi feito.
   Testado em jogo (tela, tecla K, comandos): ok.
+
+### Item 10.1 — Preferências por jogador, para Realms/servidores sem comandos ✅
+- **Branch:** `feat/preferencias-jogador`
+- Problema (achado por um amigo no Realms): em servidor a tela ficava somente leitura e mandava usar
+  `/stashlink` ou o `stashlink.json`, mas num Realms com comandos desligados nenhum dos dois existe.
+- **Feito:** em servidor/Realms a tela edita as **preferências pessoais** do jogador (`config/stashlink-client.json`):
+  raio, "usar baús e barris" (padrão do servidor / sim / não) e slots travados. O cliente manda um pacote
+  (`PlayerPrefsRequest`) ao entrar no servidor e ao fechar a tela. O servidor (`PlayerPrefsStore`) **corrige e
+  limita tudo** (`PlayerPrefs.sanitized`): raio nunca passa de `maxRadius`, slots só 0-35. Quem não manda nada (ou
+  não tem o mod) usa a config do servidor; os slots travados do servidor valem para todos, somados aos do jogador.
+  `/stashlink` e `stashlink.json` continuam como antes (padrão para quem não personalizou). Mundo local não muda.
+  O estado fica só em memória no servidor (o cliente reenvia a cada entrada).
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`

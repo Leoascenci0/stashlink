@@ -3,6 +3,8 @@ package io.github.leoascenci0.stashlink;
 
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
+import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -48,6 +50,9 @@ public class StashLinkNeoForge {
                     (payload, context) -> QuickStackService.handle((ServerPlayer) context.player()));
             registrar.playToServer(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC,
                     (payload, context) -> LootAllService.handle((ServerPlayer) context.player()));
+            // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
+            registrar.playToServer(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC,
+                    (payload, context) -> PlayerPrefsService.handle((ServerPlayer) context.player(), payload));
         });
     }
 }

@@ -1,6 +1,6 @@
 package io.github.leoascenci0.stashlink.source;
 
-import io.github.leoascenci0.stashlink.config.StashLinkConfig;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -51,7 +51,7 @@ public final class NearbyContainers {
     public static Found find(ServerPlayer player) {
         List<Hit> shulkers = new ArrayList<>();
         List<Hit> storage = new ArrayList<>();
-        collect(player, StashLinkConfig.includeChests, shulkers, storage);
+        collect(player, PlayerPrefsStore.includeChests(player), shulkers, storage);
         return new Found(entries(player, shulkers), entries(player, storage));
     }
 
@@ -63,7 +63,7 @@ public final class NearbyContainers {
     }
 
     private static void collect(ServerPlayer player, boolean chests, List<Hit> shulkers, List<Hit> storage) {
-        int radius = StashLinkConfig.effectiveRadius();
+        int radius = PlayerPrefsStore.radius(player);
         if (radius <= 0 || !(player.level() instanceof ServerLevel level)) {
             return;
         }

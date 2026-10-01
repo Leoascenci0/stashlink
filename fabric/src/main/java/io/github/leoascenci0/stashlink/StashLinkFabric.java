@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink;
 
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
+import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -47,5 +49,10 @@ public class StashLinkFabric implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(LootAllRequest.TYPE,
                 (payload, context) -> LootAllService.handle(context.player()));
+
+        // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
+        PayloadTypeRegistry.serverboundPlay().register(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(PlayerPrefsRequest.TYPE,
+                (payload, context) -> PlayerPrefsService.handle(context.player(), payload));
     }
 }

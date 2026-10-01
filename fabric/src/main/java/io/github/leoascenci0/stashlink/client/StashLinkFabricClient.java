@@ -1,18 +1,29 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
+import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 /** Cola do cliente no Fabric: registra as teclas N e W e envia os pedidos. */
 public class StashLinkFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Preferências pessoais: lidas do arquivo, enviadas ao servidor ao entrar (e ao fechar a tela de config).
+        ClientPrefs.load();
+        ClientPrefs.setSender(request -> {
+            if (ClientPlayNetworking.canSend(PlayerPrefsRequest.TYPE)) {
+                ClientPlayNetworking.send(request);
+            }
+        });
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> ClientPrefs.sync());
+
         KeyMappingHelper.registerKeyMapping(QuickStackKey.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(mc -> QuickStackKey.poll(mc, () -> {
             // Servidor sem o StashLink: não há quem atenda; não manda pacote que ele não conhece.
