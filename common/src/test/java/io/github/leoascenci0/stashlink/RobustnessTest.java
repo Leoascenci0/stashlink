@@ -1,11 +1,13 @@
 package io.github.leoascenci0.stashlink;
 
+import io.github.leoascenci0.stashlink.compat.mc.TestCompat;
 import io.github.leoascenci0.stashlink.refill.HandWatcher;
 import io.github.leoascenci0.stashlink.refill.RefillLogic;
 import io.github.leoascenci0.stashlink.source.PlayerShulkerSource;
 import io.github.leoascenci0.stashlink.storage.ShulkerStorage;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +52,7 @@ class RobustnessTest {
     @Test
     void shulkerCannotBeInsertedIntoShulker() {
         ItemStack outer = new ItemStack(Items.SHULKER_BOX);
-        ItemStack inner = new ItemStack(Items.RED_SHULKER_BOX);
+        ItemStack inner = new ItemStack(TestCompat.dyedShulker(DyeColor.RED));
         ItemStack rest = ShulkerStorage.insert(outer, inner);
         assertEquals(1, rest.getCount(), "a shulker deve voltar inteira");
         assertEquals(0, ShulkerStorage.count(outer, s -> true));
@@ -77,9 +79,9 @@ class RobustnessTest {
     @Test
     void giveNeverPutsShulkerInsideShulker() {
         ItemStack a = new ItemStack(Items.SHULKER_BOX);
-        ItemStack b = new ItemStack(Items.BLUE_SHULKER_BOX);
+        ItemStack b = new ItemStack(TestCompat.dyedShulker(DyeColor.BLUE));
         PlayerShulkerSource src = new PlayerShulkerSource(new ArrayList<>(List.of(a, b)));
-        ItemStack rest = src.give(new ItemStack(Items.GREEN_SHULKER_BOX));
+        ItemStack rest = src.give(new ItemStack(TestCompat.dyedShulker(DyeColor.GREEN)));
         assertEquals(1, rest.getCount(), "sem lugar: devolve ao chamador, que o coloca no inventário");
         assertEquals(0, ShulkerStorage.count(a, s -> true));
         assertEquals(0, ShulkerStorage.count(b, s -> true));

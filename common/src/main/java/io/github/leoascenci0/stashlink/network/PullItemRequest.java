@@ -1,12 +1,11 @@
 package io.github.leoascenci0.stashlink.network;
 
-import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 
 /**
@@ -15,7 +14,7 @@ import net.minecraft.world.item.Item;
  */
 public record PullItemRequest(Item item, int count) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<PullItemRequest> TYPE =
-            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "pull_item"));
+            McCompat.payloadType("pull_item");
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PullItemRequest> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.registry(Registries.ITEM), PullItemRequest::item,

@@ -1,10 +1,8 @@
 package io.github.leoascenci0.stashlink.storage;
 
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponents;
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 
 import java.util.ArrayList;
@@ -41,9 +39,7 @@ public final class ShulkerStorage {
      */
     public static List<ItemStack> read(ItemStack shulker) {
         requireShulker(shulker);
-        NonNullList<ItemStack> slots = NonNullList.withSize(SLOTS, ItemStack.EMPTY);
-        shulker.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(slots);
-        return slots;
+        return McCompat.readContainerComponent(shulker, SLOTS);
     }
 
     /** Grava o conteúdo (até {@link #SLOTS} posições). Conteúdo vazio volta ao componente padrão (EMPTY),
@@ -53,11 +49,7 @@ public final class ShulkerStorage {
         if (slots.size() > SLOTS) {
             throw new IllegalArgumentException("Shulker tem " + SLOTS + " slots, recebi " + slots.size());
         }
-        if (slots.stream().allMatch(ItemStack::isEmpty)) {
-            shulker.set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-        } else {
-            shulker.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(slots));
-        }
+        McCompat.writeContainerComponent(shulker, slots, slots.stream().allMatch(ItemStack::isEmpty));
     }
 
     /** Soma de itens que casam com o filtro (não altera nada). */

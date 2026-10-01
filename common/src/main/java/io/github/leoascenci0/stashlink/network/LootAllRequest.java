@@ -1,10 +1,9 @@
 package io.github.leoascenci0.stashlink.network;
 
-import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
 
 /**
  * Pedido do cliente: "traga para o meu inventário tudo o que couber do container aberto" (tecla W). Sem dados:
@@ -15,7 +14,7 @@ public record LootAllRequest() implements CustomPacketPayload {
     public static final LootAllRequest INSTANCE = new LootAllRequest();
 
     public static final CustomPacketPayload.Type<LootAllRequest> TYPE =
-            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "loot_all"));
+            McCompat.payloadType("loot_all");
 
     public static final StreamCodec<RegistryFriendlyByteBuf, LootAllRequest> STREAM_CODEC =
             StreamCodec.unit(INSTANCE);

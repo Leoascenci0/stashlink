@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.quickstack;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.source.ContainerInsert;
@@ -45,7 +46,7 @@ public final class QuickStackService {
         if (!player.isAlive() || player.isSpectator() || player.containerMenu != player.inventoryMenu) {
             return;
         }
-        long now = player.level().getGameTime();
+        long now = McCompat.gameTime(player);
         Long last = LAST_REQUEST.get(player);
         if (last != null && now >= last && now - last < StashLinkConfig.QUICK_STACK_COOLDOWN_TICKS) {
             return;
@@ -77,7 +78,7 @@ public final class QuickStackService {
 
     /** {@code true} se algum <b>outro</b> jogador está com uma GUI aberta que mostra este container. */
     static boolean openedByAnother(ServerPlayer player, Container container) {
-        for (ServerPlayer other : player.level().getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer other : McCompat.playersOnServer(player)) {
             if (other == player || other.containerMenu == other.inventoryMenu) {
                 continue;
             }
