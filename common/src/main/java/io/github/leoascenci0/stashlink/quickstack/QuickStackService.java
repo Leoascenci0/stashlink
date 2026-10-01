@@ -3,6 +3,7 @@ package io.github.leoascenci0.stashlink.quickstack;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ContainerInsert;
 import io.github.leoascenci0.stashlink.source.ContainerSource;
 import io.github.leoascenci0.stashlink.source.NearbyContainers;
@@ -65,7 +66,7 @@ public final class QuickStackService {
         // Só a mochila e a hotbar (36 slots); armadura e mão secundária ficam fora. Hotbar e slots travados
         // nunca são esvaziados.
         QuickStackLogic.Result result = QuickStackLogic.stack(inventory.getNonEquipmentItems(),
-                slot -> slot < Inventory.getSelectionSize() || StashLinkConfig.isSlotLocked(slot), targets);
+                slot -> slot < Inventory.getSelectionSize() || PlayerPrefsStore.isSlotLocked(player, slot), targets);
 
         if (result.itemsMoved() > 0) {
             player.sendOverlayMessage(Component.translatableWithFallback("stashlink.quick_stack.done",

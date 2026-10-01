@@ -1,0 +1,35 @@
+package io.github.leoascenci0.stashlink.config;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+
+/**
+ * Preferências pessoais de UM jogador, que ele manda ao servidor (inclusive em Realms, onde não há comando nem
+ * arquivo de config). O servidor nunca confia no valor: {@link #sanitized()} corrige tudo antes de guardar.
+ *
+ * @param radius      raio pedido em blocos, ou {@link #UNSET} para usar o padrão do servidor
+ * @param chests      {@link #UNSET} = padrão do servidor, 0 = não usar baús/barris como fonte, 1 = usar
+ * @param lockedSlots slots (0-35) que a tecla N nunca esvazia
+ */
+public record PlayerPrefs(int radius, int chests, List<Integer> lockedSlots) {
+    public static final int UNSET = -1;
+
+    /** Sem personalização nenhuma: vale tudo o que o servidor definir. */
+    public static final PlayerPrefs NONE = new PlayerPrefs(UNSET, UNSET, List.of());
+
+    /** Cópia segura: raio 0..teto do servidor (ou UNSET), chests só -1/0/1, slots 0..35 sem repetição. */
+    public PlayerPrefs sanitized() {
+        int r = radius < 0 ? UNSET : Math.min(radius, StashLinkConfig.radiusCap());
+        int c = chests < 0 ? UNSET : (chests == 0 ? 0 : 1);
+        TreeSet<Integer> slots = new TreeSet<>();
+        if (lockedSlots != null) {
+            for (Integer s : lockedSlots) {
+                if (s != null && s >= 0 && s < StashLinkConfig.INVENTORY_SLOTS) {
+                    slots.add(s);
+                }
+            }
+        }
+        return new PlayerPrefs(r, c, new ArrayList<>(slots));
+    }
+}
