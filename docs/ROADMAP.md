@@ -141,7 +141,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 ### Item 10.2 — Modo cliente: funcionar sem o mod no servidor (Realms) ✅
 - **Branch:** `feat/modo-cliente`
 - Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W, tecla N e reabastecer a mão a partir de container/shulker colocados perto (shulker no inventário fica fora; repõe só o mesmo item, sem a troca balde/tigela/garrafa).
-- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W, N e o reabastecimento funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
+- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W e N funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
 - **Feito:** o motor do modo cliente (`ClientMode.active()` = servidor remoto sem o mod + opção ligada) usa só o que um
   jogador comum faz: abrir o container no alcance de interação do jogo (~4,5 blocos), mover itens por **cliques de
   inventário** e fechar. O servidor vanilla valida cada clique (distância, permissão, claims), como no Litematica;
@@ -159,9 +159,16 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
      só para o baú que já tinha aquele item.
   3. **Conferir:** somar a quantidade de itens antes e depois: nada duplicou, nada sumiu.
   4. **Cancelar no meio** (andar para longe, fechar a tela, sair do alcance): nenhum container deve ficar aberto.
-  5. **Mão:** com um baú/shulker colocado ao lado com blocos iguais, gastar o último bloco da mão; a mão deve
-     reabastecer sozinha.
-  6. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
+  5. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
+
+### Item 10.3 — Modo cliente: reabastecer a mão ⬜
+- **Branch:** `feat/modo-cliente-reabastecer`
+- Dividido do 10.2 por ser a parte mais arriscada. Sem o mod no servidor, detectar a mão principal que ficou vazia e
+  reabastecer a partir de container/shulker **colocados** perto: cache em memória "posição → conteúdo visto"
+  (preenchido sempre que o jogador abre um container), tentar o mais provável primeiro, depois varrer; abrir,
+  shift-clicar o item e fechar. Shulker no inventário fica fora (não dá para abrir sem colocá-la).
+- **Pronto quando:** num Realms/servidor vanilla com o mod só no cliente, esvaziar a mão com um baú/shulker colocado
+  perto reabastece sem duplicar nem perder item.
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`
