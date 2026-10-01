@@ -152,7 +152,7 @@ const ITEMS = [
    do:["Shulkers colocadas e, opcionalmente, baús e barris dentro do raio","Raio padrão 8 blocos, teto definido pelo servidor (ex.: 64)","Índice de containers por chunk, sem varrer blocos a cada uso","Respeita proteções: só usa container que o jogador poderia abrir"],
    ok:"Refill continua funcionando até o limite do raio e para fora dele; TPS estável com 200+ containers."},
   {n:7, phase:"Mundo", t:"Integração com Litematica", b:"feat/litematica-compat", f:["F2"], s:"done",
-   do:["Dependência opcional: o mod funciona sem Litematica","Pick block e Easy Place consideram itens das shulkers (inventário e raio)","Cliente pede o item ao servidor por pacote próprio antes do clique","Litematica é nativo de Fabric; no NeoForge só onde existir port"],
+   do:["Dependência opcional: o mod funciona sem Litematica","Pick block e Easy Place consideram itens das shulkers (inventário e raio)","Cliente pede o item ao servidor por pacote próprio antes do clique","Litematica é nativo de Fabric; no NeoForge só onde existir port","Correção: o mixin do Litematica saiu para um subpacote próprio; antes, o Easy Place derrubava o jogo (testado só na compilação, falta teste em jogo)"],
    ok:"Schematic carregada, materiais na shulker, clicar na preview constrói sem tirar a shulker do inventário."},
   {n:8, phase:"Teclas", t:"Tecla N: guardar tudo em baús próximos", b:"feat/quick-stack-n", f:["F4"], s:"done",
    do:["Tecla configurável, padrão N","Só envia para containers no raio que já têm o item","Ignora hotbar e slots travados; mostra resumo (ex.: 42 itens em 3 baús)"],
