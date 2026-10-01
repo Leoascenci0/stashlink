@@ -30,6 +30,9 @@ public interface IPlatformHelper {
      */
     boolean canPlayerUseBlock(net.minecraft.server.level.ServerPlayer player, net.minecraft.core.BlockPos pos);
 
+    /** Pasta de configuração do loader (onde fica {@code stashlink.json}). */
+    java.nio.file.Path getConfigDir();
+
     /**
      * Gets the name of the environment type as a string.
      *

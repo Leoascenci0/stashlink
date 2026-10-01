@@ -7,7 +7,9 @@ import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
+import io.github.leoascenci0.stashlink.config.StashLinkCommands;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -23,6 +25,10 @@ public class StashLinkFabric implements ModInitializer {
 
         // Use Fabric to bootstrap the Common mod.
         StashLink.init();
+
+        // Comandos /stashlink: só cola, a lógica está em common.
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                StashLinkCommands.register(dispatcher));
 
         // Reabastecimento da mão: só cola, a lógica está em common.
         ServerTickEvents.END_SERVER_TICK.register(RefillService::tick);

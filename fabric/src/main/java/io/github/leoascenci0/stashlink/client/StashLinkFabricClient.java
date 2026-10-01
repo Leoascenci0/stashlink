@@ -21,6 +21,10 @@ public class StashLinkFabricClient implements ClientModInitializer {
             }
         }));
 
+        // Tecla K: abre a tela de config (alternativa ao Mod Menu).
+        KeyMappingHelper.registerKeyMapping(ConfigKey.KEY);
+        ClientTickEvents.END_CLIENT_TICK.register(ConfigKey::poll);
+
         // Tecla W: o gatilho é a tela de container aberta. O evento é registrado por tela, quando ela inicia.
         KeyMappingHelper.registerKeyMapping(LootAllKey.KEY);
         ScreenEvents.AFTER_INIT.register((mc, screen, width, height) ->

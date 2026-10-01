@@ -6,7 +6,9 @@ import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -16,11 +18,16 @@ import net.neoforged.neoforge.common.NeoForge;
 /** Cola do cliente no NeoForge: só carrega no cliente (dist), então o servidor dedicado nunca toca em KeyMapping. */
 @Mod(value = Constants.MOD_ID, dist = Dist.CLIENT)
 public class StashLinkNeoForgeClient {
-    public StashLinkNeoForgeClient(IEventBus modBus) {
+    public StashLinkNeoForgeClient(ModContainer container, IEventBus modBus) {
+        // Botão "Config" na lista de mods abre a nossa tela (a mesma do Fabric).
+        container.registerExtensionPoint(IConfigScreenFactory.class,
+                (mod, parent) -> new StashLinkConfigScreen(parent));
+
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
             event.register(LootAllKey.KEY);
+            event.register(ConfigKey.KEY);
         });
         // Tecla W: gatilho é a tela de container. Cancelar o evento engole a tecla (não fecha a tela etc.).
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre event) -> {
@@ -35,6 +42,7 @@ public class StashLinkNeoForgeClient {
         });
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> {
             Minecraft mc = Minecraft.getInstance();
+            ConfigKey.poll(mc);
             QuickStackKey.poll(mc, () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(QuickStackRequest.INSTANCE);
