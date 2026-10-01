@@ -232,9 +232,11 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; os roteiros do 10.2/10.3
   continuam valendo) e GameTest no NeoForge.
 
-### Item 12 — Release ⬜
+### Item 12 — Release 🟨
 - **Branch:** `chore/release-1.0`
 - README com GIFs, changelog, publicação Modrinth/CurseForge, artefatos por loader via CI.
+- **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes.
+- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
 ## Como usar este roadmap
 
