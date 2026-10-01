@@ -121,7 +121,8 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Feito:** `config/stashlink.json` (JSON, igual nos dois loaders; campos `sourceRadius`, `maxRadius`,
   `includeChests`, `lockedSlots`). `maxRadius` é o teto do servidor (só no arquivo; nem tela nem comando passam
   dele, e o código limita a 64). Tela própria em `common` (widgets do jogo, sem Cloth): Mod Menu no Fabric
-  (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela fica somente leitura.
+  (dependência opcional) e botão "Config" nativo no NeoForge. Em servidor remoto a tela fica somente leitura. A tela também abre pela tecla **K**
+  (configurável; `ConfigKey`), sem precisar de Mod Menu.
   `/stashlink radius [n]` e `/stashlink reload`, só operadores. "Incluir hotbar" na tecla N **não** foi feito.
   Teste manual em jogo pendente (tela e comandos).
 

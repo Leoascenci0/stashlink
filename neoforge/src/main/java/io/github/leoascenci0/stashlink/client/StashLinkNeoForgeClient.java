@@ -27,6 +27,7 @@ public class StashLinkNeoForgeClient {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
             event.register(LootAllKey.KEY);
+            event.register(ConfigKey.KEY);
         });
         // Tecla W: gatilho é a tela de container. Cancelar o evento engole a tecla (não fecha a tela etc.).
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre event) -> {
@@ -41,6 +42,7 @@ public class StashLinkNeoForgeClient {
         });
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> {
             Minecraft mc = Minecraft.getInstance();
+            ConfigKey.poll(mc);
             QuickStackKey.poll(mc, () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(QuickStackRequest.INSTANCE);

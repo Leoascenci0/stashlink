@@ -1,6 +1,7 @@
 {
   "key.category.stashlink.main": "StashLink",
   "key.stashlink.quick_stack": "Guardar itens em baús próximos",
+  "key.stashlink.open_config": "Abrir configurações do StashLink",
   "key.stashlink.loot_all": "Puxar tudo do container aberto",
   "stashlink.quick_stack.done": "%s itens em %s baús",
   "stashlink.quick_stack.nothing": "Nada para guardar por perto",

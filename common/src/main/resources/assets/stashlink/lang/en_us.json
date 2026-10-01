@@ -1,6 +1,7 @@
 {
   "key.category.stashlink.main": "StashLink",
   "key.stashlink.quick_stack": "Store items in nearby containers",
+  "key.stashlink.open_config": "Open StashLink settings",
   "key.stashlink.loot_all": "Take everything from the open container",
   "stashlink.quick_stack.done": "%s items stored in %s containers",
   "stashlink.quick_stack.nothing": "Nothing to store nearby",
