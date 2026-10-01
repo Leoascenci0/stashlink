@@ -21,12 +21,16 @@
         "client": [
             "io.github.leoascenci0.stashlink.client.StashLinkFabricClient"
         ],
+        "modmenu": [
+            "io.github.leoascenci0.stashlink.client.StashLinkModMenu"
+        ],
         "main": [
             "io.github.leoascenci0.stashlink.StashLinkFabric"
         ]
     },
     "suggests": {
-        "litematica": ">=0.27.14"
+        "litematica": ">=0.27.14",
+        "modmenu": "*"
     },
     "depends": {
         "fabricloader": ">=${fabric_loader_version}",

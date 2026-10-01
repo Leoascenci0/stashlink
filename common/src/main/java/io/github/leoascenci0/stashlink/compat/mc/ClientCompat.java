@@ -25,6 +25,11 @@ public final class ClientCompat {
         return mc.gui.screen() != null;
     }
 
+    /** Abre (ou fecha, com {@code null}) uma tela. Em MC 26.3 {@code Minecraft.setScreen} passou para {@code mc.gui.setScreen}. */
+    public static void openScreen(Minecraft mc, net.minecraft.client.gui.screens.Screen screen) {
+        mc.gui.setScreen(screen);
+    }
+
     /** A tecla do evento é a deste KeyMapping? ({@link KeyEvent} existe desde 1.21.9.) */
     public static boolean keyMatches(KeyMapping key, KeyEvent event) {
         return key.matches(event);

@@ -2,7 +2,16 @@ plugins {
     id 'multiloader-loader'
     id 'net.fabricmc.fabric-loom'
 }
+repositories {
+    // Mod Menu (só para compilar o botão de config; em jogo é dependência opcional)
+    maven {
+        url = 'https://maven.terraformersmc.com/releases/'
+        content { includeGroup 'com.terraformersmc' }
+    }
+}
+
 dependencies {
+    compileOnly("com.terraformersmc:modmenu:18.0.2") { transitive = false }
     minecraft("com.mojang:minecraft:${minecraft_version}")
     implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")

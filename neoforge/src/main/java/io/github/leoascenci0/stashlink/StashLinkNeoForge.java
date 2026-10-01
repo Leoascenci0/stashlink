@@ -8,7 +8,9 @@ import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
+import io.github.leoascenci0.stashlink.config.StashLinkCommands;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -27,6 +29,10 @@ public class StashLinkNeoForge {
 
         // Use NeoForge to bootstrap the Common mod.
         StashLink.init();
+
+        // Comandos /stashlink: só cola, a lógica está em common.
+        NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent event) ->
+                StashLinkCommands.register(event.getDispatcher()));
 
         // Reabastecimento da mão: só cola, a lógica está em common.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> RefillService.tick(event.getServer()));

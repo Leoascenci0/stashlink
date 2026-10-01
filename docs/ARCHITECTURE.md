@@ -107,7 +107,11 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   cache para ficar velho — e cache velho aqui significaria item duplicado ou fantasma. Custo: percorrer só as
   block entities dos chunks no raio, nunca o cubo de blocos; só quando um stack esgota, e só se as shulkers do
   inventário não bastaram (`LazyItemSource`). Chunk descarregado não é carregado à força.
-- **Raio:** padrão 8, teto duro 64 imposto no servidor (`StashLinkConfig.effectiveRadius`). Config real: Item 10.
+- **Raio:** padrão 8, teto do servidor `maxRadius` (padrão e máximo 64) imposto em `StashLinkConfig.effectiveRadius`.
+- **Config:** `config/stashlink.json` (Gson, `IPlatformHelper.getConfigDir`), lido no `StashLink.init()` e por
+  `/stashlink reload`. Valores fora da faixa são corrigidos; arquivo quebrado mantém os valores atuais e não é
+  sobrescrito. O servidor é a autoridade: a tela (`StashLinkConfigScreen`) só edita quando há servidor local
+  (mundo único/LAN); em servidor remoto é somente leitura.
 - **Proteção:** (1) o jogo: container trancado e baú de loot ainda não aberto são ignorados (ler baú de loot o
   geraria à distância); (2) mods de claim: `IPlatformHelper.canPlayerUseBlock` dispara o evento de "usar bloco"
   do loader (Fabric `UseBlockCallback`, NeoForge `PlayerInteractEvent.RightClickBlock`) e respeita o
