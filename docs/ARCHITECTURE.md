@@ -173,8 +173,8 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   (2) *Modo cliente*: o servidor não conhece o StashLink (ex.: Realms). `ClientMode.active()` é verdadeiro quando há
   servidor remoto **sem** o mod **e** a opção `clientModeEnabled` (em `stashlink-client.json`, padrão ligada) está
   ligada. Nesse caso o cliente faz o trabalho sozinho; com o mod no servidor o comportamento não muda.
-- **O que o modo cliente faz.** W (puxar tudo do container aberto) e N (guardar em containers próximos que já têm o
-  item). Reabastecer a mão no cliente fica para o Item 10.3. Para cada container: abre (interação
+- **O que o modo cliente faz.** W (puxar tudo do container aberto), N (guardar em containers próximos que já têm o
+  item) e reabastecer a mão (Item 10.3, abaixo). Para cada container: abre (interação
   normal de bloco), move itens por cliques de inventário, fecha.
 - **Decisão: por que cliques de inventário.** O cliente não pode editar inventário; só pode pedir ao servidor o que
   um jogador pode pedir. Clique de inventário é exatamente isso, e o **servidor vanilla valida tudo** (distância,
@@ -189,3 +189,22 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Tela de config.** Botão "Modo cliente" em servidor remoto. Com o modo ativo, a tela mostra um aviso e esconde o
   raio do servidor e "usar baús e barris" (não se aplicam); os slots travados continuam valendo, usados localmente.
 - **Não testado em jogo ainda** (roteiro no `ROADMAP.md`, Item 10.2).
+
+## Item 10.3 — Modo cliente: reabastecer a mão
+
+- **Gatilho.** `ClientModeEngine.tick` roda o `HandWatcher` (o mesmo do servidor) na mão principal a cada tick. Esgotou
+  = estava com item e agora está vazia, no mesmo slot da hotbar. Não conta (`ClientMoveLogic.refillAllowed`): tela
+  aberta, agachado, morto, criativo/espectador, cursor com item, Q apertada (tick atual ou anterior; um toque
+  rapidíssimo pode escapar, o pior caso é um reabastecimento a mais). Troca de mão com F é filtrada por
+  `RefillLogic.movedToOtherHand`. Um `RefillJob` por vez, sem competir com sessão W/N, pausa de 10 ticks.
+- **Fonte.** Containers do alcance de interação (`ClientContainers.find`), ordenados pelo `ContentsCache` (tem o item,
+  nunca visto, visto sem o item; depois o mais perto), no máximo 6. O cache é só dica de ordem: nunca decide que um
+  container "não tem".
+- **Como move.** Um clique **SWAP** do slot do container com o slot da hotbar selecionado: com a mão vazia, o stack
+  inteiro vai para a mão sem passar pelo cursor. Item igual = mesmo item e componentes, **ignorando desgaste**
+  (`ClientMoveLogic.sameForRefill`, como `RefillLogic`). A cada tick o job lê o menu: mão com o item = pronto; 4
+  ticks sem confirmação = slot recusado (tenta outro); mão com outro item ou hotbar trocada = para sem clicar.
+  Nunca deixa container aberto (`ContainerSession` do 10.2). Nunca manda pacote próprio.
+- **Limites.** Não faz a troca balde/tigela/garrafa do modo servidor (só repõe com a mão vazia). Shulker no
+  inventário fica fora. Alcance de interação do jogo, não o raio do servidor.
+- **Não testado em jogo ainda** (roteiro no `ROADMAP.md`, Item 10.3).

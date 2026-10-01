@@ -94,6 +94,11 @@ public final class ClientCompat {
         return player.isWithinBlockInteractionRange(pos, 0.0);
     }
 
+    /** Criativo: o item na mão não acaba, então não há o que reabastecer. */
+    public static boolean isCreative(Player player) {
+        return player.isCreative();
+    }
+
     /** A tecla de soltar item (Q) está apertada? Usada para não confundir "joguei o item fora" com "acabou". */
     public static boolean isDropKeyDown(Minecraft mc) {
         return mc.options.keyDrop.isDown();
