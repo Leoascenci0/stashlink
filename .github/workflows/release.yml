@@ -1,0 +1,29 @@
+name: release
+
+# Disparado ao criar uma tag como v1.0.0. Gera um jar por loader e anexa a uma GitHub Release (rascunho).
+# A publicação no Modrinth/CurseForge é feita à mão com estes jars (precisa de conta e token do autor).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew build --no-daemon
+      - name: Cria a release com um jar por loader
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --title "StashLink $GITHUB_REF_NAME" \
+            --notes-file CHANGELOG.md \
+            fabric/build/libs/stashlink-fabric-*[0-9].jar neoforge/build/libs/stashlink-neoforge-*[0-9].jar
