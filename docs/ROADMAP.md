@@ -140,8 +140,8 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ### Item 10.2 — Modo cliente: funcionar sem o mod no servidor (Realms) ✅
 - **Branch:** `feat/modo-cliente`
-- Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W e tecla N. (O reabastecimento da mão no cliente foi separado no Item 10.3.)
-- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W e N funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
+- Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W, tecla N e reabastecer a mão a partir de container/shulker colocados perto (shulker no inventário fica fora; repõe só o mesmo item, sem a troca balde/tigela/garrafa).
+- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W, N e o reabastecimento funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
 - **Feito:** o motor do modo cliente (`ClientMode.active()` = servidor remoto sem o mod + opção ligada) usa só o que um
   jogador comum faz: abrir o container no alcance de interação do jogo (~4,5 blocos), mover itens por **cliques de
   inventário** e fechar. O servidor vanilla valida cada clique (distância, permissão, claims), como no Litematica;
@@ -159,12 +159,9 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
      só para o baú que já tinha aquele item.
   3. **Conferir:** somar a quantidade de itens antes e depois: nada duplicou, nada sumiu.
   4. **Cancelar no meio** (andar para longe, fechar a tela, sair do alcance): nenhum container deve ficar aberto.
-  5. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
-
-### Item 10.3 — Modo cliente: reabastecer a mão ⬜
-- **Branch:** `feat/modo-cliente-reabastecer`
-- Continuação do 10.2. Quando o servidor não tem o mod, reabastecer a mão a partir de container/shulker **colocados perto**, por cliques de inventário (mesma abordagem do 10.2). Reabastecer a partir de shulker no inventário continua fora.
-- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, a mão reabastece de um baú/shulker ao lado sem nada duplicar ou sumir; com o mod no servidor nada muda.
+  5. **Mão:** com um baú/shulker colocado ao lado com blocos iguais, gastar o último bloco da mão; a mão deve
+     reabastecer sozinha.
+  6. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`

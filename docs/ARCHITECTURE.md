@@ -174,7 +174,7 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   servidor remoto **sem** o mod **e** a opção `clientModeEnabled` (em `stashlink-client.json`, padrão ligada) está
   ligada. Nesse caso o cliente faz o trabalho sozinho; com o mod no servidor o comportamento não muda.
 - **O que o modo cliente faz.** W (puxar tudo do container aberto) e N (guardar em containers próximos que já têm o
-  item). Reabastecer a mão a partir de container/shulker colocados perto fica para o **próximo item (10.3)**. Para cada container: abre (interação
+  item). Reabastecer a mão: quando a mão principal esvazia, tenta containers/shulkers colocados perto (cache "posição → conteúdo visto" decide a ordem; um clique SWAP do slot do container para a mão e confere se o item chegou). Só repõe o mesmo item (sem a troca balde/tigela/garrafa do modo servidor). Para cada container: abre (interação
   normal de bloco), move itens por cliques de inventário, fecha.
 - **Decisão: por que cliques de inventário.** O cliente não pode editar inventário; só pode pedir ao servidor o que
   um jogador pode pedir. Clique de inventário é exatamente isso, e o **servidor vanilla valida tudo** (distância,

@@ -15,8 +15,8 @@ Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
 - **Modo cliente** (servidor **sem** o mod, como um Realms): o mod funciona só no seu cliente, agindo como um
   jogador. Ele abre o container, move os itens por cliques de inventário e fecha — o mesmo que você faria à mão,
   só que automático. Liga/desliga em "Modo cliente" na tela de configuração (padrão: ligado). Cobre **W**
-  (puxar tudo), **N** (guardar em containers que já têm o item). Reabastecer a mão a partir de containers
-  colocados perto no modo cliente é o próximo item (10.3).
+  (puxar tudo), **N** (guardar em containers que já têm o item) e o **reabastecimento da mão** a partir de
+  containers/shulkers colocados perto (shulker no inventário fica fora: o cliente não vê o conteúdo dela).
 
 Limites do modo cliente:
 - O alcance é o de interação do jogo (~4,5 blocos), não o raio do servidor.
