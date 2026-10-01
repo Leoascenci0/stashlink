@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -163,6 +164,86 @@ public final class ClientMoveLogic {
             }
         }
         return n;
+    }
+
+    // ------------------------------------------------------------------ reabastecer a mão (Item 10.3)
+
+    /** O que há agora no slot da hotbar que estava na mão: vazio (precisa repor), já com o item, ou outra coisa. */
+    public enum HandState { EMPTY, REFILLED, OCCUPIED }
+
+    /**
+     * Dois stacks são "o mesmo item" para reabastecer? Mesmo item e mesmos componentes (nome, encantamentos...),
+     * <b>ignorando o desgaste</b>: a ferramenta que quebrou tem desgaste máximo e a da reserva está nova, então
+     * comparar o desgaste nunca casaria. Igual ao {@code RefillLogic} do servidor. Compara cópias: não altera nada.
+     */
+    public static boolean sameForRefill(ItemStack a, ItemStack b) {
+        if (a.isEmpty() || b.isEmpty()) {
+            return false;
+        }
+        ItemStack x = a.copyWithCount(1);
+        ItemStack y = b.copyWithCount(1);
+        McCompat.resetDamage(x);
+        McCompat.resetDamage(y);
+        return ItemStack.isSameItemSameComponents(x, y);
+    }
+
+    /** Estado do slot da hotbar selecionado, ou {@code null} se ele não aparece no menu (não deveria acontecer). */
+    public static HandState handState(List<MenuEntry> entries, ItemStack model, int hotbarIndex) {
+        for (MenuEntry e : entries) {
+            if (e.isHotbar() && e.invIndex() == hotbarIndex) {
+                if (e.stack().isEmpty()) {
+                    return HandState.EMPTY;
+                }
+                return sameForRefill(e.stack(), model) ? HandState.REFILLED : HandState.OCCUPIED;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Slot do <b>container</b> de onde repor a mão: o que tem o item e, entre vários, o stack maior (leva mais de
+     * uma vez e gasta menos cliques). Empate = o primeiro. {@code tried} são slots já tentados e que o servidor
+     * não deixou mover. Devolve -1 se o container não tem o item.
+     */
+    public static int refillSource(List<MenuEntry> entries, ItemStack model, Set<Integer> tried) {
+        int best = -1;
+        int bestCount = 0;
+        for (MenuEntry e : entries) {
+            if (e.isPlayerSlot() || tried.contains(e.menuIndex()) || !sameForRefill(e.stack(), model)) {
+                continue;
+            }
+            if (e.stack().getCount() > bestCount) {
+                best = e.menuIndex();
+                bestCount = e.stack().getCount();
+            }
+        }
+        return best;
+    }
+
+    /**
+     * O clique que leva o stack do slot {@code src} do container para o slot da hotbar selecionado. Usamos SWAP
+     * (a tecla numérica do jogo): com a hotbar vazia, o stack <b>inteiro</b> vai para a mão em um clique só, sem
+     * passar pelo cursor (nada fica "pendurado" se algo falhar) e sem o shift-clique escolher outro destino.
+     */
+    public static Click refillClick(int src, int hotbarIndex) {
+        return Click.swapToHotbar(src, hotbarIndex);
+    }
+
+    /** Posição no ranking do cache para o reabastecimento: 0 = tem o item, 1 = nunca visto, 2 = visto e sem o item. */
+    public static int cacheRank(Boolean seenHas) {
+        return seenHas == null ? 1 : (seenHas ? 0 : 2);
+    }
+
+    /**
+     * Em que condições o reabastecimento do modo cliente pode agir (e o vigia da mão conta um esgotamento).
+     * Fora delas a mão vazia é intencional (jogador mexendo no inventário, soltou com Q...) ou impossível de
+     * atender. Espelha as condições do {@code RefillService} do servidor.
+     *
+     * @param dropKey a tecla Q está (ou acabou de estar) apertada
+     */
+    public static boolean refillAllowed(boolean screenOpen, boolean sneaking, boolean alive, boolean spectator,
+                                        boolean creative, boolean dropKey, boolean cursorEmpty) {
+        return !screenOpen && !sneaking && alive && !spectator && !creative && !dropKey && cursorEmpty;
     }
 
     // ------------------------------------------------------------------ ordem dos containers

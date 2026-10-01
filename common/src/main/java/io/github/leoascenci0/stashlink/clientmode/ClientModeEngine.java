@@ -4,6 +4,8 @@ import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.refill.HandWatcher;
+import io.github.leoascenci0.stashlink.refill.RefillLogic;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -30,6 +32,10 @@ public final class ClientModeEngine {
     public static final int CLICKS_PER_TICK = 5;
     /** Máximo de containers abertos por aperto da N. */
     static final int MAX_CONTAINERS_QUICK_STACK = 8;
+    /** Máximo de containers abertos para reabastecer a mão (cada um é visível na tela: não varrer o mundo). */
+    static final int MAX_CONTAINERS_REFILL = 6;
+    /** Pausa depois de um reabastecimento antes de aceitar outro (não encadear sessões coladas). */
+    private static final int REFILL_COOLDOWN_TICKS = 10;
     /** Container que falhou ao abrir fica "de castigo" por este tempo (evita insistir em baú bloqueado). */
     private static final long FAIL_MEMORY_TICKS = 200;
 
@@ -38,6 +44,11 @@ public final class ClientModeEngine {
 
     private static ContainerSession session;
     private static ClientLevel level;
+    // Reabastecer a mão: vigias das duas mãos (a mão secundária só serve para detectar a troca com F).
+    private static HandWatcher mainWatcher = new HandWatcher();
+    private static HandWatcher offWatcher = new HandWatcher();
+    private static boolean dropWasDown;
+    private static long refillCooldownUntil;
     // Aprendizado do que o jogador abre sozinho (para o cache).
     private static AbstractContainerMenu learnMenu;
     private static long[] learnKeys;
@@ -70,6 +81,8 @@ public final class ClientModeEngine {
         if (player == null) {
             return;
         }
+        // O vigia roda todo tick (mesmo com sessão em andamento) para sempre saber o que havia na mão.
+        ItemStack exhausted = watchHands(mc, player);
         if (session != null) {
             if (session.tick(mc)) {
                 session = null;
@@ -80,10 +93,17 @@ public final class ClientModeEngine {
             return;
         }
         learnFromOpenMenu(mc, player);
+        if (!exhausted.isEmpty()) {
+            startRefill(mc, exhausted);
+        }
     }
 
     private static void reset() {
         session = null;
+        mainWatcher = new HandWatcher();
+        offWatcher = new HandWatcher();
+        dropWasDown = false;
+        refillCooldownUntil = 0;
         CACHE.clear();
         FAILED_UNTIL.clear();
         learnMenu = null;
@@ -132,6 +152,57 @@ public final class ClientModeEngine {
             return;
         }
         session = ContainerSession.attached(mc, new PullJob(lockedPredicate(), !ClientPrefs.lockedSlots.isEmpty(), CACHE));
+    }
+
+    // ------------------------------------------------------------------ reabastecer a mão (Item 10.3)
+
+    /**
+     * Olha as mãos uma vez por tick. Devolve o stack que estava na mão principal e acabou (só como modelo), ou
+     * vazio. Não conta como esgotamento: tela aberta, agachado, criativo/espectador, Q apertada, cursor com
+     * item, troca de slot da hotbar (o vigia já ignora) e troca de mão com F (item apareceu na outra mão).
+     */
+    private static ItemStack watchHands(Minecraft mc, LocalPlayer player) {
+        boolean dropDown = ClientCompat.isDropKeyDown(mc);
+        // Q recém-solta: a tecla pode já ter sido solta no fim do tick, então vale também o tick anterior.
+        boolean drop = dropDown || dropWasDown;
+        dropWasDown = dropDown;
+        boolean allowed = ClientMoveLogic.refillAllowed(ClientCompat.hasScreenOpen(mc), ClientCompat.isSneaking(player),
+                player.isAlive(), player.isSpectator(), ClientCompat.isCreative(player), drop,
+                ClientCompat.menu(player).getCarried().isEmpty());
+        ItemStack mainBefore = mainWatcher.last();
+        ItemStack offBefore = offWatcher.last();
+        ItemStack mainNow = ClientCompat.mainHand(player);
+        ItemStack offNow = ClientCompat.offHand(player);
+        ItemStack gone = mainWatcher.observe(ClientCompat.selectedSlot(player), mainNow, allowed);
+        offWatcher.observe(0, offNow, false);
+        if (gone.isEmpty() || RefillLogic.movedToOtherHand(gone, offBefore, offNow)) {
+            return ItemStack.EMPTY;
+        }
+        return gone;
+    }
+
+    /** Mão principal esgotou: abre os containers mais prováveis, um por vez, até repor (ou desistir). */
+    private static void startRefill(Minecraft mc, ItemStack gone) {
+        if (!canStart(mc) || ClientCompat.hasScreenOpen(mc) || mc.level.getGameTime() < refillCooldownUntil) {
+            return;
+        }
+        LocalPlayer player = mc.player;
+        List<Candidate> found = filterFailed(mc, ClientContainers.find(mc, true, radiusCap()));
+        if (found.isEmpty()) {
+            return; // nada ao alcance: fica quieto (acontece toda vez que acaba um item longe da base)
+        }
+        // Mesma ordem da tecla N: o cache diz que tem (0) > nunca visto (1) > visto e sem o item (2).
+        List<Candidate> order = ClientMoveLogic.order(found, c -> ClientMoveLogic.cacheRank(
+                CACHE.has(c.keys(), seen -> ClientMoveLogic.sameForRefill(seen, gone))), MAX_CONTAINERS_REFILL);
+        session = ContainerSession.opening(mc, new RefillJob(gone, ClientCompat.selectedSlot(player), CACHE), order,
+                c -> markFailed(mc, c));
+    }
+
+    /** O RefillJob avisa que a sessão acabou: começa a contar a pausa até o próximo reabastecimento. */
+    static void refillEnded(Minecraft mc) {
+        if (mc.level != null) {
+            refillCooldownUntil = mc.level.getGameTime() + REFILL_COOLDOWN_TICKS;
+        }
     }
 
     // ------------------------------------------------------------------ apoio

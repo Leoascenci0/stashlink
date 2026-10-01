@@ -161,14 +161,40 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   4. **Cancelar no meio** (andar para longe, fechar a tela, sair do alcance): nenhum container deve ficar aberto.
   5. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
 
-### Item 10.3 — Modo cliente: reabastecer a mão ⬜
+### Item 10.3 — Modo cliente: reabastecer a mão ✅
 - **Branch:** `feat/modo-cliente-reabastecer`
 - Dividido do 10.2 por ser a parte mais arriscada. Sem o mod no servidor, detectar a mão principal que ficou vazia e
   reabastecer a partir de container/shulker **colocados** perto: cache em memória "posição → conteúdo visto"
   (preenchido sempre que o jogador abre um container), tentar o mais provável primeiro, depois varrer; abrir,
-  shift-clicar o item e fechar. Shulker no inventário fica fora (não dá para abrir sem colocá-la).
+  mover o item e fechar. Shulker no inventário fica fora (não dá para abrir sem colocá-la).
 - **Pronto quando:** num Realms/servidor vanilla com o mod só no cliente, esvaziar a mão com um baú/shulker colocado
   perto reabastece sem duplicar nem perder item.
+- **Feito:** a cada tick do cliente (só em modo cliente) o `HandWatcher` vigia a mão principal. Mão com o último
+  item que ficou vazia = esgotou, e o motor cria um `RefillJob` (um por vez, com pausa de 10 ticks depois do
+  anterior; não compete com W/N em andamento). Não age com tela aberta, agachado, criativo/espectador, morto, item
+  no cursor, Q apertada (no tick ou no anterior), troca de slot da hotbar ou troca de mão com F. Candidatos = os
+  containers do alcance de interação (como a N), ordenados pelo `ContentsCache`: tem o item (0), nunca visto (1),
+  visto sem o item (2), depois mais perto; no máximo 6 por reabastecimento. Em cada um: abre, acha o slot com o
+  mesmo item e componentes (**desgaste ignorado**, como o `RefillLogic` do servidor; o stack maior primeiro) e o
+  leva à mão com **um clique SWAP** com o slot da hotbar selecionado. A cada tick lê o menu: mão com o item =
+  sucesso; sem confirmação em 4 ticks = slot recusado, tenta outro; mão com **outro** item (jogador colocou algo)
+  ou hotbar trocada = aborta sem clicar. Sempre fecha o container (mesma `ContainerSession` do 10.2). Sem a troca
+  balde/tigela/garrafa do modo servidor: só repõe o mesmo item, com a mão vazia. Sem nenhum container ao alcance
+  fica quieto; abriu e não achou mostra "Nada para reabastecer por perto". Lógica pura em `ClientMoveLogic`
+  (15 testes novos em `ClientRefillLogicTest`); API do MC só em `ClientCompat`.
+- **Por que SWAP:** com a hotbar vazia o stack inteiro vai para a mão em um clique, sem passar pelo cursor (nada
+  fica pendurado se falhar) e sem o shift-clique escolher outro destino. O servidor vanilla valida o clique.
+- **Não testado em jogo ainda.** Roteiro para o Eliel (servidor vanilla local **ou** Realms, mod só no cliente):
+  1. **Baú ao lado:** colocar um baú com pedra (cobblestone) por perto, ficar com 1 pedra na mão, colocá-la; o baú
+     abre e fecha sozinho e a mão volta a ter pedra.
+  2. **Shulker colocada:** o mesmo, com a pedra numa shulker colocada no chão.
+  3. **Baú sem o item:** com só baús sem pedra por perto, esvaziar a mão: eles abrem/fecham, aparece "Nada para
+     reabastecer por perto" e nada é retirado nem movido.
+  4. **Cancelar no meio:** apertar ESC, trocar de slot ou andar para longe durante a abertura: nenhum container
+     fica aberto.
+  5. **Conferir:** somar os itens antes e depois: nada duplicou, nada sumiu. Depois da 1ª vez, o mesmo baú deve ser
+     o primeiro a abrir (cache).
+  6. **Não deve agir:** soltar com Q, trocar com F, criativo, agachado.
 
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`
