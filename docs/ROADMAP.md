@@ -138,6 +138,38 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
   `/stashlink` e `stashlink.json` continuam como antes (padrão para quem não personalizou). Mundo local não muda.
   O estado fica só em memória no servidor (o cliente reenvia a cada entrada).
 
+### Item 10.2 — Modo cliente: funcionar sem o mod no servidor (Realms) ✅
+- **Branch:** `feat/modo-cliente`
+- Quando o servidor não conhece o StashLink, o cliente faz o trabalho sozinho, como um jogador: abre containers no alcance normal do jogo, move itens por cliques de inventário e fecha. Tecla W, tecla N e reabastecer a mão a partir de container/shulker colocados perto (shulker no inventário fica fora; repõe só o mesmo item, sem a troca balde/tigela/garrafa).
+- **Pronto quando:** num Realms (ou servidor vanilla) com o mod só no cliente, W e N funcionam sem nada duplicar ou sumir; com o mod no servidor, o comportamento atual não muda.
+- **Feito:** o motor do modo cliente (`ClientMode.active()` = servidor remoto sem o mod + opção ligada) usa só o que um
+  jogador comum faz: abrir o container no alcance de interação do jogo (~4,5 blocos), mover itens por **cliques de
+  inventário** e fechar. O servidor vanilla valida cada clique (distância, permissão, claims), como no Litematica;
+  por isso nada burla regra do servidor. O mod confere o resultado de cada clique antes do próximo, então não
+  duplica nem perde item. Com o mod no servidor nada muda (continua tudo server-side). O modo cliente nunca manda
+  pacote próprio a servidor que não conhece o mod. Config: opção `clientModeEnabled` (padrão ligado) em
+  `stashlink-client.json`, botão "Modo cliente: ligado/desligado" na tela (em servidor remoto). Quando o modo está
+  ativo a tela mostra um aviso e esconde o que não se aplica (raio do servidor e "usar baús e barris"); os slots
+  travados continuam valendo, usados localmente. Mensagens novas `stashlink.client_mode.*` em en_us/pt_br.
+  Limites e decisão de design em `docs/ARCHITECTURE.md` e no README.
+- **Não testado em jogo ainda.** Roteiro para o Eliel (servidor vanilla local **ou** Realms com o mod só no cliente):
+  1. **W:** abrir um baú com itens e apertar W; tudo o que cabe vem para o inventário. Testar também com o inventário
+     quase cheio (o resto deve ficar no baú).
+  2. **N:** colocar 2-3 baús perto, cada um já com algum item que você carrega; apertar N; conferir que os itens vão
+     só para o baú que já tinha aquele item.
+  3. **Conferir:** somar a quantidade de itens antes e depois: nada duplicou, nada sumiu.
+  4. **Cancelar no meio** (andar para longe, fechar a tela, sair do alcance): nenhum container deve ficar aberto.
+  5. **Com mod no servidor** (mundo local ou servidor com StashLink): W e N se comportam como antes.
+
+### Item 10.3 — Modo cliente: reabastecer a mão ⬜
+- **Branch:** `feat/modo-cliente-reabastecer`
+- Dividido do 10.2 por ser a parte mais arriscada. Sem o mod no servidor, detectar a mão principal que ficou vazia e
+  reabastecer a partir de container/shulker **colocados** perto: cache em memória "posição → conteúdo visto"
+  (preenchido sempre que o jogador abre um container), tentar o mais provável primeiro, depois varrer; abrir,
+  shift-clicar o item e fechar. Shulker no inventário fica fora (não dá para abrir sem colocá-la).
+- **Pronto quando:** num Realms/servidor vanilla com o mod só no cliente, esvaziar a mão com um baú/shulker colocado
+  perto reabastece sem duplicar nem perder item.
+
 ### Item 11 — Testes de carga, multiplayer e compat com outros mods ⬜
 - **Branch:** `test/carga-e-compat`
 - Servidor dedicado com 2+ jogadores; verificar corridas entre jogadores no mesmo baú; testar com mods comuns

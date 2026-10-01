@@ -35,6 +35,12 @@ public class StashLinkNeoForgeClient {
         });
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> ClientPrefs.sync());
 
+        // Modo cliente: "o servidor conhece o nosso pacote?" no NeoForge é hasChannel (só com conexão aberta).
+        ClientMode.setServerHasModCheck(() -> {
+            Minecraft mc = Minecraft.getInstance();
+            return mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE);
+        });
+
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
@@ -47,6 +53,9 @@ public class StashLinkNeoForgeClient {
             if (LootAllKey.onKeyPressed(mc, event.getScreen(), event.getKeyEvent(), () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(LootAllRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(LootAllRequest.INSTANCE);
+                } else {
+                    // Servidor sem o StashLink: o modo cliente assume (se ativo); nunca manda pacote desconhecido.
+                    ClientMode.onLootAllKey();
                 }
             })) {
                 event.setCanceled(true);
@@ -58,8 +67,12 @@ public class StashLinkNeoForgeClient {
             QuickStackKey.poll(mc, () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(QuickStackRequest.INSTANCE);
+                } else {
+                    ClientMode.onQuickStackKey();
                 }
             });
+            // O motor do modo cliente anda um passo por tick; fora do modo cliente não faz nada.
+            ClientMode.tick(mc);
         });
     }
 }

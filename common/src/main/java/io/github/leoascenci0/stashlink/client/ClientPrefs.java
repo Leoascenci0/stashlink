@@ -30,6 +30,8 @@ public final class ClientPrefs {
     /** -1 = padrão do servidor, 0 = não, 1 = sim. */
     public static int chests = PlayerPrefs.UNSET;
     public static TreeSet<Integer> lockedSlots = new TreeSet<>();
+    /** Modo cliente: em servidor sem o mod, o cliente faz o trabalho sozinho. Ligado por padrão. */
+    public static boolean clientModeEnabled = true;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Consumer<PlayerPrefsRequest> sender;
@@ -57,6 +59,8 @@ public final class ClientPrefs {
         int radius = PlayerPrefs.UNSET;
         int chests = PlayerPrefs.UNSET;
         int[] lockedSlots = new int[0];
+        // Valor inicial true: arquivo antigo sem o campo continua com o modo cliente ligado.
+        boolean clientModeEnabled = true;
     }
 
     private static Path path() {
@@ -84,6 +88,7 @@ public final class ClientPrefs {
                 }
             }
             lockedSlots = slots;
+            clientModeEnabled = d.clientModeEnabled;
         } catch (IOException | JsonSyntaxException e) {
             Constants.LOG.warn("Preferências {} ilegíveis, usando padrões: {}", file, e.toString());
         }
@@ -96,6 +101,7 @@ public final class ClientPrefs {
             d.radius = radius;
             d.chests = chests;
             d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
+            d.clientModeEnabled = clientModeEnabled;
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(d) + System.lineSeparator(), StandardCharsets.UTF_8);
         } catch (IOException e) {

@@ -28,6 +28,10 @@ public class StashLinkConfigScreen extends Screen {
 
     private final Screen parent;
     private final boolean local;
+    /** Posições (y) calculadas em init(), usadas ao desenhar os textos. */
+    private boolean clientModeActive;
+    private int infoY;
+    private int slotsLabelY;
 
     public StashLinkConfigScreen(Screen parent) {
         super(Component.translatableWithFallback("stashlink.config.title", "StashLink settings"));
@@ -40,22 +44,41 @@ public class StashLinkConfigScreen extends Screen {
     protected void init() {
         int x = this.width / 2 - WIDTH / 2;
         int y = this.height / 6 + 24;
+        // No modo cliente o servidor não conhece o mod: raio e "usar baús" do servidor não se aplicam.
+        clientModeActive = !local && ClientMode.active();
 
-        addRenderableWidget(new RadiusSlider(x, y, local));
-
-        y += ROW;
-        addRenderableWidget(Button.builder(chestsLabel(), b -> {
-            if (local) {
-                StashLinkConfig.includeChests = !StashLinkConfig.includeChests;
-            } else {
-                // Padrão do servidor -> sim -> não -> padrão do servidor.
-                ClientPrefs.chests = ClientPrefs.chests == PlayerPrefs.UNSET ? 1
-                        : (ClientPrefs.chests == 1 ? 0 : PlayerPrefs.UNSET);
+        if (!local) {
+            // Botão do modo cliente: ao mudar, remonta a tela (o que aparece depende de o modo estar ativo).
+            addRenderableWidget(Button.builder(clientModeLabel(), b -> {
+                ClientPrefs.clientModeEnabled = !ClientPrefs.clientModeEnabled;
+                rebuildWidgets();
+            }).bounds(x, y, WIDTH, 20).build());
+            y += ROW;
+            if (clientModeActive) {
+                infoY = y;
+                y += 12;
             }
-            b.setMessage(chestsLabel());
-        }).bounds(x, y, WIDTH, 20).build());
+        }
 
-        y += ROW + 12;
+        if (!clientModeActive) {
+            addRenderableWidget(new RadiusSlider(x, y, local));
+
+            y += ROW;
+            addRenderableWidget(Button.builder(chestsLabel(), b -> {
+                if (local) {
+                    StashLinkConfig.includeChests = !StashLinkConfig.includeChests;
+                } else {
+                    // Padrão do servidor -> sim -> não -> padrão do servidor.
+                    ClientPrefs.chests = ClientPrefs.chests == PlayerPrefs.UNSET ? 1
+                            : (ClientPrefs.chests == 1 ? 0 : PlayerPrefs.UNSET);
+                }
+                b.setMessage(chestsLabel());
+            }).bounds(x, y, WIDTH, 20).build());
+            y += ROW;
+        }
+
+        y += 12;
+        slotsLabelY = y - 11;
         EditBox slots = addRenderableWidget(new EditBox(this.font, x, y, WIDTH, 20,
                 Component.translatableWithFallback("stashlink.config.locked_slots", "Locked slots")));
         slots.setMaxLength(120);
@@ -83,10 +106,15 @@ public class StashLinkConfigScreen extends Screen {
             graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.remote",
                     "On a server: these are your personal settings (the server may limit them)"), cx, top + 8, 0xFFFFFF55);
         }
-        // Rótulo do campo de slots (o EditBox começa em top + 24 + 2*ROW + 12).
+        if (clientModeActive) {
+            graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.client_mode_active",
+                    "Client mode active: the server does not have StashLink, the mod acts only on your client"),
+                    cx, infoY, 0xFF55FF55);
+        }
+        // Rótulo do campo de slots (fica 11 px acima do EditBox; a posição depende de quais widgets aparecem).
         graphics.text(this.font, Component.translatableWithFallback("stashlink.config.locked_slots_hint",
                 "Locked slots (0-35, comma-separated; 0-8 = hotbar)"),
-                cx - WIDTH / 2, top + 24 + 2 * ROW + 12 - 11, 0xFFAAAAAA);
+                cx - WIDTH / 2, slotsLabelY, 0xFFAAAAAA);
     }
 
     @Override
@@ -105,6 +133,11 @@ public class StashLinkConfigScreen extends Screen {
             ClientPrefs.save();
             ClientPrefs.sync();
         }
+    }
+
+    private Component clientModeLabel() {
+        return Component.translatableWithFallback("stashlink.config.client_mode", "Client mode: %s",
+                ClientPrefs.clientModeEnabled ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
     }
 
     private Component chestsLabel() {
