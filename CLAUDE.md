@@ -20,23 +20,27 @@ Gerar como último passo: (1) resumo em linguagem simples do que foi feito e por
 (2) prompt autocontido do próximo item: texto exato do roadmap, decisões já fixadas, arquivos/módulos
 envolvidos, nome de branch. Último item do plano: avisar que terminou e perguntar o que vem a seguir.
 
-<!-- BEGIN roteador-modelo-esforco v1 -->
-## Roteamento de modelo, esforço e linguagem (regra global do Eliel)
+<!-- BEGIN roteador-modelo-esforco v2 -->
+## Roteamento de modelo, esforço e linguagem (regra global do Eliel, perfil GOAT)
 
 Vale neste projeto e em qualquer projeto novo. Fonte: skill `roteador-modelo-esforco` no repositório
 `Leoascenci0/skills` (Regra 14 do `CLAUDE.md` global). Convenções específicas deste projeto vencem em conflito.
 
-1. **Diagnosticar antes de agir:** tipo, complexidade (simples/média/complexa) e risco (baixo/médio/alto).
-2. **Escolher o menor par modelo + esforço que resolve:** simples → Haiku/low; média → Sonnet/medium;
-   complexa ou risco alto (produção, dado real, segurança, LGPD, migração) → Opus/high. `max` só em problema
-   realmente difícil. Subir um degrau antes se a falha for cara ou silenciosa.
-3. **Executar → verificar → escalar:** verificação LIGHT em risco baixo, FULL em risco alto (testes, build,
-   revisão independente, advisors/logs do banco). Falhou: subir um degrau, no máximo 2 tentativas por degrau;
-   na 3ª falha parar e explicar a causa.
-4. **Delegar volume** (varredura, listagem, diffs grandes) a subagente barato com retorno curto.
-5. **Linguagem automática:** pt-BR; registro conforme o público (didático para o Eliel, formal administrativo
-   para ofício/memorial, executivo para decisão, leigo para cidadão). Código, commits e PRs seguem a convenção
-   do repositório. Sigla por extenso na primeira vez.
-6. **Stack:** manter a do projeto; em projeto novo, decidir pelo critério do domínio e registrar o porquê aqui.
-7. **Relato curto:** uma linha de roteamento no início de tarefa não trivial; sem relatório do processo.
-<!-- END roteador-modelo-esforco v1 -->
+1. **Começar barato:** simples → Haiku/low; média (o caso comum) → **Sonnet/medium**; ambígua → Sonnet/high.
+   **Opus/high é exceção** e precisa de gatilho dito na linha de roteamento: (1) ação irreversível ou em dado
+   real (aplicar migração, apagar dados, auth/RLS, merge/deploy); (2) decisão de arquitetura; (3) 2 falhas
+   verificadas em Sonnet/high; (4) revisar trabalho de risco alto. O projeto ser "de produção" **não** é gatilho:
+   o risco é da ação, não do projeto. Editar código num ramo para PR é baixo/médio.
+2. **Projetar antes:** volume, custo relativo (Haiku 1 · Sonnet 3 · Opus 5), chance de acerto e custo de errar;
+   escolher o menor custo esperado.
+3. **Duas camadas:** a sessão principal só classifica, projeta, delega e decide; o volume (leitura, varredura,
+   edição, testes, rascunho) vai para subagente `haiku`/`sonnet` com retorno curto. Opus decide e revisa, não
+   produz volume. Se a sessão está em Opus e a tarefa é barata, recomendar Sonnet/medium em uma frase.
+4. **Verificar e escalar:** LIGHT em risco baixo/médio, FULL em risco alto. Falhou: um degrau acima, máx. 2
+   tentativas por degrau; na 3ª parar e explicar.
+5. **Auto-auditoria:** ao fechar, "usei Opus? qual gatilho?". Sem gatilho = erro de roteamento; partir mais
+   barato na próxima tarefa parecida.
+6. **Linguagem automática:** pt-BR; registro conforme o público (didático para o Eliel, formal administrativo,
+   executivo, leigo). Forma não muda o modelo. Código, commits e PRs seguem a convenção do repositório.
+7. **Relato:** `Roteamento: <classe>/<risco> → <modelo>·<esforço>·<LIGHT|FULL> | proj: … | gatilho Opus: …`.
+<!-- END roteador-modelo-esforco v2 -->
