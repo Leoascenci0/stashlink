@@ -193,9 +193,9 @@ const ITEMS = [
   {n:15, phase:"Antes do 1.0", t:"Raio de até 128 blocos com conduíte", b:"feat/raio-128-conduite", f:["F3","F9"], s:"todo",
    do:["Teto do raio sobe de 64 para 128 quando há um conduit (o bloco submerso, ativo com a estrutura de prismarina) perto do estoque","Sem conduíte, o teto continua 64","Varredura medida de novo no harness; chunk descarregado continua fora"],
    ok:"Com conduíte perto o raio chega a 128, sem ele fica em 64, e a carga segue abaixo de 5 ms por operação."},
-  {n:16, phase:"Antes do 1.0", t:"Bancada usa o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"todo",
-   do:["Bancada enxerga os containers próximos como inventário do jogador (raio inicial 64, sobe com o conduíte)","Tirar item é sempre no servidor e validado (distância, claim, baú aberto por outro)","Sem item fantasma nem dupe ao craftar ou shift-clicar o resultado"],
-   ok:"Craftar só com materiais dos baús ao redor funciona, sem duplicar nem sumir (2 jogadores testados)."},
+  {n:16, phase:"Antes do 1.0", t:"Bancadas usam o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"todo",
+   do:["Bancada enxerga os containers próximos como inventário do jogador (raio inicial 64, sobe com o conduíte)","Mesmo raio e fontes para as outras estações: fornalha, defumador, alto-forno, ferreiro, cortador de pedra, tear, cartografia, pedra de amolar, bigorna, encantamento, poções (as especiais podem ficar de fora, com motivo)","Slots internos de fornalha/poções/estações NÃO são armazenamento: reabastecer, N, W e craftar nunca pegam nem colocam item ali","Tirar item é sempre no servidor e validado (distância, claim, baú aberto por outro)","Sem item fantasma nem dupe ao craftar ou shift-clicar o resultado"],
+   ok:"Craftar só com materiais dos baús ao redor funciona, sem duplicar nem sumir (2 jogadores testados); outras estações idem; teste prova que estações com item dentro nunca são tocadas."},
   {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"todo",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}

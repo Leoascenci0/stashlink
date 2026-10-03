@@ -320,16 +320,30 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
   bem abaixo de 5 ms por operação.
 
-### Item 16 — Bancada de trabalho (crafting table) usa o armazenamento como inventário ⬜
+### Item 16 — Bancadas usam o armazenamento como inventário ⬜
 - **Branch:** `feat/bancada-com-armazenamento`
 - Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
   sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
+- **Outras bancadas também (ideia do Eliel, 2026-10-03):** o mesmo vale, com o **mesmo raio e as mesmas fontes**, para
+  as demais estações: fornalha, defumador (smoker), alto-forno, mesa de ferreiro, cortador de pedra (stonecutter),
+  tear, mesa de cartografia, pedra de amolar, bigorna, mesa de encantamento e suporte de poções. A investigação lista
+  quais menus dá para ligar com a mesma peça de código (o menu tem entrada e saída, o resto muda só a receita) e quais
+  ficam de fora por serem especiais (ex.: bigorna e encantamento gastam XP/lápis; poções e fornalha têm tempo). Vale
+  fazer a base na bancada comum e ir ligando as outras sobre ela, sem copiar código.
+- **Regra: o inventário interno das estações NÃO é armazenamento.** Os slots de fornalha, defumador, alto-forno,
+  suporte de poções e das próprias bancadas (grade, entrada/saída) **nunca** viram fonte nem destino do mod:
+  reabastecer, tecla N, tecla W e a nova função de craftar **não pegam nem colocam item ali**. Hoje já é assim por
+  construção (`NearbyContainers` só aceita `RandomizableContainerBlockEntity`: baú, barril, shulker), mas **falta
+  garantir com teste** e manter assim quando entrarem mais tipos de bloco (funil, dispenser e dropper também ficam de
+  fora, a decidir na investigação). Regra de ouro: item que o jogador deixou cozinhando/processando nunca é mexido.
 - A decidir na investigação: como ligar isso ao menu da bancada (como o Sophisticated Storage / outros mods fazem),
   quais fontes entram (as mesmas do reabastecimento, `PlayerSources`) e como sincronizar o resultado com o cliente
   sem item fantasma. Regras de ouro: tirar item dos containers é **sempre server-side** e validado (distância, claim,
   baú não aberto por outro jogador); nada duplica nem some ao craftar, ao shift-clicar o resultado ou com 2 jogadores.
 - **Pronto quando:** craftar um item usando só materiais que estão nos baús ao redor funciona, nada duplica nem some
-  (testes no harness com 2 jogadores) e respeita o raio.
+  (testes no harness com 2 jogadores) e respeita o raio; as outras estações listadas funcionam do mesmo jeito (ou
+  ficam registradas como "de fora" com o motivo); e um teste prova que fornalha/suporte de poções/estações com item
+  dentro **nunca** são tocadas por reabastecer, N, W nem craftar.
 
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
 - **Branch:** `feat/filtro-tecla-n`
