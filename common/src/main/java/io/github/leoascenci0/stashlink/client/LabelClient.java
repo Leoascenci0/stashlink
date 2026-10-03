@@ -27,6 +27,29 @@ public final class LabelClient {
     private LabelClient() {
     }
 
+    private static LabelPanel awaiting;
+
+    /** Há como rotular: o servidor tem o mod. */
+    public static boolean available() {
+        return serverHasMod.getAsBoolean();
+    }
+
+    /** O container para onde a mira aponta agora (a tela do baú acabou de abrir por clique nele), se der para rotular. */
+    public static net.minecraft.core.BlockPos lookedAtContainer() {
+        Minecraft mc = Minecraft.getInstance();
+        return available() ? ClientCompat.lookedAtBlock(mc) : null;
+    }
+
+    /** O painel do lápis pede o texto atual; a resposta chega em {@link #openEditor}. */
+    public static void fetch(LabelPanel panel) {
+        awaiting = panel;
+        request(Minecraft.getInstance(), panel.pos());
+    }
+
+    public static void save(net.minecraft.core.BlockPos pos, String name, String note) {
+        setSender.accept(new SetLabelRequest(pos, name, note));
+    }
+
     public static void setSenders(Consumer<LabelEditRequest> edit, Consumer<SetLabelRequest> set) {
         editSender = edit;
         setSender = set;
@@ -36,26 +59,49 @@ public final class LabelClient {
         serverHasMod = value;
     }
 
+    /** Tick em que um pedido saiu e ainda não houve resposta (para avisar em vez de falhar calado). */
+    private static long pendingSince = Long.MIN_VALUE;
+    private static final int REPLY_TIMEOUT_TICKS = 40;
+
+    private static void say(Minecraft mc, String key, String fallback) {
+        ClientCompat.overlay(mc, net.minecraft.network.chat.Component.translatableWithFallback(key, fallback));
+    }
+
+    private static void request(Minecraft mc, BlockPos pos) {
+        pendingSince = mc.level.getGameTime();
+        editSender.accept(new LabelEditRequest(pos));
+    }
+
     /** Chame a cada tick: aperto da tecla olhando para um bloco, jogando, com o mod no servidor. */
     public static void poll(Minecraft mc) {
+        if (pendingSince != Long.MIN_VALUE && mc.level != null && mc.level.getGameTime() - pendingSince > REPLY_TIMEOUT_TICKS) {
+            pendingSince = Long.MIN_VALUE;
+            awaiting = null;
+            say(mc, "stashlink.label.no_reply", "No reply from the server: aim at a chest within reach");
+        }
         while (KEY.consumeClick()) {
             if (mc.player == null || mc.level == null || ClientCompat.hasScreenOpen(mc) || mc.player.isSpectator()) {
                 continue;
             }
             BlockPos looked = ClientCompat.lookedAtBlock(mc);
             if (!serverHasMod.getAsBoolean()) {
-                ClientCompat.overlay(mc, net.minecraft.network.chat.Component.translatableWithFallback(
-                        "stashlink.label.no_server_mod", "This server does not have StashLink: labels are unavailable"));
-            } else if (looked != null) {
-                editSender.accept(new LabelEditRequest(looked));
+                say(mc, "stashlink.label.no_server_mod", "This server does not have StashLink: labels are unavailable");
+            } else if (looked == null) {
+                say(mc, "stashlink.label.aim", "Aim at a chest, barrel, shulker box or ender chest");
+            } else {
+                request(mc, looked);
             }
         }
     }
 
     /** O servidor mandou abrir o editor (thread do cliente). */
     public static void openEditor(LabelEditorData data) {
+        pendingSince = Long.MIN_VALUE;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && !ClientCompat.hasScreenOpen(mc)) {
+        if (awaiting != null && awaiting.pos().equals(data.pos())) {
+            awaiting.fill(data.name(), data.note());
+            awaiting = null;
+        } else if (mc.player != null && !ClientCompat.hasScreenOpen(mc)) {
             ClientCompat.openScreen(mc, new LabelEditScreen(data.pos(), data.name(), data.note(),
                     (name, note) -> setSender.accept(new SetLabelRequest(data.pos(), name, note))));
         }

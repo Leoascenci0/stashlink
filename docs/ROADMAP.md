@@ -315,7 +315,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   recriado quando o bloco carrega. O servidor limpa o texto (sem `§`, sem invisíveis/direção, sem emoji que a fonte não
   desenha) e revalida alcance, tipo de bloco e claims. Sem o mod no servidor: nada muda (tecla avisa). Cliente sem o
   mod num servidor com o mod **vê o holograma** (é entidade de texto comum), mas não edita.
-- **Roteiro manual (cliente gráfico; o harness não abre janela):** (1) olhe para um baú e aperte **J**: abre o editor;
+- **Roteiro manual (cliente gráfico; o harness não abre janela):** (1) abra um baú: ao lado do título há um **lápis ✎**; clique nele (ou olhe para o baú e aperte **J**): aparecem dois campos acima da tela;
   digite `Pedras :cobblestone:` e `tudo de construção ❤`, **Concluído** → um texto aparece sobre o baú, com o ícone da
   pedra e o ❤ desenhados (não quadradinhos); (2) afaste-se ~15 blocos: o texto some, volte: aparece; (3) baú duplo: um
   só texto no meio; (4) quebre o baú → o texto some; coloque outro → sem texto; (5) shulker: nomeie, quebre, pegue o

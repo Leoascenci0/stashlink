@@ -43,5 +43,8 @@
   "stashlink.label.hint": "Símbolos e :apple: :heart: :diamond_pickaxe: funcionam. Deixe os dois vazios para remover.",
   "stashlink.label.saved": "Rótulo salvo",
   "stashlink.label.cleared": "Rótulo removido",
-  "stashlink.label.no_server_mod": "Este servidor não tem o StashLink: rótulos indisponíveis"
+  "stashlink.label.no_server_mod": "Este servidor não tem o StashLink: rótulos indisponíveis",
+  "stashlink.label.no_reply": "O servidor não respondeu: mire num baú ao alcance",
+  "stashlink.label.aim": "Mire num baú, barril, shulker ou baú do End",
+  "stashlink.label.pen": "Nomear este container"
 }

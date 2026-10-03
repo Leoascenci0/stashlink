@@ -43,5 +43,8 @@
   "stashlink.label.hint": "Symbols and :apple: :heart: :diamond_pickaxe: work. Leave both empty to remove.",
   "stashlink.label.saved": "Label saved",
   "stashlink.label.cleared": "Label removed",
-  "stashlink.label.no_server_mod": "This server does not have StashLink: labels are unavailable"
+  "stashlink.label.no_server_mod": "This server does not have StashLink: labels are unavailable",
+  "stashlink.label.no_reply": "No reply from the server: aim at a chest within reach",
+  "stashlink.label.aim": "Aim at a chest, barrel, shulker box or ender chest",
+  "stashlink.label.pen": "Name this container"
 }
