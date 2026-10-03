@@ -530,6 +530,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   (liga/desliga e cadeado), em silêncio quando trancada. Achado: puxar/reabastecer pelo `PlayerSources` comum **não**
   conferia "baú aberto por outro jogador"; o botão do meio usa `PlayerSources.operationSkippingOpened`.
   **Modo cliente: não se aplica** (o pick block é do servidor; sem o mod no servidor continua o jogo base).
+- **Confirmado em jogo pelo Eliel (2026-10-03, Prism, Fabric 26.3).**
 - **Testes:** `PickBlockGameTests` (10 cenários no servidor real, 102 GameTests no total, 2 mutações pegas: ignorar baú
   aberto por outro e ignorar "já está no inventário").
 - **Roteiro manual (no Prism, Fabric, servidor com o mod, sobrevivência; confira em Opções > Controles qual botão é o "pegar bloco"):**
