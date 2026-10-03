@@ -325,7 +325,7 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   travar). `IPlatformHelper.sendIfSupported` só envia a quem tem o canal registrado (Fabric: `canSend`; NeoForge:
   `hasChannel`), então cliente vanilla nunca recebe pacote desconhecido. O cliente (`SlotLockClient`) guarda a lista
   por `Container` do menu e **desenha** a prévia (`AbstractContainerScreenMixin` depois de `extractSlot`): item
-  esmaecido + moldura azul no slot vazio; só a moldura no slot reservado que tem item. Alt + clique é
+  esmaecido + pontinho azul no canto (o mesmo pontinho no slot reservado que tem item). Alt + clique é
   tratado no `mouseClicked` (o clique normal é engolido; sem o mod no servidor ele segue como sempre).
 - **Limites conhecidos.** (1) **Funil/hopper e outros mods que mexem direto no container** não respeitam a reserva (o
   `Slot.mayPlace` só vale para menus, e o `canPlaceItem` do baú não é sobrescrevível sem um mixin por classe); o que

@@ -263,7 +263,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   (clique, shift-clique, troca por número, arrastar) e `ContainerInsert` (N, devolução do Litematica) recusam outro
   item; N prefere o slot reservado e alimenta até um baú que só tem a reserva. W só tira itens (a reserva continua).
   Servidor valida tudo (menu aberto, distância, claims, baú não aberto por outro jogador); o cliente com o mod recebe a
-  lista de travas e desenha a prévia (item esmaecido + moldura azul); cliente sem o mod vê o slot vazio e nunca recebe o
+  lista de travas e desenha a prévia (item esmaecido + pontinho azul no canto); cliente sem o mod vê o slot vazio e nunca recebe o
   pacote. Baú duplo (uma trava por metade), barril e shulker funcionam.
 - **Testes:** 14 GameTests novos (`LockGameTests`, 36 no total) com cliques reais no menu: travar/destravar, recusa
   por clique/troca/shift, prévia nunca vira item, N e W, baú duplo, barril, shulker, gravar e recarregar o bloco,
@@ -274,7 +274,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Não testado em jogo ainda (cliente gráfico).** Roteiro para o Eliel (Fabric, `./gradlew :fabric:runClient`, ou o
   servidor próprio com o mod no servidor **e** no cliente; modo Sobrevivência):
   1. Num baú, ponha 10 pedras no slot 4. Segure **Alt** e clique no slot: aparece "Slot reservado para Pedra" e o
-     slot ganha uma **moldura azul**. O clique **não** pode pegar a pedra.
+     slot ganha um **pontinho azul** no canto. O clique **não** pode pegar a pedra.
   2. Pegue as pedras (clique normal ou W). O slot fica vazio, mas mostra a **pedra esmaecida** (a prévia) com a moldura.
   3. Tente colocar terra nesse slot (clique, shift-clique do inventário e tecla numérica): **não entra**. Coloque
      pedra: entra. A prévia some enquanto há pedra e volta ao esvaziar.

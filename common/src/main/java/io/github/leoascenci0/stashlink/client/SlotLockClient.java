@@ -88,18 +88,23 @@ public final class SlotLockClient {
         byContainer.forEach(ClientSlotLocks::set);
     }
 
-    /** Desenha a prévia (item fantasma no slot vazio) ou uma moldura (slot reservado já com item). */
+    /** Desenha a prévia (item fantasma no slot vazio) e um pontinho de "reservado". */
     public static void drawGhost(GuiGraphicsExtractor graphics, Slot slot) {
         Item locked = SlotLocks.lockedItem(slot.container, slot.getContainerSlot());
         if (locked == null) {
             return;
         }
         if (slot.hasItem()) {
-            graphics.outline(slot.x, slot.y, 16, 16, RESERVED_FRAME);
+            drawMarker(graphics, slot);
             return;
         }
         graphics.fakeItem(new ItemStack(locked), slot.x, slot.y);
         graphics.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, GHOST_VEIL);
-        graphics.outline(slot.x, slot.y, 16, 16, RESERVED_FRAME);
+        drawMarker(graphics, slot);
+    }
+
+    /** Pontinho de 2x2 no canto superior direito: indica "reservado" sem poluir o slot. */
+    private static void drawMarker(GuiGraphicsExtractor graphics, Slot slot) {
+        graphics.fill(slot.x + 14, slot.y, slot.x + 16, slot.y + 2, RESERVED_FRAME);
     }
 }
