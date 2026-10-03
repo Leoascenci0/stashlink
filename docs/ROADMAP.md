@@ -238,6 +238,96 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
+## Ideias pós-1.0 (Itens 13–14)
+
+Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
+curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
+
+### Item 13 — Slot de baú travado com um item (pré-visualização) ⬜
+- **Branch:** `feat/slot-travado-item`
+- Ideia: o jogador **trava um slot de um baú com um item específico**. O slot passa a mostrar só uma **prévia
+  (fantasma)** daquele item, e o baú "guarda na memória" que aquele slot é daquele item. É o que o Sophisticated
+  Storage já faz. Serve para organizar: o slot fica reservado para aquele item.
+- A decidir na investigação: o que a prévia faz (só mostra? bloqueia outros itens naquele slot? a tecla N e o
+  guardar passam a preferir o slot reservado?), onde a memória fica guardada (dados do baú, para sobreviver a
+  reiniciar) e como se destrava. Regras de ouro: toda mudança é **server-side** e validada (distância, permissão, baú
+  não aberto por outro jogador); a prévia **não pode virar item real** (nenhum dupe ao clicar, ao shift-clicar, com
+  funil ou com W); baú duplo, barril e shulker precisam funcionar; quem não tem o mod no cliente não pode ver item
+  falso nem perder item.
+- **Pronto quando:** travar/destravar um slot funciona, a prévia aparece, nada duplica nem some (testes no harness
+  `:fabric:runGameTest`, incluindo 2 jogadores no mesmo baú) e N/W respeitam o slot reservado.
+
+### Item 14 — Nome do sistema de armazenamento, com resumo do conteúdo e emojis ⬜
+- **Branch:** `feat/nome-armazenamento`
+- Ideia: dar um **nome ao baú/sistema de armazenamento** e poder **escrever ali quais itens ele tem, sem precisar
+  abrir**. O nome aceita **emojis**.
+- A decidir na investigação: onde o nome aparece (ao olhar para o baú, em placa/holograma, na tela do baú); se vale
+  o nome padrão do jogo (baú renomeado na bigorna) ou um nome do mod; como "sistema" agrupa vários baús; se o resumo
+  é digitado à mão ou gerado do conteúdo.
+- **Risco dos emojis:** a fonte padrão do Minecraft não tem a maioria dos emojis. Opções: usar só os símbolos que a
+  fonte já tem, ou incluir uma fonte/resource pack próprio com os emojis. Também checar o limite de tamanho do nome e
+  que o servidor valide e limite o texto (sem texto gigante, sem formatação maliciosa); em servidor sem o mod o nome
+  precisa degradar bem.
+- **Pronto quando:** dá para nomear, ver o nome/resumo sem abrir o baú, com emojis que aparecem de verdade no jogo, e
+  isso persiste ao reiniciar o servidor.
+
+### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
+- **Branch:** `feat/raio-128-conduite`
+- Ideia: hoje o teto do raio é 64 (`HARD_MAX_RADIUS`). Passa a ser possível **chegar a 128 blocos**, desde que haja um
+  **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 64.
+- Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
+  água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
+- A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
+  precisa estar ativo (com a estrutura de prismarina completa) ou basta existir; se o raio maior vale por container
+  (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
+  (`maxRadius`) e o custo de varredura medido de novo no harness (chunks descarregados continuam fora; nunca forçar
+  carregar chunk).
+- **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
+  bem abaixo de 5 ms por operação.
+
+### Item 16 — Bancada de trabalho (crafting table) usa o armazenamento como inventário ⬜
+- **Branch:** `feat/bancada-com-armazenamento`
+- Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
+  sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
+- A decidir na investigação: como ligar isso ao menu da bancada (como o Sophisticated Storage / outros mods fazem),
+  quais fontes entram (as mesmas do reabastecimento, `PlayerSources`) e como sincronizar o resultado com o cliente
+  sem item fantasma. Regras de ouro: tirar item dos containers é **sempre server-side** e validado (distância, claim,
+  baú não aberto por outro jogador); nada duplica nem some ao craftar, ao shift-clicar o resultado ou com 2 jogadores.
+- **Pronto quando:** craftar um item usando só materiais que estão nos baús ao redor funciona, nada duplica nem some
+  (testes no harness com 2 jogadores) e respeita o raio.
+
+### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
+- **Branch:** `feat/filtro-tecla-n`
+- Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,
+  a N nunca coloca nada nele (para não encher o baú de armadura, por exemplo).
+- Na **tela de configuração**, categorias de item que a N guarda ou não, cada uma com botão e emoji: 🛡️ **Armadura**
+  (ligado guarda armadura, desligado não guarda), e também ferramentas, armas, comida, poções etc. **Blocos comuns
+  ficam de fora** (não precisam de filtro).
+- A decidir na investigação: onde fica a memória do botão do baú (dados do baú, para sobreviver a reiniciar) e como
+  mostrá-lo na tela do baú sem quebrar quem não tem o mod; como classificar os itens por categoria (tags do jogo) e
+  como isso se combina com "o baú já tem o item" da N; emoji na fonte padrão (ver Item 14). Valores validados no
+  servidor, por jogador (como o `PlayerPrefs`), com o padrão do servidor para quem não personalizou.
+- **Pronto quando:** baú com N desligada nunca recebe nada; armadura com a categoria desligada nunca é guardada pela
+  N; as escolhas persistem; testes no harness (inclusive baú duplo e 2 jogadores).
+
+### Item 18 — Litematica: trocar o bloco no mesmo slot e devolver o anterior ao armazenamento ⬜
+- **Branch:** `feat/litematica-troca-no-slot`
+- Problema (achado pelo Eliel testando em jogo, 2026-10-03): construindo com Litematica, apareceu uma laje de pinheiro
+  uma única vez; o mod puxou o item para a mão, e como ela não foi usada nos próximos ~30 blocos, **a hotbar foi
+  enchendo** de itens puxados. Hoje cada pedido (`PullItemService` / `PullLogic.pullIntoHotbar`) acha um slot da hotbar
+  e seleciona ele, sem devolver nada.
+- Ideia: os blocos se **trocam no mesmo slot** conforme a schematic pede. Quando um novo bloco é puxado, o que ficou
+  de antes **volta para o armazenamento de onde veio** (shulker do inventário ou container do raio), e o novo ocupa o
+  mesmo slot.
+- A decidir na investigação: como lembrar de onde cada item veio (origem por pedido; o `ContainerSource` já devolve
+  só ao que ele mesmo tocou); o que fazer se a origem está cheia ou fora do raio (cair no inventário, nunca no chão,
+  nunca perder item); se vale só para o slot que o mod escolheu (nunca mexer em item que o jogador colocou ali);
+  quando devolver (ao pedir outro item, ao trocar de slot, ao fechar o Litematica); e se o mesmo vale para o modo
+  cliente (mover por cliques de inventário). Server-side e validado, como o resto.
+- **Pronto quando:** construir 30+ blocos de tipos diferentes mantém a hotbar limpa, o item anterior volta para onde
+  estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
+  confirmado em jogo com Litematica.
+
 ## Como usar este roadmap
 
 1. Começar cada sessão: `git status` + `git fetch origin --prune` (regra 7 do Eliel).
