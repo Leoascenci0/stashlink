@@ -315,4 +315,24 @@ class ClientMoveLogicTest {
         s.setCount(0);
         assertEquals(Boolean.TRUE, cache.has(new long[]{1L}, x -> x.is(Items.COBBLESTONE) && x.getCount() == 10));
     }
+
+    /** Item 17: categoria desligada na tela de config — a N do modo cliente nunca clica nesses itens nem os conta. */
+    @Test
+    void excludedItemsAreNeverStackedNorCounted() {
+        List<ItemStack> menu = emptyMenu();
+        menu.set(0, stack(Items.IRON_CHESTPLATE, 1));                      // o container já tem os dois
+        menu.set(1, stack(Items.COBBLESTONE, 10));
+        menu.set(menuOfInv(10), stack(Items.IRON_CHESTPLATE, 1));
+        menu.set(menuOfInv(11), stack(Items.COBBLESTONE, 20));
+        java.util.function.Predicate<ItemStack> noArmor = s -> s.is(Items.IRON_CHESTPLATE);
+
+        List<Integer> all = ClientMoveLogic.stackSlots(entries(menu), i -> false, new HashSet<>());
+        assertEquals(List.of(menuOfInv(10), menuOfInv(11)), all, "sem filtro as duas vão");
+        List<Integer> filtered = ClientMoveLogic.stackSlots(entries(menu), i -> false, noArmor, new HashSet<>());
+        assertEquals(List.of(menuOfInv(11)), filtered, "com a armadura excluída só a pedra vai");
+
+        assertEquals(21, ClientMoveLogic.storableCount(entries(menu), i -> false));
+        assertEquals(20, ClientMoveLogic.storableCount(entries(menu), i -> false, noArmor),
+                "o que a N não vai guardar não conta como guardável");
+    }
 }

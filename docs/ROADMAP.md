@@ -406,7 +406,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
      é a do jogo base e o painel some.
   9. Servidor **sem** o mod: tudo como no jogo base (sem painel, sem armazenamento).
 
-### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
+### Item 17 — Escolher o que cada baú recebe com a tecla N ✅
 - **Branch:** `feat/filtro-tecla-n`
 - Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,
   a N nunca coloca nada nele (para não encher o baú de armadura, por exemplo).
@@ -417,6 +417,43 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   mostrá-lo na tela do baú sem quebrar quem não tem o mod; como classificar os itens por categoria (tags do jogo) e
   como isso se combina com "o baú já tem o item" da N; emoji na fonte padrão (ver Item 14). Valores validados no
   servidor, por jogador (como o `PlayerPrefs`), com o padrão do servidor para quem não personalizou.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 17"):** dois filtros independentes na tecla N.
+  (1) **Botão "N" no baú** (verde = recebe, vermelho riscado = nunca recebe), na linha do título à esquerda do lápis do
+  rótulo. O valor mora no próprio bloco (`stashlink_no_quick_stack`, só gravado quando desligado), então sobrevive a
+  reiniciar e some quando baú/barril quebra; **a shulker leva o valor no item** (mesmo `CUSTOM_DATA` do rótulo, inclusive no
+  drop de sobrevivência). Baú duplo: o botão grava nas duas metades. O servidor valida (vivo, menu aberto é o do pedido,
+  distância, claims, nenhum outro jogador com o baú aberto) e sincroniza o estado com o cliente que tem o mod.
+  (2) **Aba "Tecla N" na tela de config** com 5 categorias — 🛡️ Armadura, ⛏️ Ferramentas, ⚔️ Armas, 🍖 Comida, 🧪 Poções —
+  cada uma com botão liga/desliga **e cadeado do servidor**, como as demais funções (são `Feature` novas: o bit "desligado"
+  viaja no `PlayerPrefs` que já existia, sem mudar o formato do pacote). Desligada (ou trancada), a N **nunca** guarda
+  aquele tipo, mesmo que o baú já tenha o item ou tenha um slot reservado para ele. Classificação pelas tags/componentes
+  do jogo (`compat/mc/ItemKinds`); blocos comuns e todo o resto não têm categoria. O "emoji" é o **ícone do item** (a
+  fonte do jogo não tem emoji colorido, ver Item 14).
+- **Testes:** 15 GameTests novos (`FilterGameTests`; 92 no total) — baú com N desligada nunca recebe; N pula o baú
+  desligado e usa o próximo; o botão vale mais que a reserva de slot; baú duplo (as duas metades, uma religada à mão);
+  persistência (gravar/recarregar, padrão não grava nada, quebrar leva o botão); **shulker pelo drop real
+  (`Block.getDrops`)** com rótulo junto; pedidos inválidos (menu errado, fechado, longe, baú do End); baú aberto por
+  outro jogador; classificação por tags; armadura com categoria desligada nunca guardada (mesmo com o item no baú e
+  com reserva); cada categoria sozinha; categoria trancada no servidor; blocos comuns ignoram categorias; pacote; **fuzz
+  de 600 ações com 2 jogadores** conferindo a soma de cada item depois de CADA ação. +1 unitário do modo cliente.
+  **Mutação:** 6 defeitos injetados e pegos — N ignorando o botão (5 testes), N ignorando categorias (3), shulker sem o
+  botão no drop (1) e no `collectComponents` (1), botão não gravado no disco (1), mudar o botão com o baú aberto por
+  outro (2).
+- **Não testado em jogo ainda (cliente gráfico).** Roteiro para o Eliel (jar em `fabric/build/libs`, sem `-sources`):
+  1. Abrir um baú com o mod no servidor: aparece um **"N" verde** à esquerda do lápis, na linha do título. O nome do baú
+     continua cabendo ao lado do título.
+  2. Clicar no N: fica **vermelho riscado** e a barra de ação diz "A N não vai mais colocar itens neste container".
+     Fechar e abrir de novo: continua vermelho.
+  3. Pôr o mesmo item no baú e na mochila e apertar N: **nada entra** nesse baú. Com outro baú perto que também tem o
+     item, vai para o outro.
+  4. Reiniciar o mundo/servidor: o botão continua vermelho. Quebrar o baú e colocar outro no lugar: volta verde.
+  5. Baú duplo: um clique vale para as duas metades. Shulker: desligar, quebrar em sobrevivência, colocar de novo: continua
+     desligada (e com o nome, se tinha).
+  6. Config → aba **Tecla N**: 5 botões com o ícone do item ao lado do nome. Desligar Armadura, deixar uma bota e
+     um capacete na mochila e apertar N perto de um baú que já tem botas: a armadura **não** é guardada, o resto sim.
+  7. Dono/operador: o cadeado de uma categoria a desliga para todos no servidor (botão fica cinza "Trancada").
+  8. Servidor **sem** o mod (modo cliente): a categoria desligada também vale; o botão do baú não aparece.
+  9. Se o ícone aparecer como quadrado ou sumir nos botões da aba, avise: troco por símbolo da fonte.
 - **Pronto quando:** baú com N desligada nunca recebe nada; armadura com a categoria desligada nunca é guardada pela
   N; as escolhas persistem; testes no harness (inclusive baú duplo e 2 jogadores).
 

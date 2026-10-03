@@ -613,3 +613,53 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - Devolver itens emprestados (caderno) continua possível mesmo se o ajuste for desligado no meio: o item volta a quem o emprestou.
 - Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach16AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
   ajuste e deixar as shulkers servirem foram pegos.
+
+## Item 17 — Escolher o que cada baú recebe com a tecla N
+
+- **Dois filtros, duas perguntas.** (a) *Este baú aceita receber com a N?* — é do **baú** (botão na tela dele). (b) *Este
+  jogador deixa a N guardar este tipo de item?* — é do **jogador** (aba "Tecla N" da config). A N só coloca o item se as
+  duas respostas forem sim. Nenhum dos dois toca em guardar à mão, W, funil, Litematica ou reabastecer: só a N.
+- **Onde a memória do botão fica.** No mesmo mixin dos Itens 13/14 (`BaseContainerBlockEntityMixin` implementa também
+  `ReceiveHolder`): `stashlink_no_quick_stack = true` no NBT do bloco, **gravado só quando desligado** (o padrão é receber,
+  então nenhum baú existente muda e baú sem mexer não ganha dado nenhum). Mesmas consequências boas dos outros itens:
+  sobrevive a reiniciar, é copiado com o mundo, some com o baú/barril quebrado. **Shulker** leva o valor no item: o
+  `CUSTOM_DATA` agora é montado num lugar só (`LabelCompat.shulkerTag`) com **rótulo e botão juntos** — antes cada um
+  sobrescreveria o outro —, tanto em `collectImplicitComponents` (criativo/pegar bloco) quanto no `getDrops` da sobrevivência
+  (`ShulkerBoxBlockMixin`, o caso real do Eliel). O teste confere o drop real com `Block.getDrops`. Descartado: uma lista de
+  posições no mundo (ficaria órfã) e Data Attachment (duas implementações, uma sem harness).
+- **Baú duplo.** O botão grava nas duas metades (`QuickStackReceive.set`). Para **receber**, as duas precisam aceitar: se um
+  baú novo foi colocado ao lado de um desligado, o conjunto continua desligado — o lado seguro (a N nunca enche um baú que
+  alguém desligou). Ligar pelo botão religa as duas.
+- **Cliente.** Botão `ReceivePanel` na linha do título (à esquerda do lápis do rótulo, que cedeu 24 px de largura). Quem
+  desenha é `AbstractContainerScreenMixin` (`init` e `extractRenderState`, alvos que já constavam no UPDATING). O estado
+  vem do servidor **dentro do pacote que já existia** (`SlotLocksSync` ganhou o campo `receives`; o tick `SlotLockSync`
+  compara e só reenvia se mudou), então não há pacote servidor→cliente novo. Só o pedido é novo: `ReceivesRequest(containerId,
+  receives)` — valor explícito, não "inverter", para um clique duplo não desfazer o outro. Cliente vanilla nunca recebe nada
+  (`sendIfSupported`) e não vê o botão. Cor + risco (não só cor) para quem tem daltonismo.
+- **Validação no servidor (`QuickStackReceiveService`).** Igual à trava de slot (Item 13): vivo e não espectador; é **este**
+  o menu aberto; menu de baú/barril/shulker; `stillValid` (distância); claims (`canPlayerUseBlock` por block entity);
+  **nenhum outro jogador com o container aberto**. Container sem memória (baú do End) responde "não pode ser
+  configurado". Não passa pelo cadeado da N: só mexe em metadado.
+- **Categorias (`ItemCategory` + `compat/mc/ItemKinds`).** Armadura (tags de elmo/peitoral/calça/bota, asa-delta, escudo),
+  Ferramentas (picareta, machado, pá, enxada, tesoura, vara — machado conta aqui, não como arma), Armas (espada, lança, arco,
+  besta, tridente, maça), Comida (componente `FOOD`) e Poções (componente `POTION_CONTENTS`, menos flecha de poção, que é
+  munição). **Cada item cai em no máximo uma categoria** (a primeira da ordem); o resto — blocos, minérios, ferramentas de
+  mods fora das tags — não tem categoria e a N o trata como sempre. Só tags/componentes do jogo, sem lista de itens à mão:
+  itens de mods que entram nelas são reconhecidos sozinhos. A API frágil mora toda em `ItemKinds`.
+- **Cada categoria é uma `Feature`** (`CAT_ARMOR`...`CAT_POTIONS`, `isCategory()`): reaproveita o bit "desligado pelo jogador"
+  (no `PlayerPrefs.disabledFeatures`, **formato do pacote inalterado**), o cadeado do servidor (`/stashlink feature`, config) e
+  a política enviada ao cliente. Isso responde "padrão do servidor para quem não personalizou": ligado, e o servidor pode
+  trancar (**trancada = a N nunca guarda aquele tipo naquele servidor**, o mesmo "trancada = não funciona" do 18.1).
+  Aba própria "Tecla N" na tela (as outras ficaram como estavam); a linha mostra o **ícone do item** como "emoji" (recurso do
+  próprio jogo, `Component.object` com `AtlasSprite`; a fonte padrão não tem emoji colorido, ver Item 14).
+- **Como combina com "o baú já tem o item".** A categoria desligada **vence tudo**: o item nunca é candidato, mesmo que o
+  baú o contenha ou tenha um slot reservado para ele (Item 13). O botão do baú desligado também vence a reserva. Na prática
+  `QuickStackLogic.stack` ganhou o parâmetro `excluded` e consulta `QuickStackReceive.accepts` antes de qualquer das duas
+  rodadas; o resto do algoritmo (simular → aplicar, conservação) não mudou.
+- **Modo cliente (servidor sem o mod).** As categorias valem (são preferência pessoal): `QuickStackJob` não clica nos itens
+  excluídos nem os conta como "guardáveis". O botão do baú **não existe** lá (não há onde guardar o valor).
+- **Testes.** Ver `ROADMAP.md`. Lição repetida: itens exclusivos por teste (TUFF, BASALT, CALCITE, DRIPSTONE_BLOCK, ...).
+- **Limites conhecidos.** (1) O desenho do botão e dos ícones depende do cliente gráfico: roteiro manual no `ROADMAP.md`.
+  (2) Funil e outros mods continuam enchendo um baú "desligado": o botão só governa a N. (3) O botão aparece em toda tela
+  de baú/barril/shulker, inclusive baú do End; ali o clique só avisa que não dá. (4) Shulker colocada e depois "pega com
+  bloco do meio" no criativo leva o botão (e o rótulo) por `collectComponents`; em sobrevivência vai pelo `getDrops`.
