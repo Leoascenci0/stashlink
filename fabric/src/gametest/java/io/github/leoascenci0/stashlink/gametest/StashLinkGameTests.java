@@ -230,6 +230,37 @@ public class StashLinkGameTests {
         h.succeed();
     }
 
+    /**
+     * Pedido do Eliel: o raio é uma esfera 3D; para cima e para baixo conta igual ao horizontal. Confere o baú
+     * específico (não a quantidade), porque baús de outros testes podem estar dentro do raio.
+     */
+    @GameTest
+    public void radiusIsASphere(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ServerPlayer a = lab.player(4, 2, 4);
+        Lab.prefs(a, 16, true);
+        // (dx, dy, dz) a partir do jogador. Distância real ao centro do bloco: ~12.5, ~11.5, ~13, ~13, ~14.7
+        int[][] inside = {{0, 12, 0}, {0, -12, 0}, {9, 11, 0}, {-9, -11, 0}, {8, 8, 8}};
+        // ~17.5, ~16.5, ~17.5, ~19, ~17.7: cada um só passa se contar só o horizontal (ou só o vertical)
+        int[][] outside = {{0, 17, 0}, {0, -17, 0}, {12, 12, 0}, {10, -12, 10}, {10, 10, 10}};
+        for (int[] d : inside) {
+            check(h, foundAt(lab, a, d), "devia achar o baú em " + java.util.Arrays.toString(d));
+        }
+        for (int[] d : outside) {
+            check(h, !foundAt(lab, a, d), "NÃO devia achar o baú em " + java.util.Arrays.toString(d));
+        }
+        h.succeed();
+    }
+
+    private static boolean foundAt(Lab lab, ServerPlayer a, int[] d) {
+        Container c = lab.chest(4 + d[0], 2 + d[1], 4 + d[2]);
+        Lab.fill(c, 0, COBBLE, 1);
+        BlockPos pos = lab.helper.absolutePos(new BlockPos(4 + d[0], 2 + d[1], 4 + d[2]));
+        boolean found = NearbyContainers.findAllStorage(a).stream().anyMatch(e -> e.where().contains(pos));
+        lab.cleanup();
+        return found;
+    }
+
     /** Bug do Item 10.1: a tecla W não pode encher slots que o jogador travou nas preferências dele. */
     @GameTest
     public void lootAllRespectsPlayerLockedSlots(GameTestHelper h) {
