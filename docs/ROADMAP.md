@@ -237,7 +237,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - Workflow de release, changelog e README. A publicação em si foi movida para o **Item 22** (último), porque ainda há itens a implementar antes (13–21), decisão do Eliel em 2026-10-03.
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 
-## Itens a implementar antes do release (Itens 13–21)
+## Itens a implementar antes do release (Itens 13–21, com o 15 deixado para o fim)
 
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
@@ -323,20 +323,6 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   item, coloque → o nome volta; baú do End: nomeie, quebre, recoloque no mesmo lugar → volta; (6) saia e entre no
   mundo / reinicie o servidor: o texto continua; (7) digite um emoji colorido (📦) → ele é descartado ao salvar;
   (8) num servidor **sem** o mod, J só mostra o aviso.
-
-### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
-- **Branch:** `feat/raio-128-conduite`
-- Ideia: hoje o teto do raio de baús, barris e bancadas é 16 (`HARD_MAX_RADIUS`; decisão do Eliel, 2026-10-03: o 64 antigo estava desbalanceado). Passa a ser possível **chegar a 32 blocos**, desde que haja um
-  **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 16.
-- Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
-  água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
-- A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
-  precisa estar ativo (com a estrutura de prismarina completa) ou basta existir; se o raio maior vale por container
-  (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
-  (`maxRadius`) e o custo de varredura medido de novo no harness (chunks descarregados continuam fora; nunca forçar
-  carregar chunk).
-- **Pronto quando:** com conduíte perto o raio dos baús sobe até 32, sem ele fica em 16, e a medição com 289+ containers segue
-  bem abaixo de 5 ms por operação.
 
 ### Item 16 — Bancadas usam o armazenamento como inventário ✅
 - **Branch:** `feat/bancada-com-armazenamento`
@@ -538,6 +524,23 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** Shift + passar o mouse coleta os itens por onde passou, e só esses; mochila cheia para sem perder
   item; nada duplica nem some (conferir a soma antes e depois, também com latência alta); slots de resultado nunca
   são disparados.
+
+### Item 15 — Raio de até 32 blocos com conduíte (conduit) perto do estoque ⬜
+- **Branch:** `feat/raio-32-conduite`
+- **Ordem:** penúltimo item do plano, logo antes da publicação (Item 22). Ordem escolhida pelo Eliel: 17, 19, 20, 21, 15, 22.
+- Ideia: o teto do raio de **baús, barris e bancadas** é **16** (`HARD_MAX_RADIUS`; decisão do Eliel, 2026-10-03: o 64 antigo
+  estava desbalanceado). Passa a ser possível **chegar a 32 blocos**, desde que haja um **conduíte ativo instalado perto do
+  estoque**. Sem conduíte, continua o teto de 16. As **shulkers colocadas** têm raio próprio (padrão 32, a tela sobe até 64) e
+  **não** dependem do conduíte. A bancada usa os mesmos raios dos baús (só baús e barris, nunca shulkers).
+- Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
+  água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
+- A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
+  precisa estar ativo (com a estrutura de prismarina completa) ou basta existir; se o raio maior vale por container
+  (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
+  (`maxRadius`, limite do código 32 só com conduíte) e o custo de varredura medido de novo no harness (chunks
+  descarregados continuam fora; nunca forçar carregar chunk). Ler o raio sempre por `PlayerPrefsStore.radius`.
+- **Pronto quando:** com conduíte perto o raio dos baús sobe até 32, sem ele fica em 16, e a medição com 289+ containers segue
+  bem abaixo de 5 ms por operação.
 
 ### Item 22 — Release 1.0 (publicação) ⬜
 - **Branch:** `chore/publicar-1.0`
