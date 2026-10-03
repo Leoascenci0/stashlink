@@ -232,13 +232,12 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; os roteiros do 10.2/10.3
   continuam valendo) e GameTest no NeoForge.
 
-### Item 12 — Release 🟨
+### Item 12 — Preparar o release (workflow, changelog, README) ✅
 - **Branch:** `chore/release-1.0`
-- README com GIFs, changelog, publicação Modrinth/CurseForge, artefatos por loader via CI.
+- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 19** (último), porque ainda há itens a implementar antes (13–18), decisão do Eliel em 2026-10-03.
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
-- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
-## Ideias pós-1.0 (Itens 13–14)
+## Itens a implementar antes do release (Itens 13–18)
 
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
@@ -352,6 +351,12 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** construir 30+ blocos de tipos diferentes mantém a hotbar limpa, o item anterior volta para onde
   estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
   confirmado em jogo com Litematica.
+
+### Item 19 — Release 1.0 (publicação) ⬜
+- **Branch:** `chore/publicar-1.0`
+- Último item do plano: só entra depois dos Itens 13–18. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–18 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
+- **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Como usar este roadmap
 
