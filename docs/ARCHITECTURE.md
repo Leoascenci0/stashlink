@@ -635,7 +635,7 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   vem do servidor **dentro do pacote que já existia** (`SlotLocksSync` ganhou o campo `receives`; o tick `SlotLockSync`
   compara e só reenvia se mudou), então não há pacote servidor→cliente novo. Só o pedido é novo: `ReceivesRequest(containerId,
   receives)` — valor explícito, não "inverter", para um clique duplo não desfazer o outro. Cliente vanilla nunca recebe nada
-  (`sendIfSupported`) e não vê o botão. Cor + risco (não só cor) para quem tem daltonismo.
+  (`sendIfSupported`) e não vê o botão. Ligado = cor normal; desligado = cinza e riscado (não só cor). Botão e lápis têm 12 px e a mesma cor. Os textos não citam letras de tecla (a tecla é remapeável).
 - **Validação no servidor (`QuickStackReceiveService`).** Igual à trava de slot (Item 13): vivo e não espectador; é **este**
   o menu aberto; menu de baú/barril/shulker; `stillValid` (distância); claims (`canPlayerUseBlock` por block entity);
   **nenhum outro jogador com o container aberto**. Container sem memória (baú do End) responde "não pode ser
@@ -650,7 +650,7 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   (no `PlayerPrefs.disabledFeatures`, **formato do pacote inalterado**), o cadeado do servidor (`/stashlink feature`, config) e
   a política enviada ao cliente. Isso responde "padrão do servidor para quem não personalizou": ligado, e o servidor pode
   trancar (**trancada = a N nunca guarda aquele tipo naquele servidor**, o mesmo "trancada = não funciona" do 18.1).
-  Aba própria "Tecla N" na tela (as outras ficaram como estavam); a linha mostra o **ícone do item** como "emoji" (recurso do
+  Aba própria "Itens bloqueados" na tela (as outras ficaram como estavam); a linha mostra o **ícone do item** como "emoji" (recurso do
   próprio jogo, `Component.object` com `AtlasSprite`; a fonte padrão não tem emoji colorido, ver Item 14).
 - **Como combina com "o baú já tem o item".** A categoria desligada **vence tudo**: o item nunca é candidato, mesmo que o
   baú o contenha ou tenha um slot reservado para ele (Item 13). O botão do baú desligado também vence a reserva. Na prática

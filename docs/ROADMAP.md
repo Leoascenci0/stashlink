@@ -418,7 +418,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   como isso se combina com "o baú já tem o item" da N; emoji na fonte padrão (ver Item 14). Valores validados no
   servidor, por jogador (como o `PlayerPrefs`), com o padrão do servidor para quem não personalizou.
 - **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 17"):** dois filtros independentes na tecla N.
-  (1) **Botão "N" no baú** (verde = recebe, vermelho riscado = nunca recebe), na linha do título à esquerda do lápis do
+  (1) **Botão "N" no baú** (normal = recebe, cinza riscado = nunca recebe), na linha do título à esquerda do lápis do
   rótulo. O valor mora no próprio bloco (`stashlink_no_quick_stack`, só gravado quando desligado), então sobrevive a
   reiniciar e some quando baú/barril quebra; **a shulker leva o valor no item** (mesmo `CUSTOM_DATA` do rótulo, inclusive no
   drop de sobrevivência). Baú duplo: o botão grava nas duas metades. O servidor valida (vivo, menu aberto é o do pedido,
@@ -440,16 +440,16 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   botão no drop (1) e no `collectComponents` (1), botão não gravado no disco (1), mudar o botão com o baú aberto por
   outro (2).
 - **Não testado em jogo ainda (cliente gráfico).** Roteiro para o Eliel (jar em `fabric/build/libs`, sem `-sources`):
-  1. Abrir um baú com o mod no servidor: aparece um **"N" verde** à esquerda do lápis, na linha do título. O nome do baú
+  1. Abrir um baú com o mod no servidor: aparece um **"N" pequeno** à esquerda do lápis, na linha do título. O nome do baú
      continua cabendo ao lado do título.
-  2. Clicar no N: fica **vermelho riscado** e a barra de ação diz "A N não vai mais colocar itens neste container".
-     Fechar e abrir de novo: continua vermelho.
+  2. Clicar no N: fica **cinza riscado** e a barra de ação diz "A N não vai mais colocar itens neste container".
+     Fechar e abrir de novo: continua cinza riscado.
   3. Pôr o mesmo item no baú e na mochila e apertar N: **nada entra** nesse baú. Com outro baú perto que também tem o
      item, vai para o outro.
-  4. Reiniciar o mundo/servidor: o botão continua vermelho. Quebrar o baú e colocar outro no lugar: volta verde.
+  4. Reiniciar o mundo/servidor: o botão continua cinza riscado. Quebrar o baú e colocar outro no lugar: volta normal.
   5. Baú duplo: um clique vale para as duas metades. Shulker: desligar, quebrar em sobrevivência, colocar de novo: continua
      desligada (e com o nome, se tinha).
-  6. Config → aba **Tecla N**: 5 botões com o ícone do item ao lado do nome. Desligar Armadura, deixar uma bota e
+  6. Config → aba **Itens bloqueados**: 5 botões com o ícone do item ao lado do nome. Desligar Armadura, deixar uma bota e
      um capacete na mochila e apertar N perto de um baú que já tem botas: a armadura **não** é guardada, o resto sim.
   7. Dono/operador: o cadeado de uma categoria a desliga para todos no servidor (botão fica cinza "Trancada").
   8. Servidor **sem** o mod (modo cliente): a categoria desligada também vale; o botão do baú não aparece.

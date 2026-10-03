@@ -292,7 +292,7 @@ public class StashLinkConfigScreen extends Screen {
         }
         if (page == PAGE_CATEGORIES) {
             graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.categories_info",
-                    "What the N key may store. Off = N never stores that type, even if the chest already has it"),
+                    "Off = quick store never takes that type"),
                     cx, infoY, 0xFFAAAAAA);
         }
         if (page == PAGE_SETTINGS) {

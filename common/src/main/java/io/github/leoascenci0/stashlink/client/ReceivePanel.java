@@ -13,13 +13,13 @@ import net.minecraft.world.inventory.Slot;
 import java.util.List;
 
 /**
- * O botão "N" na tela do baú (Item 17): verde = o baú recebe itens com a tecla N; vermelho riscado = a N nunca
+ * O botão "N" na tela do baú (Item 17): normal = o baú recebe itens com a tecla N; cinza riscado = a N nunca
  * coloca nada nele. Só aparece com o mod no servidor. O valor mostrado é o que o servidor contou
  * ({@link QuickStackReceive#accepts}); o clique só <b>pede</b> a mudança e o servidor decide.
  */
 public final class ReceivePanel {
     /** Largura reservada à direita do título para o botão (LabelPanel encolhe o campo do nome por isso). */
-    public static final int RESERVED = 24;
+    public static final int RESERVED = 14;
 
     private final Button button;
     private final AbstractContainerMenu menu;
@@ -30,7 +30,7 @@ public final class ReceivePanel {
         this.storage = storage;
         // À esquerda do lápis do rótulo (que fica a 22 px da borda direita).
         button = Button.builder(Component.literal("N"), b -> toggle())
-                .bounds(left + width - 22 - RESERVED, top + 3, 22, 14).build();
+                .bounds(left + width - 20 - RESERVED, top + 4, 12, 12).build();
         refresh();
     }
 
@@ -59,9 +59,9 @@ public final class ReceivePanel {
     /** Põe no botão o que o servidor contou (chamado a cada desenho: é barato). */
     public void refresh() {
         boolean on = QuickStackReceive.accepts(storage);
-        button.setMessage(Component.literal("N").withStyle(on
-                ? new ChatFormatting[]{ChatFormatting.GREEN}
-                : new ChatFormatting[]{ChatFormatting.RED, ChatFormatting.STRIKETHROUGH}));
+        // Ligado: "N" na cor normal dos botões (igual ao lápis). Desligado: cinza e riscado.
+        button.setMessage(on ? Component.literal("N")
+                : Component.literal("N").withStyle(ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH));
         button.setTooltip(Tooltip.create(on
                 ? Component.translatableWithFallback("stashlink.receives.tip_on",
                         "N stores items here. Click to stop N from putting items in this container")
