@@ -305,16 +305,17 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   precisa degradar bem.
 - **Pronto quando:** dá para nomear, ver o nome/resumo sem abrir o baú, com emojis que aparecem de verdade no jogo, e
   isso persiste ao reiniciar o servidor.
-- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 14"):** decisões do Eliel (2026-10-03): o nome e o resumo aparecem
-  num **holograma** (texto flutuante) sobre o baú, **visto só de perto** (~10 blocos); o resumo é **digitado à mão**;
-  emojis = **símbolos que a fonte do jogo já tem (❤ ⭐ ⚡ ✔ ⚔ ⛏...) + ícones de item/bloco inline** (`:apple:`,
-  `:diamond_pickaxe:`, `:oak_log:`), porque a fonte padrão **não tem** 📦🔥🍎 (conferi o unifont do 26.3); baú duplo =
-  um só rótulo/holograma. **Tecla J** (Controles) olhando para o bloco abre o editor (nome até 32 e resumo até 64
-  caracteres). O rótulo mora no bloco: **baú e barril perdem ao quebrar; shulker leva no item e o baú do End guarda
-  por posição** (sobrevive a quebrar e recolocar). O holograma é só reflexo do rótulo: nunca vai para o disco e é
-  recriado quando o bloco carrega. O servidor limpa o texto (sem `§`, sem invisíveis/direção, sem emoji que a fonte não
-  desenha) e revalida alcance, tipo de bloco e claims. Sem o mod no servidor: nada muda (tecla avisa). Cliente sem o
-  mod num servidor com o mod **vê o holograma** (é entidade de texto comum), mas não edita.
+- **Feito e confirmado em jogo pelo Eliel (decisões em `docs/ARCHITECTURE.md`, "Item 14"):** o nome do baú aparece num
+  **holograma** (texto flutuante, metade do tamanho) **na frente do bloco**, visto só a **até 32 blocos** (decidido pelo
+  servidor) e sem ser cortado por baú empilhado nem pela quina do baú (sem teste de profundidade; aparece também através
+  de paredes). Na tela do baú há um **lápis ✎** ao lado do título: clicar abre um **campo único** e o botão vira ✔;
+  clicar no ✔ (ou Enter, ou fechar a tela) grava, e o nome fica como texto comum ao lado de "Baú". A **tecla J**
+  (olhando para o bloco) abre um editor equivalente. Emojis = **símbolos que a fonte já tem (❤ ⭐ ⚡ ✔ ⚔ ⛏...) + ícones
+  de item/bloco inline** (`:apple:`, `:oak_log:`), porque a fonte padrão **não tem** 📦🔥🍎 (conferido no unifont do
+  26.3). Até 48 caracteres. Baú duplo = um só rótulo. **Baú e barril perdem o rótulo ao quebrar; shulker leva no item;
+  baú do End guarda por posição.** O holograma nunca vai para o disco. O servidor limpa o texto (sem `§`,
+  invisíveis/direção, emoji sem glifo) e revalida alcance, tipo de bloco e claims. Cliente sem o mod num servidor com
+  o mod vê o holograma, mas não edita; servidor sem o mod: nada muda.
 - **Roteiro manual (cliente gráfico; o harness não abre janela):** (1) abra um baú: ao lado do título há um **lápis ✎**; clique nele (ou olhe para o baú e aperte **J**): aparecem dois campos acima da tela;
   digite `Pedras :cobblestone:` e `tudo de construção ❤`, **Concluído** → um texto aparece sobre o baú, com o ícone da
   pedra e o ❤ desenhados (não quadradinhos); (2) o texto fica na frente do baú, perto da face (empilhe outro baú por cima: o texto continua visível); afaste-se ~35 blocos: o texto some, volte: aparece; (3) baú duplo: um
