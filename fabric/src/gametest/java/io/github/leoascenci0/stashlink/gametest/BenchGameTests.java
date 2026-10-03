@@ -175,6 +175,26 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Baús e barris: teto 16 (mesmo com raio pedido 50). Shulkers colocadas: padrão 32. */
+    @GameTest
+    public void chestsReach16AndShulkersReach32(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Lab.fill(lab.chest(24, 2, 4), 0, COBBLE, 5);                       // a 20 blocos: além dos 16 dos baús
+        Lab.fill(lab.block(Blocks.SHULKER_BOX, 34, 2, 4), 0, DIRT, 5);     // a 30 blocos: dentro dos 32 das shulkers
+        Lab.fill(lab.block(Blocks.SHULKER_BOX, 44, 2, 4), 0, Items.SAND, 5); // a 40 blocos: fora
+        Lab.fill(lab.chest(10, 2, 4), 0, Items.GRAVEL, 5);                 // a 6 blocos: dentro
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 50, true);
+        List<BenchPoolSync.Entry> seen = BenchSync.snapshot(p);
+        List<Item> items = new ArrayList<>();
+        for (BenchPoolSync.Entry e : seen) {
+            items.add(e.item().getItem());
+        }
+        check(h, items.contains(Items.GRAVEL) && items.contains(DIRT) && items.size() == 2,
+                "devia ver só o baú a 6 e a shulker a 30: " + items);
+        clean(lab, h);
+    }
+
     @GameTest
     public void fullBagLeavesChestsIntact(GameTestHelper h) {
         Lab lab = new Lab(h);

@@ -326,7 +326,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 
 ### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
 - **Branch:** `feat/raio-128-conduite`
-- Ideia: hoje o teto do raio é 64 (`HARD_MAX_RADIUS`). Passa a ser possível **chegar a 128 blocos**, desde que haja um
+- Ideia: hoje o teto do raio de baús, barris e bancadas é 16 (`HARD_MAX_RADIUS`; decisão do Eliel, 2026-10-03: o 64 antigo estava desbalanceado). Passa a ser possível **chegar a 32 blocos**, desde que haja um
   **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 64.
 - Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
   água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
@@ -335,13 +335,13 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
   (`maxRadius`) e o custo de varredura medido de novo no harness (chunks descarregados continuam fora; nunca forçar
   carregar chunk).
-- **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
+- **Pronto quando:** com conduíte perto o raio dos baús sobe até 32, sem ele fica em 16, e a medição com 289+ containers segue
   bem abaixo de 5 ms por operação.
 
 ### Item 16 — Bancadas usam o armazenamento como inventário ✅
 - **Branch:** `feat/bancada-com-armazenamento`
 - Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
-  sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
+  sem carregar os materiais. **Mesmo raio dos baús: 16 blocos** (2026-10-03), podendo subir com o Item 15 (conduíte, até 32). Shulkers colocadas têm raio próprio (padrão 32, a tela sobe até 64).
 - **Outras bancadas também (ideia do Eliel, 2026-10-03):** o mesmo vale, com o **mesmo raio e as mesmas fontes**, para
   as demais estações: fornalha, defumador (smoker), alto-forno, mesa de ferreiro, cortador de pedra (stonecutter),
   tear, mesa de cartografia, pedra de amolar, bigorna, mesa de encantamento e suporte de poções. A investigação lista

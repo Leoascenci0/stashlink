@@ -3,7 +3,7 @@
 ## 1.0.0 — Minecraft 26.3 (Fabric e NeoForge)
 
 - **Reabastecer a mão** a partir de shulkers no inventário, e de shulkers/baús/barris colocados perto.
-- **Raio de fontes** configurável (teto definido pelo servidor, máx. 64).
+- **Raio de fontes** configurável: baús, barris e bancadas até 16 blocos; shulkers colocadas até 64 (padrão 32).
 - **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers; o bloco novo troca no mesmo slot e o anterior volta ao armazenamento (a hotbar não enche).
 - **Slot travado**: Alt + clique num slot de baú reserva o slot para aquele item (só ele entra; N prefere o slot; a prévia aparece no slot vazio). Fica gravado no baú e funciona em baú duplo, barril e shulker colocada.
 - **Tecla N** guarda itens em baús próximos que já têm o item; **tecla W** puxa tudo do container aberto.

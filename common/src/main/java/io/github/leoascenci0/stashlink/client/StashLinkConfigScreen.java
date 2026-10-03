@@ -208,8 +208,9 @@ public class StashLinkConfigScreen extends Screen {
         }
 
         if (!clientModeActive) {
-            addRenderableWidget(new RadiusSlider(x, y, local));
-
+            addRenderableWidget(new RadiusSlider(x, y, local, false));
+            y += ROW;
+            addRenderableWidget(new RadiusSlider(x, y, local, true));
             y += ROW;
             addRenderableWidget(Button.builder(chestsLabel(), b -> {
                 if (local) {
@@ -331,40 +332,58 @@ public class StashLinkConfigScreen extends Screen {
     /** Slider de 0 até o teto (local: o do jogo; servidor: o do código, e o servidor limita), passos de 1 bloco. */
     private static final class RadiusSlider extends AbstractSliderButton {
         private final boolean local;
+        /** {@code true}: raio das shulkers colocadas (vai até 64); {@code false}: baús, barris e bancadas (até 16). */
+        private final boolean shulker;
 
-        RadiusSlider(int x, int y, boolean local) {
-            super(x, y, WIDTH, 20, Component.empty(), toSlider(local, initial(local)));
+        RadiusSlider(int x, int y, boolean local, boolean shulker) {
+            super(x, y, WIDTH, 20, Component.empty(), toSlider(cap(local, shulker), initial(local, shulker)));
             this.local = local;
+            this.shulker = shulker;
             updateMessage();
         }
 
-        private static int cap(boolean local) {
+        private static int cap(boolean local, boolean shulker) {
+            if (shulker) {
+                return local ? StashLinkConfig.shulkerCap() : StashLinkConfig.HARD_MAX_SHULKER_RADIUS;
+            }
             return local ? StashLinkConfig.radiusCap() : StashLinkConfig.HARD_MAX_RADIUS;
         }
 
         /** Num servidor, sem preferência ainda, mostra o padrão do código; a preferência só vira "escolhida" ao mexer. */
-        private static int initial(boolean local) {
+        private static int initial(boolean local, boolean shulker) {
+            if (shulker) {
+                return local || ClientPrefs.shulkerRadius == PlayerPrefs.UNSET ? StashLinkConfig.shulkerRadius
+                        : ClientPrefs.shulkerRadius;
+            }
             return local || ClientPrefs.radius == PlayerPrefs.UNSET ? StashLinkConfig.sourceRadius : ClientPrefs.radius;
         }
 
-        private static double toSlider(boolean local, int radius) {
-            int cap = cap(local);
+        private static double toSlider(int cap, int radius) {
             return cap == 0 ? 0 : Math.max(0, Math.min(1, radius / (double) cap));
         }
 
         private int radius() {
-            return (int) Math.round(this.value * cap(local));
+            return (int) Math.round(this.value * cap(local, shulker));
         }
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.translatableWithFallback("stashlink.config.radius",
-                    "Source radius: %s blocks", radius()));
+            setMessage(shulker
+                    ? Component.translatableWithFallback("stashlink.config.shulker_radius",
+                            "Shulker radius: %s blocks", radius())
+                    : Component.translatableWithFallback("stashlink.config.radius",
+                            "Chest, barrel and workbench radius: %s blocks", radius()));
         }
 
         @Override
         protected void applyValue() {
-            if (local) {
+            if (shulker) {
+                if (local) {
+                    StashLinkConfig.shulkerRadius = Math.min(radius(), StashLinkConfig.shulkerCap());
+                } else {
+                    ClientPrefs.shulkerRadius = radius();
+                }
+            } else if (local) {
                 StashLinkConfig.trySetRadius(radius());
             } else {
                 ClientPrefs.radius = radius();

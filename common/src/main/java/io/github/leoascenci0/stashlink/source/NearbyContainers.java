@@ -68,12 +68,16 @@ public final class NearbyContainers {
     }
 
     private static void collect(ServerPlayer player, boolean chests, List<Hit> shulkers, List<Hit> storage) {
-        int radius = PlayerPrefsStore.radius(player);
+        // Baús e barris têm um raio; shulkers colocadas, outro (maior). Varre os chunks do maior e confere cada tipo.
+        int chestRadius = PlayerPrefsStore.radius(player);
+        int shulkerRadius = PlayerPrefsStore.shulkerRadius(player);
+        int radius = Math.max(chestRadius, shulkerRadius);
         if (radius <= 0 || !(player.level() instanceof ServerLevel level)) {
             return;
         }
         BlockPos center = player.blockPosition();
-        double maxSq = (double) radius * radius;
+        double maxSq = (double) chestRadius * chestRadius;
+        double shulkerMaxSq = (double) shulkerRadius * shulkerRadius;
         Set<BlockPos> seenHalves = new HashSet<>();
         for (int cx = (center.getX() - radius) >> 4; cx <= (center.getX() + radius) >> 4; cx++) {
             for (int cz = (center.getZ() - radius) >> 4; cz <= (center.getZ() + radius) >> 4; cz++) {
@@ -87,7 +91,7 @@ public final class NearbyContainers {
                     }
                     if (be instanceof ShulkerBoxBlockEntity) {
                         double distSq = distSq(player, box.getBlockPos());
-                        if (distSq <= maxSq) {
+                        if (distSq <= shulkerMaxSq) {
                             shulkers.add(Hit.single(box, box.getBlockPos(), distSq));
                         }
                     } else if (chests && be instanceof BarrelBlockEntity) {

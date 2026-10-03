@@ -32,6 +32,13 @@ public final class PlayerPrefsStore {
                 : Math.max(0, Math.min(r, StashLinkConfig.radiusCap()));
     }
 
+    /** Raio das shulkers colocadas: a escolha do jogador ou o padrão do servidor (32), limitado ao teto. */
+    public static int shulkerRadius(ServerPlayer player) {
+        int s = of(player).shulkerRadius();
+        return s == PlayerPrefs.UNSET ? StashLinkConfig.effectiveShulkerRadius()
+                : Math.max(0, Math.min(s, StashLinkConfig.shulkerCap()));
+    }
+
     /** Baús e barris entram como fonte? A escolha do jogador, ou o padrão do servidor. */
     public static boolean includeChests(ServerPlayer player) {
         int c = of(player).chests();

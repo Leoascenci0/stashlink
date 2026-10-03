@@ -554,3 +554,13 @@ fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na i
   lado e sempre dentro do bloco do seu baú (nunca no vizinho nem no de cima). Teste:
   `hologramBelongsToItsOwnChestFromAnySideAndStack` (empilhado, virado ao sul e ao leste). Limite: em paredes grandes de baús
   nomeados, todos os nomes até 32 blocos aparecem juntos (atravessam os blocos); se poluir, mostrar só o do baú mirado.
+
+## Raios por tipo de container (Eliel, 2026-10-03)
+
+O raio único de até 64 estava desbalanceado (a bancada alcançava baús a 50 blocos). Agora são dois:
+- **Baús, barris e bancadas:** teto duro 16 (`StashLinkConfig.HARD_MAX_RADIUS`), padrão 8. O Item 15 (conduíte) vai subir o teto para 32.
+- **Shulkers colocadas:** raio próprio, padrão 32 (`StashLinkConfig.shulkerRadius`), a tela deixa subir até 64 (`HARD_MAX_SHULKER_RADIUS`);
+  o servidor pode baixar o teto em `maxShulkerRadius`. É uma preferência por jogador (`PlayerPrefs.shulkerRadius`, quinto campo do pacote).
+- `NearbyContainers.collect` varre os chunks do maior raio e confere cada tipo com o seu. A bancada usa as mesmas fontes e os mesmos raios:
+  não existe raio só de bancada.
+- Teste: `chestsReach16AndShulkersReach32` (baú a 6 entra; baú a 20 não; shulker a 30 entra; a 40 não, com raio pedido 50).
