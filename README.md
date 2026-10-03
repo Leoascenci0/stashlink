@@ -26,4 +26,12 @@ Limites do modo cliente:
 - As proteções/claims do servidor valem sozinhas: se o servidor não deixa abrir o container, o mod não abre.
 - Os containers abrem e fecham de forma visível enquanto o mod trabalha.
 
-Status: esqueleto multi-loader (Item 1) pronto — compila e carrega em Fabric e NeoForge. Veja [docs/ROADMAP.md](docs/ROADMAP.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Status: versão 1.0 em preparação. Veja [CHANGELOG.md](CHANGELOG.md), [docs/ROADMAP.md](docs/ROADMAP.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Instalar
+
+Baixe o jar do seu loader (Fabric ou NeoForge) na página de Releases e coloque na pasta `mods`. Litematica é opcional (só Fabric).
+
+## Testes
+
+`./gradlew build` (testes unitários) e `./gradlew :fabric:runGameTest` (servidor real com jogadores simulados).
