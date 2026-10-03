@@ -10,6 +10,7 @@
     "SlotMixin"
   ],
   "client": [
+    "ScreenInvoker",
     "AbstractContainerScreenMixin"
   ],
   "server": [

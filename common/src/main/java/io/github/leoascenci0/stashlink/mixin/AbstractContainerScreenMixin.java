@@ -37,8 +37,6 @@ public abstract class AbstractContainerScreenMixin {
     @Unique
     private LabelPanel stashlink$labelPanel;
 
-    @Shadow
-    protected abstract <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget);
 
     /** O lápis de rótulo ao lado do título, em baú/barril/shulker (só se o servidor tem o mod e se mirava um bloco). */
     @Inject(method = "init", at = @At("TAIL"))
@@ -49,7 +47,7 @@ public abstract class AbstractContainerScreenMixin {
             stashlink$labelPanel = LabelPanel.create(leftPos, topPos, imageWidth, self::setFocused);
             if (stashlink$labelPanel != null) {
                 for (AbstractWidget widget : stashlink$labelPanel.widgets()) {
-                    addRenderableWidget(widget);
+                    ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
                 }
             }
         }
