@@ -16,6 +16,8 @@ import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.SetLabelRequest;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
+import io.github.leoascenci0.stashlink.network.ReceivesRequest;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceiveService;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockSync;
@@ -70,6 +72,9 @@ public class StashLinkFabric implements ModInitializer {
 
         // Alt + clique: travar/destravar slot de baú aberto; o servidor revalida tudo. A lista de travas desce ao cliente.
         PayloadTypeRegistry.serverboundPlay().register(LockSlotRequest.TYPE, LockSlotRequest.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ReceivesRequest.TYPE, ReceivesRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ReceivesRequest.TYPE,
+                (payload, context) -> QuickStackReceiveService.handle(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(LockSlotRequest.TYPE,
                 (payload, context) -> SlotLockService.handle(context.player(), payload));
         PayloadTypeRegistry.clientboundPlay().register(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC);

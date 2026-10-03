@@ -2,7 +2,9 @@ package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.config.ClientPolicy;
+import io.github.leoascenci0.stashlink.compat.mc.LabelCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.quickstack.ItemCategory;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import net.minecraft.client.Minecraft;
@@ -41,6 +43,7 @@ public class StashLinkConfigScreen extends Screen {
 
     private static final int PAGE_FEATURES = 0;
     private static final int PAGE_SETTINGS = 1;
+    private static final int PAGE_CATEGORIES = 2;
 
     private final Screen parent;
     private final boolean local;
@@ -76,7 +79,7 @@ public class StashLinkConfigScreen extends Screen {
         int top = this.height / 6;
 
         // Abas: as funções (liga/desliga + cadeado) e os ajustes finos (raio, baús, slots).
-        int tabW = (WIDTH - 4) / 2;
+        int tabW = (WIDTH - 8) / 3;
         Button features = addRenderableWidget(Button.builder(
                 Component.translatableWithFallback("stashlink.config.tab_features", "Features"),
                 b -> switchPage(PAGE_FEATURES)).bounds(x, top + 20, tabW, 20).build());
@@ -85,10 +88,16 @@ public class StashLinkConfigScreen extends Screen {
                 Component.translatableWithFallback("stashlink.config.tab_settings", "Settings"),
                 b -> switchPage(PAGE_SETTINGS)).bounds(x + tabW + 4, top + 20, tabW, 20).build());
         settings.active = page != PAGE_SETTINGS;
+        Button categories = addRenderableWidget(Button.builder(
+                Component.translatableWithFallback("stashlink.config.tab_categories", "Key N"),
+                b -> switchPage(PAGE_CATEGORIES)).bounds(x + 2 * (tabW + 4), top + 20, tabW, 20).build());
+        categories.active = page != PAGE_CATEGORIES;
 
         int y = top + 48;
         if (page == PAGE_FEATURES) {
-            y = initFeatures(x, y);
+            y = initFeatures(x, y, false);
+        } else if (page == PAGE_CATEGORIES) {
+            y = initFeatures(x, y, true);
         } else {
             y = initSettings(x, y);
         }
@@ -112,10 +121,13 @@ public class StashLinkConfigScreen extends Screen {
     // ------------------------------------------------------------------ aba "Funções"
 
     /** Uma linha por função: botão liga/desliga (pessoal) + cadeado (do servidor), como a dificuldade do jogo. */
-    private int initFeatures(int x, int y) {
+    private int initFeatures(int x, int y, boolean categories) {
         for (Feature feature : Feature.values()) {
             if (feature.isSetting()) {
                 continue;   // ajustes (raios, usar baús) ficam na aba Ajustes, só com cadeado
+            }
+            if (feature.isCategory() != categories) {
+                continue;   // categorias da N (Item 17) têm aba própria
             }
             boolean locked = isLocked(feature);
 
@@ -137,6 +149,9 @@ public class StashLinkConfigScreen extends Screen {
             lock.setTooltip(Tooltip.create(lockTip(locked)));
             addRenderableWidget(lock);
             y += FEATURE_ROW;
+        }
+        if (categories) {
+            infoY = y + 34;   // texto explicativo abaixo do botão Concluído
         }
         return y;
     }
@@ -169,6 +184,12 @@ public class StashLinkConfigScreen extends Screen {
     }
 
     private static Component featureName(Feature feature) {
+        ItemCategory category = ItemCategory.forFeature(feature);
+        if (category != null) {
+            // "Emoji" da categoria: ícone do item (a fonte do jogo não tem emoji colorido).
+            return Component.empty().append(LabelCompat.sprite(true, category.icon())).append(" ")
+                    .append(Component.translatable("stashlink.feature." + feature.id()));
+        }
         return Component.translatable("stashlink.feature." + feature.id());
     }
 
@@ -268,6 +289,11 @@ public class StashLinkConfigScreen extends Screen {
         if (!local) {
             graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.remote",
                     "On a server: these are your personal settings (the server may limit them)"), cx, top + 8, 0xFFFFFF55);
+        }
+        if (page == PAGE_CATEGORIES) {
+            graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.categories_info",
+                    "What the N key may store. Off = N never stores that type, even if the chest already has it"),
+                    cx, infoY, 0xFFAAAAAA);
         }
         if (page == PAGE_SETTINGS) {
             if (clientModeActive) {

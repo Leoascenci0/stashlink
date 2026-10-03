@@ -8,6 +8,9 @@ import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.slotlock.ClientSlotLocks;
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceive;
+import io.github.leoascenci0.stashlink.network.ReceivesRequest;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.Container;
@@ -31,14 +34,14 @@ public final class SlotLockClient {
     private static final int GHOST_VEIL = 0xA08B8B8B;
     private static final int RESERVED_FRAME = 0xFF4FA3FF;
 
-    private static Consumer<LockSlotRequest> sender = request -> { };
+    private static Consumer<CustomPacketPayload> sender = request -> { };
     private static BooleanSupplier serverHasMod = () -> false;
 
     private SlotLockClient() {
     }
 
     /** Cada loader diz como enviar o pedido e se o servidor conhece o pacote (sem o mod no servidor, nada acontece). */
-    public static void setSender(Consumer<LockSlotRequest> value) {
+    public static void setSender(Consumer<CustomPacketPayload> value) {
         sender = value;
     }
 
@@ -91,6 +94,17 @@ public final class SlotLockClient {
             }
         }
         byContainer.forEach(ClientSlotLocks::set);
+        byContainer.keySet().forEach(c -> QuickStackReceive.setClient(c, payload.receives()));
+    }
+
+    /** O servidor tem o mod e esta função (tecla N) vale para mim? Só então o botão "recebe com a N" aparece. */
+    public static boolean receivesButtonAvailable() {
+        return serverHasMod.getAsBoolean() && ClientFeatures.enabled(Feature.QUICK_STACK);
+    }
+
+    /** Pede ao servidor para ligar/desligar o "recebe com a N" do container aberto. */
+    public static void requestReceives(int containerId, boolean receives) {
+        sender.accept(new ReceivesRequest(containerId, receives));
     }
 
     /** Desenha a prévia (item fantasma no slot vazio) e um pontinho de "reservado". */

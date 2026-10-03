@@ -4,6 +4,9 @@ import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.platform.Services;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceive;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceiveService;
+import net.minecraft.world.Container;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -23,7 +26,7 @@ import java.util.WeakHashMap;
  * a quem registrou o pacote) e enxerga o slot simplesmente vazio.
  */
 public final class SlotLockSync {
-    private record Sent(AbstractContainerMenu menu, List<SlotLocksSync.Entry> entries) {
+    private record Sent(AbstractContainerMenu menu, List<SlotLocksSync.Entry> entries, boolean receives) {
     }
 
     /** Por identidade do jogador: relogar cria outro objeto e o antigo é coletado sozinho. */
@@ -50,12 +53,14 @@ public final class SlotLockSync {
         }
         List<SlotLocksSync.Entry> now = snapshot(player, menu);
         Sent last = SENT.get(player);
-        boolean same = last != null && last.menu() == menu ? last.entries().equals(now) : now.isEmpty();
+        boolean receives = receives(player, menu);
+        boolean same = last != null && last.menu() == menu
+                ? last.entries().equals(now) && last.receives() == receives : now.isEmpty() && receives;
         if (same) {
             return;
         }
-        SENT.put(player, new Sent(menu, now));
-        Services.PLATFORM.sendIfSupported(player, new SlotLocksSync(menu.containerId, now));
+        SENT.put(player, new Sent(menu, now, receives));
+        Services.PLATFORM.sendIfSupported(player, new SlotLocksSync(menu.containerId, now, receives));
     }
 
     /** As travas do container aberto, por índice de slot do menu. Público para os testes. */
@@ -71,5 +76,11 @@ public final class SlotLockSync {
             }
         }
         return out;
+    }
+
+    /** O botão "recebe com a N" do container aberto; {@code true} se o container não tem o botão (nada a mostrar). */
+    public static boolean receives(ServerPlayer player, AbstractContainerMenu menu) {
+        Container storage = QuickStackReceiveService.storageOf(player, menu);
+        return storage == null || QuickStackReceive.accepts(storage);
     }
 }

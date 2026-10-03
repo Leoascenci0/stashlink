@@ -71,7 +71,8 @@ public final class QuickStackService {
         // Só a mochila e a hotbar (36 slots); armadura e mão secundária ficam fora. Hotbar e slots travados
         // nunca são esvaziados.
         QuickStackLogic.Result result = QuickStackLogic.stack(inventory.getNonEquipmentItems(),
-                slot -> slot < Inventory.getSelectionSize() || PlayerPrefsStore.isSlotLocked(player, slot), targets);
+                slot -> slot < Inventory.getSelectionSize() || PlayerPrefsStore.isSlotLocked(player, slot),
+                stack -> categoryOff(player, stack), targets);
 
         if (result.itemsMoved() > 0) {
             player.sendOverlayMessage(Component.translatableWithFallback("stashlink.quick_stack.done",
@@ -80,6 +81,15 @@ public final class QuickStackService {
             player.sendOverlayMessage(Component.translatableWithFallback("stashlink.quick_stack.nothing",
                     "Nothing to store nearby"));
         }
+    }
+
+    /**
+     * O item é de uma categoria que este jogador desligou (ou que o servidor trancou)? Então a N nunca o guarda.
+     * Item sem categoria (bloco comum etc.) nunca é filtrado.
+     */
+    static boolean categoryOff(ServerPlayer player, ItemStack stack) {
+        ItemCategory category = ItemCategory.of(stack);
+        return category != null && !PlayerPrefsStore.featureEnabled(player, category.feature());
     }
 
     /** {@code true} se algum <b>outro</b> jogador está com uma GUI aberta que mostra este container. */

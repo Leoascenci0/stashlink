@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 /**
  * Tecla N no modo cliente. Dentro de cada container aberto, shift-clica na mochila apenas os itens que o
@@ -20,6 +21,8 @@ import java.util.function.IntPredicate;
  */
 public final class QuickStackJob implements Job {
     private final IntPredicate locked;
+    /** Itens que a N nunca guarda (categoria desligada, Item 17). */
+    private final Predicate<ItemStack> excluded;
     private final ContentsCache cache;
     private final Set<Integer> tried = new HashSet<>();
     private int before;
@@ -27,7 +30,8 @@ public final class QuickStackJob implements Job {
     private int itemsMoved;
     private int containersUsed;
 
-    public QuickStackJob(IntPredicate locked, ContentsCache cache) {
+    public QuickStackJob(IntPredicate locked, Predicate<ItemStack> excluded, ContentsCache cache) {
+        this.excluded = excluded;
         this.locked = locked;
         this.cache = cache;
     }
@@ -35,12 +39,12 @@ public final class QuickStackJob implements Job {
     @Override
     public void onOpened(Minecraft mc, Candidate candidate, List<MenuEntry> entries) {
         tried.clear();
-        before = ClientMoveLogic.storableCount(entries, locked);
+        before = ClientMoveLogic.storableCount(entries, locked, excluded);
     }
 
     @Override
     public Step step(Minecraft mc, List<MenuEntry> entries, ItemStack carried) {
-        List<Integer> slots = ClientMoveLogic.stackSlots(entries, locked, tried);
+        List<Integer> slots = ClientMoveLogic.stackSlots(entries, locked, excluded, tried);
         if (slots.isEmpty()) {
             return Step.finish();
         }
@@ -57,7 +61,7 @@ public final class QuickStackJob implements Job {
 
     @Override
     public void onClosed(Minecraft mc, Candidate candidate, List<MenuEntry> entries) {
-        storableLeft = ClientMoveLogic.storableCount(entries, locked);
+        storableLeft = ClientMoveLogic.storableCount(entries, locked, excluded);
         int moved = before - storableLeft;
         if (moved > 0) {
             itemsMoved += moved;

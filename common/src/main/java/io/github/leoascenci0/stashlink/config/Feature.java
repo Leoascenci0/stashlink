@@ -35,20 +35,43 @@ public enum Feature {
     /** Ajuste: raio das shulkers colocadas. */
     SHULKER_RADIUS("shulker_radius", true),
     /** Ajuste: usar baús e barris como fonte. */
-    CHESTS("chests", true);
+    CHESTS("chests", true),
+    // Categorias da tecla N (Item 17): ligada = a N guarda esse tipo de item; desligada = a N nunca o guarda. Usam o
+    // mesmo bit "desligado pelo jogador" e o mesmo cadeado das funções (cadeado = a N nunca guarda aquele tipo aqui).
+    /** Categoria da N: armaduras. */
+    CAT_ARMOR("cat_armor", false, true),
+    /** Categoria da N: ferramentas. */
+    CAT_TOOLS("cat_tools", false, true),
+    /** Categoria da N: armas. */
+    CAT_WEAPONS("cat_weapons", false, true),
+    /** Categoria da N: comida. */
+    CAT_FOOD("cat_food", false, true),
+    /** Categoria da N: poções. */
+    CAT_POTIONS("cat_potions", false, true);
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 
     private final String id;
     private final boolean setting;
+    private final boolean category;
 
     Feature(String id) {
-        this(id, false);
+        this(id, false, false);
     }
 
     Feature(String id, boolean setting) {
+        this(id, setting, false);
+    }
+
+    Feature(String id, boolean setting, boolean category) {
         this.id = id;
         this.setting = setting;
+        this.category = category;
+    }
+
+    /** É uma categoria de item da tecla N (liga/desliga + cadeado, mas mostrada na aba própria)? */
+    public boolean isCategory() {
+        return category;
     }
 
     /** É um ajuste (raio, usar baús) e não uma função com liga/desliga? Só tem cadeado. */

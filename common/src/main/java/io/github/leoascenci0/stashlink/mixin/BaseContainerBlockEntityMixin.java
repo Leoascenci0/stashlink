@@ -4,6 +4,8 @@ import io.github.leoascenci0.stashlink.compat.mc.LabelCompat;
 import io.github.leoascenci0.stashlink.label.HologramService;
 import io.github.leoascenci0.stashlink.label.Label;
 import io.github.leoascenci0.stashlink.label.LabelHolder;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceive;
+import io.github.leoascenci0.stashlink.quickstack.ReceiveHolder;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockHolder;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
@@ -31,7 +33,7 @@ import java.util.Map;
  * (a trava nunca fica "órfã" num lugar onde depois se coloque outro baú).
  */
 @Mixin(BaseContainerBlockEntity.class)
-public abstract class BaseContainerBlockEntityMixin implements SlotLockHolder, LabelHolder {
+public abstract class BaseContainerBlockEntityMixin implements SlotLockHolder, LabelHolder, ReceiveHolder {
     @Unique
     private final Map<Integer, Item> stashlink$locks = new HashMap<>();
 
@@ -53,11 +55,33 @@ public abstract class BaseContainerBlockEntityMixin implements SlotLockHolder, L
         stashlink$label = label;
     }
 
+    /** Botão "recebe itens com a tecla N" (Item 17). Padrão ligado; só o estado DESLIGADO vai para o disco. */
+    @Unique
+    private boolean stashlink$receivesQuickStack = true;
+
+    @Override
+    public boolean stashlink$receivesQuickStack() {
+        return stashlink$receivesQuickStack;
+    }
+
+    @Override
+    public void stashlink$setReceivesQuickStack(boolean receives) {
+        stashlink$receivesQuickStack = receives;
+    }
+
     @Inject(method = "saveAdditional", at = @At("TAIL"))
     private void stashlink$saveLabel(ValueOutput output, CallbackInfo ci) {
         if (!stashlink$label.isEmpty()) {
             output.store(Label.KEY, Label.CODEC, stashlink$label);
         }
+        if (!stashlink$receivesQuickStack) {
+            output.putBoolean(QuickStackReceive.KEY, true);
+        }
+    }
+
+    @Inject(method = "loadAdditional", at = @At("TAIL"))
+    private void stashlink$loadReceives(ValueInput input, CallbackInfo ci) {
+        stashlink$receivesQuickStack = !input.getBooleanOr(QuickStackReceive.KEY, false);
     }
 
     @Inject(method = "loadAdditional", at = @At("TAIL"))
@@ -68,11 +92,14 @@ public abstract class BaseContainerBlockEntityMixin implements SlotLockHolder, L
         }
     }
 
-    /** Só a shulker leva o rótulo no item que solta (baú e barril o perdem ao quebrar, por decisão do Eliel). */
+    /**
+     * Só a shulker leva o rótulo e o botão da N no item que solta (baú e barril os perdem ao quebrar, por decisão do
+     * Eliel). Os dois vão juntos no mesmo CUSTOM_DATA.
+     */
     @Inject(method = "collectImplicitComponents", at = @At("TAIL"))
     private void stashlink$labelToItem(DataComponentMap.Builder builder, CallbackInfo ci) {
-        if ((Object) this instanceof ShulkerBoxBlockEntity && !stashlink$label.isEmpty()) {
-            LabelCompat.writeToItem(builder, stashlink$label);
+        if ((Object) this instanceof ShulkerBoxBlockEntity) {
+            LabelCompat.writeToItem(builder, stashlink$label, !stashlink$receivesQuickStack);
         }
     }
 
@@ -83,6 +110,9 @@ public abstract class BaseContainerBlockEntityMixin implements SlotLockHolder, L
             if (!label.isEmpty()) {
                 stashlink$label = label;
                 HologramService.track((BlockEntity) (Object) this);
+            }
+            if (LabelCompat.readNoQuickStackFromItem(components)) {
+                stashlink$receivesQuickStack = false;
             }
         }
     }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 /**
  * A regra da tecla N, sem nada de rede nem de jogador (por isso dá para testar de forma exaustiva):
@@ -37,6 +38,16 @@ public final class QuickStackLogic {
      *                algo que casa com o inventário
      */
     public static Result stack(List<ItemStack> slots, IntPredicate skip, List<ContainerSource.Entry> targets) {
+        return stack(slots, skip, stack -> false, targets);
+    }
+
+    /**
+     * Como acima, e mais: {@code excluded} diz quais itens a N <b>nunca</b> guarda (categoria desligada, Item 17) —
+     * vale mesmo que o container já tenha o item ou tenha um slot reservado para ele —, e container com o botão
+     * "recebe com a N" desligado ({@link QuickStackReceive}) não recebe nada.
+     */
+    public static Result stack(List<ItemStack> slots, IntPredicate skip, Predicate<ItemStack> excluded,
+                               List<ContainerSource.Entry> targets) {
         int moved = 0;
         Set<ContainerSource.Entry> used = new HashSet<>();
         // A permissão (claims) pode custar caro: pergunta no máximo uma vez por container, mesmo com duas rodadas.
@@ -45,14 +56,15 @@ public final class QuickStackLogic {
         // outro mais perto também o contenha. Rodada 2: a regra de sempre ("o container já contém o item").
         for (boolean reservedOnly : new boolean[]{true, false}) {
             for (ContainerSource.Entry target : targets) {
-                if (!hasMatch(slots, skip, target, reservedOnly)
+                if (!QuickStackReceive.accepts(target.container())
+                        || !hasMatch(slots, skip, excluded, target, reservedOnly)
                         || !allowed.computeIfAbsent(target, t -> t.allowed().getAsBoolean())) {
                     continue;
                 }
                 int movedHere = 0;
                 for (int i = 0; i < slots.size(); i++) {
                     ItemStack stack = slots.get(i);
-                    if (skip.test(i) || stack.isEmpty() || !matches(target.container(), stack, reservedOnly)) {
+                    if (skip.test(i) || stack.isEmpty() || excluded.test(stack) || !matches(target.container(), stack, reservedOnly)) {
                         continue;
                     }
                     int fits = Math.min(stack.getCount(), ContainerInsert.capacity(target.container(), stack));
@@ -82,11 +94,11 @@ public final class QuickStackLogic {
         return SlotLocks.reserves(c, stack) || (!reservedOnly && ContainerInsert.count(c, stack) > 0);
     }
 
-    private static boolean hasMatch(List<ItemStack> slots, IntPredicate skip, ContainerSource.Entry target,
-                                    boolean reservedOnly) {
+    private static boolean hasMatch(List<ItemStack> slots, IntPredicate skip, Predicate<ItemStack> excluded,
+                                    ContainerSource.Entry target, boolean reservedOnly) {
         for (int i = 0; i < slots.size(); i++) {
             ItemStack stack = slots.get(i);
-            if (!skip.test(i) && !stack.isEmpty() && matches(target.container(), stack, reservedOnly)) {
+            if (!skip.test(i) && !stack.isEmpty() && !excluded.test(stack) && matches(target.container(), stack, reservedOnly)) {
                 return true;
             }
         }

@@ -17,6 +17,8 @@ import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.SetLabelRequest;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
+import io.github.leoascenci0.stashlink.network.ReceivesRequest;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceiveService;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockSync;
@@ -73,6 +75,8 @@ public class StashLinkNeoForge {
             registrar.playToServer(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC,
                     (payload, context) -> LootAllService.handle((ServerPlayer) context.player()));
             // Alt + clique: travar/destravar slot; a lista de travas desce ao cliente (só para quem tem o mod).
+            registrar.playToServer(ReceivesRequest.TYPE, ReceivesRequest.STREAM_CODEC,
+                    (payload, context) -> QuickStackReceiveService.handle((ServerPlayer) context.player(), payload));
             registrar.playToServer(LockSlotRequest.TYPE, LockSlotRequest.STREAM_CODEC,
                     (payload, context) -> SlotLockService.handle((ServerPlayer) context.player(), payload));
             registrar.playToClient(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC,

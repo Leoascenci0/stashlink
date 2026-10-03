@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.quickstack.ItemCategory;
 import io.github.leoascenci0.stashlink.client.ClientFeatures;
 import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
@@ -125,7 +126,7 @@ public final class ClientModeEngine {
         // Só a mochila conta (hotbar nunca é esvaziada), e só o que não está travado.
         List<ItemStack> storable = new java.util.ArrayList<>();
         for (int i = MenuEntry.HOTBAR_SIZE; i < Math.min(inv.size(), MenuEntry.INVENTORY_SIZE); i++) {
-            if (!inv.get(i).isEmpty() && !locked.test(i)) {
+            if (!inv.get(i).isEmpty() && !locked.test(i) && !categoryOff(inv.get(i))) {
                 storable.add(inv.get(i));
             }
         }
@@ -141,7 +142,7 @@ public final class ClientModeEngine {
                     .anyMatch(s -> ItemStack.isSameItemSameComponents(s, seen)));
             return has == null ? 1 : (has ? 0 : 2);
         }, MAX_CONTAINERS_QUICK_STACK);
-        session = ContainerSession.opening(mc, new QuickStackJob(locked, CACHE), order, c -> markFailed(mc, c));
+        session = ContainerSession.opening(mc, new QuickStackJob(locked, ClientModeEngine::categoryOff, CACHE), order, c -> markFailed(mc, c));
     }
 
     /** Tecla W: puxa tudo do container que o jogador tem aberto (não abre nem fecha nada). */
@@ -214,6 +215,12 @@ public final class ClientModeEngine {
         LocalPlayer p = mc.player;
         return p != null && mc.level != null && session == null && p.isAlive() && !p.isSpectator()
                 && !ClientCompat.isSneaking(p);
+    }
+
+    /** A categoria deste item está desligada na tela de config? Então a N nunca o guarda (Item 17). */
+    static boolean categoryOff(ItemStack stack) {
+        ItemCategory category = ItemCategory.of(stack);
+        return category != null && !io.github.leoascenci0.stashlink.client.ClientFeatures.enabled(category.feature());
     }
 
     private static IntPredicate lockedPredicate() {

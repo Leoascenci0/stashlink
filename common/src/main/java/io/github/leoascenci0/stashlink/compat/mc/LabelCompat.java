@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.compat.mc;
 
 import io.github.leoascenci0.stashlink.label.Label;
+import io.github.leoascenci0.stashlink.quickstack.QuickStackReceive;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
@@ -89,23 +90,38 @@ public final class LabelCompat {
     }
 private static ListTag floats(float... values) {        ListTag list = new ListTag();        for (float v : values) {            list.add(net.minecraft.nbt.FloatTag.valueOf(v));        }        return list;    }
 
-    // ----------------------------------------------------------- rótulo no item da shulker
+    // ----------------------------------------------------------- dados da shulker no item (rótulo e botão da N)
 
-    /** Coloca o rótulo nos componentes do item que a shulker solta (vai em CUSTOM_DATA, que o jogo já grava). */
-    public static void writeToItem(DataComponentMap.Builder builder, Label label) {
+    /** Os dados do mod que a shulker leva no item: rótulo (Item 14) e "não recebe com a N" (Item 17). */
+    private static CompoundTag shulkerTag(Label label, boolean noQuickStack) {
         CompoundTag tag = new CompoundTag();
-        tag.put(Label.KEY, Label.CODEC.encodeStart(NbtOps.INSTANCE, label).getOrThrow(IllegalStateException::new));
-        builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        if (!label.isEmpty()) {
+            tag.put(Label.KEY, Label.CODEC.encodeStart(NbtOps.INSTANCE, label).getOrThrow(IllegalStateException::new));
+        }
+        if (noQuickStack) {
+            tag.putBoolean(QuickStackReceive.KEY, true);
+        }
+        return tag;
+    }
+
+    /** Coloca os dados nos componentes do item que a shulker solta (vai em CUSTOM_DATA, que o jogo já grava). */
+    public static void writeToItem(DataComponentMap.Builder builder, Label label, boolean noQuickStack) {
+        CompoundTag tag = shulkerTag(label, noQuickStack);
+        if (!tag.isEmpty()) {
+            builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        }
     }
 
     /**
-     * Coloca o rótulo num item já pronto (o drop da shulker em sobrevivência). Mantém o que já houver em CUSTOM_DATA.
-     * Na sobrevivência o jogo monta o drop pela tabela de loot, que só copia nome, conteúdo, chave e loot; o rótulo
-     * (que viaja em CUSTOM_DATA) ficaria para trás.
+     * Coloca os dados num item já pronto (o drop da shulker em sobrevivência). Mantém o que já houver em CUSTOM_DATA.
+     * Na sobrevivência o jogo monta o drop pela tabela de loot, que só copia nome, conteúdo, chave e loot; o que
+     * viaja em CUSTOM_DATA ficaria para trás.
      */
-    public static void writeToStack(net.minecraft.world.item.ItemStack stack, Label label) {
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag ->
-                tag.put(Label.KEY, Label.CODEC.encodeStart(NbtOps.INSTANCE, label).getOrThrow(IllegalStateException::new)));
+    public static void writeToStack(net.minecraft.world.item.ItemStack stack, Label label, boolean noQuickStack) {
+        CompoundTag mine = shulkerTag(label, noQuickStack);
+        if (!mine.isEmpty()) {
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.merge(mine));
+        }
     }
 
     /** Lê o rótulo do item da shulker que acabou de ser colocada; {@link Label#EMPTY} se não tem. */
@@ -116,5 +132,11 @@ private static ListTag floats(float... values) {        ListTag list = new ListT
         }
         return data.copyTag().get(Label.KEY) == null ? Label.EMPTY
                 : Label.CODEC.parse(NbtOps.INSTANCE, data.copyTag().get(Label.KEY)).result().orElse(Label.EMPTY);
+    }
+
+    /** O item da shulker recém-colocada diz "não recebe com a N"? */
+    public static boolean readNoQuickStackFromItem(DataComponentGetter components) {
+        CustomData data = components.get(DataComponents.CUSTOM_DATA);
+        return data != null && data.copyTag().getBooleanOr(QuickStackReceive.KEY, false);
     }
 }
