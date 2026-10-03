@@ -200,8 +200,8 @@ const ITEMS = [
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}
 ,
-  {n:18, phase:"Pós-1.0", t:"Litematica: trocar o bloco no mesmo slot", b:"feat/litematica-troca-no-slot", f:["F2"], s:"todo",
-   do:["Hoje cada item puxado vai para um slot da hotbar e ela vai enchendo (achado em jogo: uma laje de pinheiro usada uma vez ficou na mão)","Novo bloco ocupa o mesmo slot; o anterior volta ao armazenamento de onde veio","Origem cheia ou fora do raio: cai no inventário, nunca no chão e nunca perde item"],
+  {n:18, phase:"Pós-1.0", t:"Litematica: trocar o bloco no mesmo slot", b:"feat/litematica-troca-no-slot", f:["F2"], s:"done",
+   do:["O servidor lembra qual slot da hotbar é do mod: ao pedir outro bloco, o novo ocupa o mesmo slot e o anterior volta ao armazenamento de onde veio (shulker no inventário ou container no raio)","Origem cheia, fora do raio, quebrada ou aberta por outro jogador: vai para a mochila; mochila cheia também: o item fica onde estava. Nunca no chão, nunca perdido","Só mexe no que o mod pôs: slot trocado pelo jogador ou travado nunca é tocado. 8 unitários + 8 GameTests (22 no total), mutação pega. Ainda não testado em jogo"],
    ok:"Construir 30+ blocos de tipos diferentes mantém a hotbar limpa e nada duplica nem some; confirmado em jogo."}
 ];
 const RISKS = [

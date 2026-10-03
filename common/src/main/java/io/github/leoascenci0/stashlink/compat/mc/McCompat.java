@@ -40,6 +40,11 @@ public final class McCompat {
         return player.level().getGameTime();
     }
 
+    /** Dimensão onde o jogador está (chave estável; não segura referência ao mundo). */
+    public static Object dimensionOf(ServerPlayer player) {
+        return player.level().dimension();
+    }
+
     /** Lista de jogadores do servidor onde {@code player} está. */
     public static List<ServerPlayer> playersOnServer(ServerPlayer player) {
         return player.level().getServer().getPlayerList().getPlayers();

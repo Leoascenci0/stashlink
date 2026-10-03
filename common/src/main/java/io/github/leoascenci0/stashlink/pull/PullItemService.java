@@ -3,12 +3,16 @@ package io.github.leoascenci0.stashlink.pull;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
+import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
+import io.github.leoascenci0.stashlink.source.StackListSink;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -23,6 +27,12 @@ public final class PullItemService {
 
     /** Chave por identidade do objeto do jogador: relogar cria outro objeto, e o antigo é coletado sozinho. */
     private static final Map<ServerPlayer, Long> LAST_REQUEST = new WeakHashMap<>();
+
+    /**
+     * O slot da hotbar que o mod escolheu por último para cada jogador (ver {@link PulledSlot}). Só guarda
+     * posições e itens, nunca o jogador nem o mundo, então a chave fraca basta para não vazar memória.
+     */
+    private static final Map<ServerPlayer, PulledSlot> LEDGER = new WeakHashMap<>();
 
     private PullItemService() {
     }
@@ -58,8 +68,33 @@ public final class PullItemService {
         ItemStack model = new ItemStack(request.item());
         // Nunca mais que um stack cheio, seja qual for o número que o cliente mandou.
         int wanted = Math.min(request.count(), model.getMaxStackSize());
-        int slot = PullLogic.pullIntoHotbar(inventory.getNonEquipmentItems().subList(0, Inventory.getSelectionSize()),
-                inventory.getSelectedSlot(), model, wanted, PlayerSources.of(player));
+        List<ItemStack> hotbar = inventory.getNonEquipmentItems().subList(0, Inventory.getSelectionSize());
+        List<ItemStack> backpack = inventory.getNonEquipmentItems()
+                .subList(Inventory.getSelectionSize(), inventory.getNonEquipmentItems().size());
+
+        PulledSlot mine = LEDGER.get(player);
+        // O slot só continua sendo do mod se ainda tem o item que o mod pôs (o jogador não trocou nem esvaziou)
+        // e não foi travado depois. Senão é do jogador e ninguém mexe.
+        if (mine != null && !mine.stillOwned(hotbar)) {
+            LEDGER.remove(player);
+            mine = null;
+        }
+        boolean swappable = mine != null && !PlayerPrefsStore.isSlotLocked(player, mine.slot);
+
+        PlayerSources.Operation operation = PlayerSources.operation(player);
+        PullLogic.Owned owned = swappable ? mine.asOwned() : null;
+        ItemSource returnTo = swappable
+                ? operation.returnTarget(mine.origin, new StackListSink(backpack))
+                : null;
+        PullLogic.Result result = PullLogic.pull(hotbar, inventory.getSelectedSlot(), model, wanted,
+                operation.source(), owned, returnTo);
+        PulledSlot next = PulledSlot.next(mine, hotbar, result, model, operation.origin());
+        if (next == null) {
+            LEDGER.remove(player);
+        } else {
+            LEDGER.put(player, next);
+        }
+        int slot = result.slot();
         if (slot == PullLogic.NO_SLOT) {
             return;
         }

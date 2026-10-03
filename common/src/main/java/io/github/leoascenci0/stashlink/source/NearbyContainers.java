@@ -83,12 +83,12 @@ public final class NearbyContainers {
                     if (be instanceof ShulkerBoxBlockEntity) {
                         double distSq = distSq(player, box.getBlockPos());
                         if (distSq <= maxSq) {
-                            shulkers.add(new Hit(box, box.getBlockPos(), distSq));
+                            shulkers.add(Hit.single(box, box.getBlockPos(), distSq));
                         }
                     } else if (chests && be instanceof BarrelBlockEntity) {
                         double distSq = distSq(player, box.getBlockPos());
                         if (distSq <= maxSq) {
-                            storage.add(new Hit(box, box.getBlockPos(), distSq));
+                            storage.add(Hit.single(box, box.getBlockPos(), distSq));
                         }
                     } else if (chests && be instanceof ChestBlockEntity chest) {
                         chestHit(player, level, chest, maxSq, seenHalves, storage);
@@ -102,6 +102,7 @@ public final class NearbyContainers {
     private static void chestHit(ServerPlayer player, ServerLevel level, ChestBlockEntity chest, double maxSq,
                                  Set<BlockPos> seenHalves, List<Hit> out) {
         BlockPos pos = chest.getBlockPos();
+        Set<BlockPos> where = Set.of(pos);
         if (seenHalves.contains(pos)) {
             return;
         }
@@ -118,6 +119,7 @@ public final class NearbyContainers {
             }
             seenHalves.add(pos);
             seenHalves.add(otherPos);
+            where = Set.of(pos, otherPos);
             distSq = Math.min(distSq, distSq(player, otherPos));
         }
         if (distSq > maxSq) {
@@ -126,7 +128,7 @@ public final class NearbyContainers {
         // "true" = ignora o bloco por cima do baú: aqui queremos o conteúdo, não abrir a GUI.
         Container container = ChestBlock.getContainer(block, state, level, pos, true);
         if (container != null) {
-            out.add(new Hit(container, pos, distSq));
+            out.add(new Hit(container, pos, distSq, where));
         }
     }
 
@@ -142,7 +144,10 @@ public final class NearbyContainers {
         return !box.isLocked() && box.getLootTable() == null;
     }
 
-    private record Hit(Container container, BlockPos pos, double distSq) {
+    private record Hit(Container container, BlockPos pos, double distSq, Set<BlockPos> where) {
+        static Hit single(Container container, BlockPos pos, double distSq) {
+            return new Hit(container, pos, distSq, Set.of(pos));
+        }
     }
 
     private static List<ContainerSource.Entry> entries(ServerPlayer player, List<Hit> hits) {
@@ -151,7 +156,7 @@ public final class NearbyContainers {
         for (Hit hit : hits) {
             BlockPos pos = hit.pos();
             // A permissão (claims etc.) é perguntada só se este container tiver o item — ver ContainerSource.
-            out.add(new ContainerSource.Entry(hit.container(), () -> Services.PLATFORM.canPlayerUseBlock(player, pos)));
+            out.add(new ContainerSource.Entry(hit.container(), () -> Services.PLATFORM.canPlayerUseBlock(player, pos), hit.where()));
         }
         return out;
     }

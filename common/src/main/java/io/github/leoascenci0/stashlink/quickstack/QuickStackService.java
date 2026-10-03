@@ -78,7 +78,7 @@ public final class QuickStackService {
     }
 
     /** {@code true} se algum <b>outro</b> jogador está com uma GUI aberta que mostra este container. */
-    static boolean openedByAnother(ServerPlayer player, Container container) {
+    public static boolean openedByAnother(ServerPlayer player, Container container) {
         for (ServerPlayer other : McCompat.playersOnServer(player)) {
             if (other == player || other.containerMenu == other.inventoryMenu) {
                 continue;

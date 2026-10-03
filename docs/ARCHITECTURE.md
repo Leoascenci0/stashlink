@@ -233,3 +233,44 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   (só cliente): Litematica 0.29.1 + MaLiLib 0.30.2 + Tweakeroo 0.30.1 (só cliente) carregam junto do StashLink no menu principal, sem erro de Mixin nos logs (com o fix do crash do Easy Place). NÃO testado em jogo: Easy Place/pick block precisa de mundo e clique humano (roteiro: `./gradlew :fabric:runClient -PcompatMods`, schematic + Tweakeroo easy place, bloco na hotbar e um baú com mais dele; conferir colocação, reabastecer ao esgotar e pick block sem duplicar).
 - **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; roteiros do 10.2/10.3), e
   GameTest no NeoForge.
+
+## Item 18 — Litematica: trocar o bloco no mesmo slot
+
+- **Problema.** Cada pedido do Litematica (`PullItemService` → `PullLogic.pullIntoHotbar`) achava um slot da hotbar
+  e selecionava, sem devolver nada. Com 30 blocos diferentes, a hotbar enchia de itens puxados.
+- **Ideia.** O servidor lembra, por jogador, **qual slot é do mod** (`PulledSlot`). No pedido seguinte, se o bloco é
+  outro, o item antigo é devolvido e o novo ocupa o mesmo slot (`PullLogic.pull` + `owned`/`returnTo`).
+- **Como lembrar a origem (decisão).** Não guardamos o objeto do container. Guardamos uma `Origin`: dimensão,
+  posições de bloco (duas para baú duplo) e se algo saiu de shulker do inventário. Dois motivos: (1) o baú pode ter
+  sido quebrado ou o jogador ter se afastado entre os pedidos, então na hora de devolver o container é **procurado de
+  novo** (`NearbyContainers.find`) e revalidado, em vez de confiar num objeto antigo (inserir num baú quebrado
+  perderia o item); (2) um objeto de container preso num mapa ligaria a memória ao mundo inteiro (o mapa é por
+  jogador, com chave fraca, e o valor não pode alcançar o jogador). `ContainerSource.Entry` ganhou `where` (as
+  posições) como identidade estável: o baú duplo vira outro `CompoundContainer` a cada varredura, então comparar
+  objetos não serviria. `ContainerSource.returningTo` monta a fonte de devolução só com os containers de origem.
+- **Para onde vai o item antigo (ordem).** (1) origem: shulkers do inventário e containers de origem que **ainda**
+  estão no raio, liberados (claims) e sem outro jogador com a GUI aberta (mesma regra da tecla N); (2) mochila
+  (slots 9-35, `StackListSink`); (3) se nada aceitar, o item **fica no slot** e o novo vai para outro slot, como antes
+  do item 18. Nunca no chão (a soma de itens é conferida nos testes: um drop sairia da soma) e nunca perdido: o que
+  sai do slot é exatamente o que alguma fonte aceitou (`give` devolve a sobra).
+- **Só o que o mod pôs.** `PulledSlot.count` é o que o mod colocou. Se o jogador gastou parte, volta o que sobrou; se
+  juntou mais do mesmo item no slot, esse extra fica. O registro some se o slot já não tem o item do mod (jogador
+  trocou ou esvaziou), se o slot foi travado, ou se parte do item não coube em lugar nenhum (o que ficou é do
+  jogador). Slot com item que o jogador pôs antes do pedido nunca vira "do mod": só slot vazio vira.
+- **Escolha do slot.** Se já há um slot com o mesmo item e espaço, ele ganha (como antes). Senão, o slot do mod
+  (troca no lugar); só então slot vazio. Sem registro, o comportamento é idêntico ao anterior (`PullLogicTest`).
+- **Pedido impossível não esvazia a mão.** A troca só começa se `source.available(item) > 0`.
+- **Quando devolver (decisão do Eliel, 2026-10-03).** Só ao pedir outro bloco. Descartadas: ao trocar de slot (um
+  scroll por cima do slot faria o bloco sumir da mão; exigiria vigiar a hotbar todo tick) e ao fechar o Litematica
+  (pacote novo e mixin extra, frágil a cada versão dele). Custo: ao terminar de construir sobra 1 stack do mod na
+  hotbar, igual ao pick block normal.
+- **Limite conhecido.** Se o item saiu de uma shulker do inventário, volta para a primeira shulker do inventário com
+  espaço, não necessariamente para a mesma (todas estão no inventário do jogador; nada se perde).
+- **Modo cliente.** Não se aplica: o modo cliente (10.2/10.3) só faz W, N e reabastecer a mão, não puxa itens para a
+  hotbar a pedido do Litematica; sem pull não há o que trocar. O pedido do Litematica em servidor sem o mod continua
+  sendo o comportamento original do Litematica.
+- **Testes.** `PullSwapTest` (unitário, 8), `SwapGameTests` (8 cenários no servidor real, incl. fuzz com 2 jogadores)
+  e mutação: dupe, perda e "ignorar baú aberto por outro" injetados e pegos. 22 GameTests no total.
+- **Mudança em `ContainerSource.give`.** Agora também consulta a permissão do container (claims), não só "tocado":
+  na devolução o jogador pode ter andado para dentro de uma área protegida desde o pedido anterior. No reabastecimento
+  isso não muda nada (a permissão já foi consultada e lembrada no `take`).
