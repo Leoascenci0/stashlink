@@ -31,5 +31,9 @@
   "stashlink.command.radius.set": "Source radius set to %s blocks",
   "stashlink.command.radius.too_big": "Radius %s is above the server limit of %s",
   "stashlink.command.reload.ok": "StashLink config reloaded (radius %s)",
-  "stashlink.command.reload.fail": "Could not read stashlink.json; keeping current values (see log)"
+  "stashlink.command.reload.fail": "Could not read stashlink.json; keeping current values (see log)",
+  "stashlink.slot_lock.locked": "Slot reserved for %s",
+  "stashlink.slot_lock.unlocked": "Slot unlocked",
+  "stashlink.slot_lock.nothing": "Alt+click a slot with an item, or an empty slot while holding one, to reserve it",
+  "stashlink.slot_lock.busy": "Another player has this container open"
 }

@@ -4,6 +4,10 @@ import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
+import io.github.leoascenci0.stashlink.network.LockSlotRequest;
+import io.github.leoascenci0.stashlink.network.SlotLocksSync;
+import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
+import io.github.leoascenci0.stashlink.slotlock.SlotLockSync;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -34,6 +38,8 @@ public class StashLinkFabric implements ModInitializer {
 
         // Reabastecimento da mão: só cola, a lógica está em common.
         ServerTickEvents.END_SERVER_TICK.register(RefillService::tick);
+        // Slots travados (Item 13): manda ao cliente com o mod o que está reservado no container aberto.
+        ServerTickEvents.END_SERVER_TICK.register(SlotLockSync::tick);
 
         // Pedido de item vindo do cliente (Litematica). O tipo precisa ser registrado nos dois lados.
         PayloadTypeRegistry.serverboundPlay().register(PullItemRequest.TYPE, PullItemRequest.STREAM_CODEC);
@@ -49,6 +55,12 @@ public class StashLinkFabric implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(LootAllRequest.TYPE, LootAllRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(LootAllRequest.TYPE,
                 (payload, context) -> LootAllService.handle(context.player()));
+
+        // Alt + clique: travar/destravar slot de baú aberto; o servidor revalida tudo. A lista de travas desce ao cliente.
+        PayloadTypeRegistry.serverboundPlay().register(LockSlotRequest.TYPE, LockSlotRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(LockSlotRequest.TYPE,
+                (payload, context) -> SlotLockService.handle(context.player(), payload));
+        PayloadTypeRegistry.clientboundPlay().register(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC);
 
         // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
         PayloadTypeRegistry.serverboundPlay().register(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC);

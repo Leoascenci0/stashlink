@@ -30,6 +30,13 @@ public interface IPlatformHelper {
      */
     boolean canPlayerUseBlock(net.minecraft.server.level.ServerPlayer player, net.minecraft.core.BlockPos pos);
 
+    /**
+     * Envia um pacote servidor → cliente <b>só se</b> o cliente do jogador tem o mod (registrou o canal). Cliente
+     * vanilla nunca recebe pacote desconhecido. Devolve se enviou.
+     */
+    boolean sendIfSupported(net.minecraft.server.level.ServerPlayer player,
+                            net.minecraft.network.protocol.common.custom.CustomPacketPayload payload);
+
     /** Pasta de configuração do loader (onde fica {@code stashlink.json}). */
     java.nio.file.Path getConfigDir();
 

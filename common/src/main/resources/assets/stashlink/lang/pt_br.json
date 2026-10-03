@@ -31,5 +31,9 @@
   "stashlink.command.radius.set": "Raio de fontes definido para %s blocos",
   "stashlink.command.radius.too_big": "O raio %s passa do limite do servidor (%s)",
   "stashlink.command.reload.ok": "Config do StashLink recarregada (raio %s)",
-  "stashlink.command.reload.fail": "Não consegui ler o stashlink.json; mantive os valores atuais (veja o log)"
+  "stashlink.command.reload.fail": "Não consegui ler o stashlink.json; mantive os valores atuais (veja o log)",
+  "stashlink.slot_lock.locked": "Slot reservado para %s",
+  "stashlink.slot_lock.unlocked": "Slot destravado",
+  "stashlink.slot_lock.nothing": "Alt+clique num slot com item, ou num slot vazio segurando um item, para reservá-lo",
+  "stashlink.slot_lock.busy": "Outro jogador está com este container aberto"
 }

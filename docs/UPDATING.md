@@ -98,6 +98,21 @@ já é a camada fina por design. A integração Litematica (`fabric/.../compat/l
 mod: se o Litematica mudar, é lá. Também fora: os tipos do Minecraft usados como dado (`ItemStack`, `Container`,
 `BlockPos`...) — são o vocabulário do mod e raramente mudam de nome.
 
+**Alvos de mixin (não dá para esconder no compat; o nome do método *é* o alvo).** Quebrou na atualização =
+o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os nomes com `javap` no jar do jogo:
+
+| Mixin | Alvo no Minecraft | Onde olhar se mudar |
+|---|---|---|
+| `ServerPlayerMixin` | `ServerPlayer.tick` (reabastecer sem mão vazia visível) | Item 4 |
+| `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
+| `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
+| `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
+| `AbstractContainerScreenMixin` (cliente) | `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)` | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
+| `InventoryUtilsMixin` (Litematica) | `InventoryUtils.schematicWorldPickBlock` | Item 7 |
+
+Os GameTests do Item 13 (`LockGameTests`) pegam quebra do `SlotMixin`, da memória no bloco e do baú duplo; o desenho
+da prévia e o Alt + clique só se conferem no jogo (roteiro no `ROADMAP.md`).
+
 Ao achar uma chamada nova que quebrou: crie o wrapper, ponha um javadoc dizendo **o que mudou e em qual versão**,
 e acrescente uma linha na tabela acima.
 

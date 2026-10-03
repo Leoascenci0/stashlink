@@ -38,6 +38,15 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public boolean sendIfSupported(ServerPlayer player, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
+        if (player.connection == null || !player.connection.hasChannel(payload.type())) {
+            return false;
+        }
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, payload);
+        return true;
+    }
+
+    @Override
     public java.nio.file.Path getConfigDir() {
         return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get();
     }

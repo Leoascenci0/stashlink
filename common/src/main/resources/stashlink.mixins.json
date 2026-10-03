@@ -3,6 +3,14 @@
   "minVersion": "0.8",
   "package": "io.github.leoascenci0.stashlink.mixin",
   "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BaseContainerBlockEntityMixin",
+    "CompoundContainerAccessor",
+    "SlotMixin"
+  ],
+  "client": [
+    "AbstractContainerScreenMixin"
+  ],
   "server": [
     "ServerPlayerMixin"
   ],
