@@ -1,6 +1,5 @@
 package io.github.leoascenci0.stashlink.gametest;
 
-import io.github.leoascenci0.stashlink.bench.BenchLedger;
 import io.github.leoascenci0.stashlink.bench.BenchPullService;
 import io.github.leoascenci0.stashlink.bench.BenchSync;
 import io.github.leoascenci0.stashlink.config.Feature;
@@ -355,17 +354,19 @@ public class BenchGameTests {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
         Lab.fill(chest, 0, Items.MANGROVE_PLANKS, 5);
+        Lab.fill(chest, 1, Items.BONE, 1);
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 8, true);
         CraftingMenu menu = table(lab, p, 1);
 
         place(p, menu, "stick", false);                      // 2 tábuas vão para a grade
         check(h, grid(menu, Items.MANGROVE_PLANKS) == 2 && Lab.count(chest, Items.MANGROVE_PLANKS) == 3, "1a receita");
-        place(p, menu, "mangrove_slab", false);              // outra receita: as 2 voltam ao baú e saem 3
-        check(h, Lab.carried(p, Items.MANGROVE_PLANKS) == 0, "nada podia ir parar na mochila: " + Lab.carried(p, Items.MANGROVE_PLANKS));
-        check(h, grid(menu, Items.MANGROVE_PLANKS) == 3 && Lab.count(chest, Items.MANGROVE_PLANKS) == 2,
-                "a grade devia ter 3 e o baú 2: grade=" + grid(menu, Items.MANGROVE_PLANKS)
+        place(p, menu, "bone_meal", false);                  // outra receita, que não usa tábuas: elas voltam ao baú
+        check(h, Lab.carried(p, Items.MANGROVE_PLANKS) == 0, "as tábuas não podiam ir parar na mochila: " + Lab.carried(p, Items.MANGROVE_PLANKS));
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 0 && Lab.count(chest, Items.MANGROVE_PLANKS) == 5,
+                "as 5 tábuas devem estar no baú: grade=" + grid(menu, Items.MANGROVE_PLANKS)
                         + " baú=" + Lab.count(chest, Items.MANGROVE_PLANKS));
+        check(h, grid(menu, Items.BONE) == 1, "o osso foi para a grade");
         clean(lab, h);
     }
 
@@ -383,7 +384,7 @@ public class BenchGameTests {
 
         menu.removed(p);                                     // o jogo devolve a grade à mochila...
         p.containerMenu = p.inventoryMenu;
-        BenchLedger.tick(p);                                 // ...e o mod devolve de lá ao baú
+        BenchSync.tick(lab.level.getServer());               // ...e o mod devolve de lá ao baú (passa pelo tick do servidor)
         check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 5 && Lab.carried(p, Items.MANGROVE_PLANKS) == 0,
                 "tudo devia estar de volta no baú: baú=" + Lab.count(chest, Items.MANGROVE_PLANKS)
                         + " mochila=" + Lab.carried(p, Items.MANGROVE_PLANKS));
@@ -435,7 +436,7 @@ public class BenchGameTests {
 
         ma.removed(a);                                       // A desiste: os itens voltam ao baú
         a.containerMenu = a.inventoryMenu;
-        BenchLedger.tick(a);
+        BenchSync.tick(lab.level.getServer());
         check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 2, "devolvidos ao baú");
         place(b, mb, "stick", false);                        // agora B consegue
         check(h, grid(mb, Items.MANGROVE_PLANKS) == 2 && Lab.count(chest, Items.MANGROVE_PLANKS) == 0,

@@ -569,3 +569,28 @@ O raio único de até 64 estava desbalanceado (a bancada alcançava baús a 50 b
   então reaproveitam a máscara, o pacote `SetFeatureLockRequest`, o `/stashlink feature radius|shulker_radius|chests lock|unlock` e a
   gravação em `lockedFeatures`. Trancado, `PlayerPrefsStore` ignora a escolha do jogador e vale o valor do servidor. A aba Funções
   não lista os ajustes. Teste: `lockedSettingsUseTheServerValue`.
+
+## Item 16 — itens emprestados voltam à origem (Eliel, 2026-10-03)
+
+Pedido do Eliel depois de testar: ao escolher outra receita (ou outro item no painel), o item anterior ia para a **mochila**; devia
+voltar ao **baú de origem**. E dois jogadores querendo o mesmo item não podem duplicar nem brigar: vale quem clicou primeiro.
+
+- **`bench/BenchLedger`** (caderno por jogador): lembra o que o mod tirou do armazenamento para a estação aberta (grade, slot de
+  entrada, cursor) e a **origem** (posições dos containers, nunca objetos). Enquanto o item está na estação ele é só daquele jogador:
+  nenhum outro o enxerga, então **a promessa é física** (o item saiu do baú no mesmo passo em que entrou na grade). Quem chega depois
+  encontra o baú sem ele e não puxa nada; se o primeiro desistir, o item volta e o segundo passa a conseguir.
+- **Devolução à origem** (`BenchPool.returnTarget`, o mesmo desenho da troca de slot do Litematica: só containers que ainda estão
+  no alcance, liberados e sem outro jogador olhando; se nenhum aceitar, o item **fica** onde está, nunca no chão):
+  1. ao escolher **outra receita**: o que o mod pôs na grade e sobrou volta antes de montar a nova (`returnFromGrid`);
+  2. ao pegar **outro item no painel**: o do cursor volta (`returnCursor`);
+  3. ao **fechar** a estação: o jogo devolve a grade à mochila e, no tick seguinte, `BenchSync` chama `BenchLedger.tick`, que devolve de lá.
+- **O que foi gasto não volta:** a conta é refeita a cada tick contra o que ainda está no cursor e nos slots de entrada; item craftado
+  (ou levado pelo jogador para a mochila) sai do caderno.
+- Escolha de desenho: o item **sai do baú ao escolher a receita** (como o jogo já fazia), em vez de só ser consumido ao pegar o
+  resultado. Isso mantém o craft 100% vanilla (grade de verdade, shift-clique) e dá a "promessa" pedida sem fila nem reserva
+  virtual; o custo é que o baú fica sem o item enquanto a bancada está aberta.
+- **Raio em mundo próprio:** nos sliders, mudar o raio em mundo único só alterava o padrão do servidor, e a preferência pessoal antiga
+  (que vale mais) continuava mandando. Agora o slider muda os dois.
+- Testes: `switchingRecipeReturnsLeftoversToTheChest`, `closingTheBenchReturnsUnusedItemsToTheChest`,
+  `panelSwapReturnsTheCursorItemToItsChest`, `twoPlayersNeverShareTheSameItems` (GameTests 74 no total). Mutação: sem devolver ao
+  trocar de receita, sem devolver ao fechar e sem registrar no caderno: pegos por 1, 2 e 3 testes.
