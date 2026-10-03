@@ -234,10 +234,10 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ### Item 12 — Preparar o release (workflow, changelog, README) ✅
 - **Branch:** `chore/release-1.0`
-- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 19** (último), porque ainda há itens a implementar antes (13–18), decisão do Eliel em 2026-10-03.
+- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 22** (último), porque ainda há itens a implementar antes (13–21), decisão do Eliel em 2026-10-03.
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 
-## Itens a implementar antes do release (Itens 13–18)
+## Itens a implementar antes do release (Itens 13–21)
 
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
@@ -338,16 +338,30 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
   bem abaixo de 5 ms por operação.
 
-### Item 16 — Bancada de trabalho (crafting table) usa o armazenamento como inventário ⬜
+### Item 16 — Bancadas usam o armazenamento como inventário ⬜
 - **Branch:** `feat/bancada-com-armazenamento`
 - Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
   sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
+- **Outras bancadas também (ideia do Eliel, 2026-10-03):** o mesmo vale, com o **mesmo raio e as mesmas fontes**, para
+  as demais estações: fornalha, defumador (smoker), alto-forno, mesa de ferreiro, cortador de pedra (stonecutter),
+  tear, mesa de cartografia, pedra de amolar, bigorna, mesa de encantamento e suporte de poções. A investigação lista
+  quais menus dá para ligar com a mesma peça de código (o menu tem entrada e saída, o resto muda só a receita) e quais
+  ficam de fora por serem especiais (ex.: bigorna e encantamento gastam XP/lápis; poções e fornalha têm tempo). Vale
+  fazer a base na bancada comum e ir ligando as outras sobre ela, sem copiar código.
+- **Regra: o inventário interno das estações NÃO é armazenamento.** Os slots de fornalha, defumador, alto-forno,
+  suporte de poções e das próprias bancadas (grade, entrada/saída) **nunca** viram fonte nem destino do mod:
+  reabastecer, tecla N, tecla W e a nova função de craftar **não pegam nem colocam item ali**. Hoje já é assim por
+  construção (`NearbyContainers` só aceita `RandomizableContainerBlockEntity`: baú, barril, shulker), mas **falta
+  garantir com teste** e manter assim quando entrarem mais tipos de bloco (funil, dispenser e dropper também ficam de
+  fora, a decidir na investigação). Regra de ouro: item que o jogador deixou cozinhando/processando nunca é mexido.
 - A decidir na investigação: como ligar isso ao menu da bancada (como o Sophisticated Storage / outros mods fazem),
   quais fontes entram (as mesmas do reabastecimento, `PlayerSources`) e como sincronizar o resultado com o cliente
   sem item fantasma. Regras de ouro: tirar item dos containers é **sempre server-side** e validado (distância, claim,
   baú não aberto por outro jogador); nada duplica nem some ao craftar, ao shift-clicar o resultado ou com 2 jogadores.
 - **Pronto quando:** craftar um item usando só materiais que estão nos baús ao redor funciona, nada duplica nem some
-  (testes no harness com 2 jogadores) e respeita o raio.
+  (testes no harness com 2 jogadores) e respeita o raio; as outras estações listadas funcionam do mesmo jeito (ou
+  ficam registradas como "de fora" com o motivo); e um teste prova que fornalha/suporte de poções/estações com item
+  dentro **nunca** são tocadas por reabastecer, N, W nem craftar.
 
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
 - **Branch:** `feat/filtro-tecla-n`
@@ -428,10 +442,64 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** cada função tem liga/desliga + cadeado na tela, trancada não funciona no servidor, e confirmado em
   jogo (tela, cadeado por operador num servidor com 2 jogadores, comando).
 
-### Item 19 — Release 1.0 (publicação) ⬜
+### Item 19 — Botão do meio do mouse puxa o item do armazenamento para a hotbar ⬜
+- **Branch:** `feat/pick-block-armazenamento`
+- Ideia (Eliel, 2026-10-03): ao clicar com o **botão do meio (scroll) do mouse mirando um bloco**, se o item daquele
+  bloco estiver guardado em algum container **dentro do raio do jogador**, ele **vai para a hotbar**. Exige **um slot
+  livre na hotbar**; sem slot livre não faz nada (avisa, e nunca sobrescreve nem troca item que o jogador tem).
+- A decidir na investigação: reaproveitar o pedido que o Litematica já usa (`PullItemService`/`PullLogic`, pacote ao
+  servidor) em vez de criar outro caminho; como o jogo base trata o pick block em sobrevivência (só pega do
+  inventário) e como não brigar com ele (se o item já está na hotbar, o jogo base seleciona; só puxamos quando não
+  está); se vale também para o item em shulker no inventário; Litematica ligado (pick block da preview continua
+  sendo dele); mirar em baú ou bloco que dá outro item (usa o que o jogo base escolheria). Server-side e validado
+  (distância, claim, baú não aberto por outro), sem dupe; modo cliente (sem o mod no servidor) a decidir.
+- **Pronto quando:** mirar um bloco, apertar o botão do meio e o item chega à hotbar vindo de um baú no raio; com a
+  hotbar cheia nada acontece e nada some; fora do raio não puxa; testes no harness `:fabric:runGameTest`, incluindo 2
+  jogadores.
+
+### Item 20 — Organizar os itens do sistema de armazenamento ⬜
+- **Branch:** `feat/organizar-armazenamento`
+- Pedido do Eliel (2026-10-03): uma forma de organizar os itens dentro do sistema de armazenamento que seja **boa e
+  fácil de mexer**. Proposta de desenho, em 3 camadas, da mais simples para a mais completa (cada uma já é útil sozinha;
+  dá para entregar em partes, 20.1 → 20.3):
+  1. **20.1 — Organizar um baú (1 clique).** Botão "Organizar" na tela do baú/barril/shulker (e tecla opcional):
+     junta stacks parciais e ordena por categoria (blocos, ferramentas, comida, poções...) e depois por nome. Só
+     reordena dentro do mesmo container; é o gesto que todo jogador já conhece. Respeita slots travados (Item 13).
+  2. **20.2 — Organizar o sistema (com prévia e desfazer).** Botão/tecla abre uma tela que mostra **o que o mod vai
+     mover** (ex.: "128 pedregulho: baú A → baú B") **antes** de mexer, com botões *Aplicar* e *Desfazer*. A regra de
+     destino é a mesma da tecla N: o item vai para o baú que já tem mais dele; item sem casa vai para um baú com
+     espaço. Respeita o filtro "recebe com N" (Item 17), os slots travados (13) e o nome/categoria do baú (14).
+     Nunca toca em fornalha/estações (regra do Item 16), nem em baú aberto por outro jogador.
+  3. **20.3 — Busca e destaque.** Caixa de busca na tela do sistema: digitou "ferro", lista os baús que têm ferro e
+     quanto; um clique **destaca o baú no mundo** (contorno) para você achar.
+- A decidir na investigação: onde fica a tela do sistema (tecla própria? aba na tela de config?); como agrupar por
+  categoria (tags do jogo, as mesmas do Item 17); onde guardar o histórico do "desfazer" (só na sessão, no servidor,
+  por jogador); limite de movimentos por clique para não travar o tick (dividir em vários ticks, como o modo cliente).
+  Server-side e validado (distância, claim); a prévia é só um plano, nada se move até o *Aplicar*.
+- **Pronto quando:** organizar um baú e o sistema inteiro funciona com prévia e desfazer; nada duplica nem some
+  (soma de itens conferida antes e depois, como no fuzz do Item 11, incluindo 2 jogadores); desfazer devolve tudo
+  ao lugar; a busca acha e destaca o baú; sem queda de TPS com 289+ containers.
+
+### Item 21 — Shift + passar o mouse coleta os itens do baú ⬜
+- **Branch:** `feat/shift-passar-coleta`
+- Pedido do Eliel (2026-10-03): dentro da tela de um baú, **segurar Shift e passar o mouse por cima dos itens já vai
+  coletando**, sem precisar clicar item por item. (É o gesto "arrastar com Shift" de mods como o Mouse Tweaks.)
+- Como funciona: com Shift pressionado, cada slot com item por onde o mouse passa recebe **um shift-clique**, uma vez
+  só por passagem. Usa os cliques normais de inventário, então **funciona em servidor sem o mod** (como o modo
+  cliente do Item 10.2). Vale nos dois sentidos (baú → mochila e mochila → baú), em baú, barril, shulker e ender chest.
+- A decidir na investigação: limite de cliques por tick (para o anticheat não achar que é bot e para não encher o
+  buffer de pacotes); **não** disparar em slots de resultado (bancada, fornalha, bigorna), senão o hover vai craftar
+  sem parar; compatibilidade com o Mouse Tweaks e com a tecla W do Item 9 (W continua o "puxar tudo"); opção na tela
+  de config para ligar/desligar (padrão: ligado); respeitar slots travados; parar se a mochila encher; não agir no
+  criativo.
+- **Pronto quando:** Shift + passar o mouse coleta os itens por onde passou, e só esses; mochila cheia para sem perder
+  item; nada duplica nem some (conferir a soma antes e depois, também com latência alta); slots de resultado nunca
+  são disparados.
+
+### Item 22 — Release 1.0 (publicação) ⬜
 - **Branch:** `chore/publicar-1.0`
-- Último item do plano: só entra depois dos Itens 13–18. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
-- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–18 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
+- Último item do plano: só entra depois dos Itens 13–21. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–21 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Como usar este roadmap
