@@ -238,6 +238,39 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
+## Ideias pós-1.0 (Itens 13–14)
+
+Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
+curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
+
+### Item 13 — Slot de baú travado com um item (pré-visualização) ⬜
+- **Branch:** `feat/slot-travado-item`
+- Ideia: o jogador **trava um slot de um baú com um item específico**. O slot passa a mostrar só uma **prévia
+  (fantasma)** daquele item, e o baú "guarda na memória" que aquele slot é daquele item. É o que o Sophisticated
+  Storage já faz. Serve para organizar: o slot fica reservado para aquele item.
+- A decidir na investigação: o que a prévia faz (só mostra? bloqueia outros itens naquele slot? a tecla N e o
+  guardar passam a preferir o slot reservado?), onde a memória fica guardada (dados do baú, para sobreviver a
+  reiniciar) e como se destrava. Regras de ouro: toda mudança é **server-side** e validada (distância, permissão, baú
+  não aberto por outro jogador); a prévia **não pode virar item real** (nenhum dupe ao clicar, ao shift-clicar, com
+  funil ou com W); baú duplo, barril e shulker precisam funcionar; quem não tem o mod no cliente não pode ver item
+  falso nem perder item.
+- **Pronto quando:** travar/destravar um slot funciona, a prévia aparece, nada duplica nem some (testes no harness
+  `:fabric:runGameTest`, incluindo 2 jogadores no mesmo baú) e N/W respeitam o slot reservado.
+
+### Item 14 — Nome do sistema de armazenamento, com resumo do conteúdo e emojis ⬜
+- **Branch:** `feat/nome-armazenamento`
+- Ideia: dar um **nome ao baú/sistema de armazenamento** e poder **escrever ali quais itens ele tem, sem precisar
+  abrir**. O nome aceita **emojis**.
+- A decidir na investigação: onde o nome aparece (ao olhar para o baú, em placa/holograma, na tela do baú); se vale
+  o nome padrão do jogo (baú renomeado na bigorna) ou um nome do mod; como "sistema" agrupa vários baús; se o resumo
+  é digitado à mão ou gerado do conteúdo.
+- **Risco dos emojis:** a fonte padrão do Minecraft não tem a maioria dos emojis. Opções: usar só os símbolos que a
+  fonte já tem, ou incluir uma fonte/resource pack próprio com os emojis. Também checar o limite de tamanho do nome e
+  que o servidor valide e limite o texto (sem texto gigante, sem formatação maliciosa); em servidor sem o mod o nome
+  precisa degradar bem.
+- **Pronto quando:** dá para nomear, ver o nome/resumo sem abrir o baú, com emojis que aparecem de verdade no jogo, e
+  isso persiste ao reiniciar o servidor.
+
 ## Como usar este roadmap
 
 1. Começar cada sessão: `git status` + `git fetch origin --prune` (regra 7 do Eliel).
