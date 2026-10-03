@@ -71,7 +71,7 @@ final class Lab {
     }
 
     static void prefs(ServerPlayer p, int radius, boolean chests) {
-        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(radius, chests ? 1 : 0, List.of()));
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(radius, chests ? 1 : 0, List.of(), 0, radius));   // shulkers com o mesmo raio: isola do teste ao lado
     }
 
     /** Coloca um bloco-container e devolve o container (a block entity). */

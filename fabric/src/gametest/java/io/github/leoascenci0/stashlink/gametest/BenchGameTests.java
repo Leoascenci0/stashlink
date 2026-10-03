@@ -49,6 +49,13 @@ public class BenchGameTests {
     private static final Item COBBLE = Items.COBBLESTONE;
     private static final Item LOG = Items.OAK_LOG;
     private static final Item DIRT = Items.DIRT;
+    // Itens exclusivos por teste: os GameTests rodam lado a lado no mesmo mundo, e jogadores de um teste enxergam
+    // os baús do vizinho. Com item próprio, um teste nunca pega nem guarda o item do outro.
+    private static final Item TUFF = Items.TUFF;
+    private static final Item CALCITE = Items.CALCITE;
+    private static final Item BASALT = Items.BASALT;
+    private static final Item FZ_PLANKS = Items.DARK_OAK_PLANKS;
+    private static final Item FZ_COBBLE = Items.COBBLED_DEEPSLATE;
 
     private static void check(GameTestHelper h, boolean ok, String msg) {
         h.assertTrue(ok, msg);
@@ -184,7 +191,8 @@ public class BenchGameTests {
         Lab.fill(lab.block(Blocks.SHULKER_BOX, 44, 2, 4), 0, Items.BRICK, 5); // a 40 blocos: fora
         Lab.fill(lab.chest(10, 2, 4), 0, Items.QUARTZ, 5);                 // a 6 blocos: dentro
         ServerPlayer p = lab.player(4, 2, 4);
-        Lab.prefs(p, 50, true);
+        // raio pedido 50 para baús (vira 16) e shulker no padrão do servidor (32)
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(50, 1, List.of()));
         List<BenchPoolSync.Entry> seen = BenchSync.snapshot(p);
         List<Item> items = new ArrayList<>();
         for (BenchPoolSync.Entry e : seen) {
@@ -289,33 +297,33 @@ public class BenchGameTests {
         Container barrel = lab.block(Blocks.BARREL, 3, 2, 2);
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 8, true);
-        Lab.fill(chest, 0, COBBLE, 64);
-        Lab.fill(barrel, 0, COBBLE, 20);
+        Lab.fill(chest, 0, TUFF, 64);
+        Lab.fill(barrel, 0, TUFF, 20);
         StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
         p.containerMenu = menu;
 
-        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(COBBLE), false));
-        check(h, menu.getCarried().is(COBBLE) && menu.getCarried().getCount() == 64,
+        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(TUFF), false));
+        check(h, menu.getCarried().is(TUFF) && menu.getCarried().getCount() == 64,
                 "o cursor devia ter 64 pedras: " + menu.getCarried());
-        check(h, Lab.count(chest, COBBLE) + Lab.count(barrel, COBBLE) == 20, "saíram 64 dos containers");
+        check(h, Lab.count(chest, TUFF) + Lab.count(barrel, TUFF) == 20, "saíram 64 dos containers");
 
         // cursor cheio do mesmo item: nada muda
         h.runAfterDelay(2, () -> {
-            BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(COBBLE), false));
-            check(h, menu.getCarried().getCount() == 64 && Lab.count(chest, COBBLE) + Lab.count(barrel, COBBLE) == 20,
+            BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(TUFF), false));
+            check(h, menu.getCarried().getCount() == 64 && Lab.count(chest, TUFF) + Lab.count(barrel, TUFF) == 20,
                     "cursor cheio: não pode tirar mais");
             // cursor com outra coisa: ignora
             menu.setCarried(new ItemStack(DIRT, 3));
             h.runAfterDelay(2, () -> {
-                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(COBBLE), false));
+                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(TUFF), false));
                 check(h, menu.getCarried().is(DIRT) && menu.getCarried().getCount() == 3
-                        && Lab.count(chest, COBBLE) + Lab.count(barrel, COBBLE) == 20, "cursor ocupado: ignora");
+                        && Lab.count(chest, TUFF) + Lab.count(barrel, TUFF) == 20, "cursor ocupado: ignora");
                 menu.setCarried(ItemStack.EMPTY);
                 h.runAfterDelay(2, () -> {
-                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(COBBLE), true));
-                    check(h, menu.getCarried().is(COBBLE) && menu.getCarried().getCount() == 1,
+                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(TUFF), true));
+                    check(h, menu.getCarried().is(TUFF) && menu.getCarried().getCount() == 1,
                             "botão direito: só 1");
-                    check(h, Lab.count(chest, COBBLE) + Lab.count(barrel, COBBLE) == 19, "saiu 1");
+                    check(h, Lab.count(chest, TUFF) + Lab.count(barrel, TUFF) == 19, "saiu 1");
                     clean(lab, h);
                 });
             });
@@ -344,33 +352,33 @@ public class BenchGameTests {
     public void panelRejectsWrongMenuIdLockedAndNonStation(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
-        Lab.fill(chest, 0, COBBLE, 64);
+        Lab.fill(chest, 0, CALCITE, 64);
 
         ServerPlayer a = lab.player(4, 2, 4);
         Lab.prefs(a, 8, true);
         StonecutterMenu menu = new StonecutterMenu(5, a.getInventory());
         a.containerMenu = menu;
-        BenchPullService.handle(a, new BenchPullRequest(99, new ItemStack(COBBLE), false));   // id errado
-        check(h, menu.getCarried().isEmpty() && Lab.count(chest, COBBLE) == 64, "id de menu errado: ignora");
+        BenchPullService.handle(a, new BenchPullRequest(99, new ItemStack(CALCITE), false));   // id errado
+        check(h, menu.getCarried().isEmpty() && Lab.count(chest, CALCITE) == 64, "id de menu errado: ignora");
 
         ServerPlayer b = lab.player(4, 2, 4);                // menu de baú: não é estação
         Lab.prefs(b, 8, true);
         ChestMenu chestMenu = Lab.open(b, lab.chest(2, 2, 6), 6);
-        BenchPullService.handle(b, new BenchPullRequest(6, new ItemStack(COBBLE), false));
-        check(h, chestMenu.getCarried().isEmpty() && Lab.count(chest, COBBLE) == 64, "baú não é estação: ignora");
+        BenchPullService.handle(b, new BenchPullRequest(6, new ItemStack(CALCITE), false));
+        check(h, chestMenu.getCarried().isEmpty() && Lab.count(chest, CALCITE) == 64, "baú não é estação: ignora");
 
         ServerPlayer c = lab.player(4, 2, 4);                // sem menu aberto
         Lab.prefs(c, 8, true);
-        BenchPullService.handle(c, new BenchPullRequest(0, new ItemStack(COBBLE), false));
-        check(h, Lab.count(chest, COBBLE) == 64, "sem estação aberta: ignora");
+        BenchPullService.handle(c, new BenchPullRequest(0, new ItemStack(CALCITE), false));
+        check(h, Lab.count(chest, CALCITE) == 64, "sem estação aberta: ignora");
 
         StashLinkConfig.setFeatureLocked(Feature.BENCH, true);
         ServerPlayer d = lab.player(4, 2, 4);
         Lab.prefs(d, 8, true);
         StonecutterMenu locked = new StonecutterMenu(8, d.getInventory());
         d.containerMenu = locked;
-        BenchPullService.handle(d, new BenchPullRequest(8, new ItemStack(COBBLE), false));
-        check(h, locked.getCarried().isEmpty() && Lab.count(chest, COBBLE) == 64, "trancada: ignora");
+        BenchPullService.handle(d, new BenchPullRequest(8, new ItemStack(CALCITE), false));
+        check(h, locked.getCarried().isEmpty() && Lab.count(chest, CALCITE) == 64, "trancada: ignora");
         clean(lab, h);
     }
 
@@ -404,7 +412,7 @@ public class BenchGameTests {
     public void stationsWithItemsInsideAreNeverTouched(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
-        Lab.fill(chest, 0, COBBLE, 10);
+        Lab.fill(chest, 0, BASALT, 10);
         List<Container> stations = new ArrayList<>();
         stations.add(lab.block(Blocks.FURNACE, 4, 2, 2));
         stations.add(lab.block(Blocks.SMOKER, 5, 2, 2));
@@ -416,7 +424,7 @@ public class BenchGameTests {
         stations.add(lab.block(Blocks.CRAFTER, 4, 2, 5));
         for (Container s : stations) {
             for (int slot = 0; slot < Math.min(s.getContainerSize(), 5); slot++) {
-                Lab.fill(s, slot, COBBLE, 7 + slot);             // pedra: o item que a N e o reabastecimento procuram
+                Lab.fill(s, slot, BASALT, 7 + slot);             // pedra: o item que a N e o reabastecimento procuram
             }
         }
         List<List<ItemStack>> before = new ArrayList<>();
@@ -426,12 +434,12 @@ public class BenchGameTests {
 
         ServerPlayer p = lab.player(5, 2, 4);
         Lab.prefs(p, 16, true);
-        Lab.give(p, 12, COBBLE, 30);
+        Lab.give(p, 12, BASALT, 30);
         Lab.give(p, 13, PLANKS, 4);
 
         QuickStackService.handle(p);                              // N: só o baú recebe
-        check(h, Lab.count(chest, COBBLE) == 40, "a N devia guardar no baú comum: " + Lab.count(chest, COBBLE));
-        p.getInventory().setItem(p.getInventory().getSelectedSlot(), new ItemStack(COBBLE, 1));
+        check(h, Lab.count(chest, BASALT) == 40, "a N devia guardar no baú comum: " + Lab.count(chest, BASALT));
+        p.getInventory().setItem(p.getInventory().getSelectedSlot(), new ItemStack(BASALT, 1));
         RefillService.tickPlayer(p);                              // reabastecer: só do baú
         p.getInventory().setItem(p.getInventory().getSelectedSlot(), ItemStack.EMPTY);
         RefillService.tickPlayer(p);
@@ -447,7 +455,7 @@ public class BenchGameTests {
         table.removed(p);
         StonecutterMenu cutter = new StonecutterMenu(5, p.getInventory());
         p.containerMenu = cutter;
-        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(COBBLE), false));
+        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(BASALT), false));
         cutter.removed(p);
         p.containerMenu = p.inventoryMenu;
 
@@ -494,14 +502,14 @@ public class BenchGameTests {
         List<ServerPlayer> players = List.of(a, b);
         Lab.prefs(a, 12, true);
         Lab.prefs(b, 12, true);
-        Lab.fill(c1, 0, PLANKS, 64);
-        Lab.fill(c1, 5, COBBLE, 40);
-        Lab.fill(c2, 0, PLANKS, 30);
-        Lab.fill(dbl, 0, COBBLE, 64);
-        Lab.fill(dbl, 30, PLANKS, 50);
-        Lab.give(a, 10, PLANKS, 20);
-        Lab.give(b, 10, COBBLE, 25);
-        Item[] items = {PLANKS, COBBLE};
+        Lab.fill(c1, 0, FZ_PLANKS, 64);
+        Lab.fill(c1, 5, FZ_COBBLE, 40);
+        Lab.fill(c2, 0, FZ_PLANKS, 30);
+        Lab.fill(dbl, 0, FZ_COBBLE, 64);
+        Lab.fill(dbl, 30, FZ_PLANKS, 50);
+        Lab.give(a, 10, FZ_PLANKS, 20);
+        Lab.give(b, 10, FZ_COBBLE, 25);
+        Item[] items = {FZ_PLANKS, FZ_COBBLE};
         int[] expected = new int[items.length];
         for (int i = 0; i < items.length; i++) {
             expected[i] = total(boxes, players, items[i]);
@@ -514,7 +522,7 @@ public class BenchGameTests {
             final int t = tick;
             h.runAfterDelay(tick, () -> {
                 for (int n = 0; n < 2; n++) {
-                    int inBoxes = total(boxes, List.of(), PLANKS) + total(boxes, List.of(), COBBLE);
+                    int inBoxes = total(boxes, List.of(), FZ_PLANKS) + total(boxes, List.of(), FZ_COBBLE);
                     ServerPlayer p = rnd.nextBoolean() ? a : b;
                     int action = rnd.nextInt(12);
                     String name;
@@ -534,7 +542,7 @@ public class BenchGameTests {
                                 p.containerMenu = new StonecutterMenu(1 + rnd.nextInt(100), p.getInventory());
                             }
                             BenchPullService.handle(p, new BenchPullRequest(p.containerMenu.containerId,
-                                    new ItemStack(rnd.nextBoolean() ? PLANKS : COBBLE), rnd.nextBoolean()));
+                                    new ItemStack(rnd.nextBoolean() ? FZ_PLANKS : FZ_COBBLE), rnd.nextBoolean()));
                         }
                         case 3 -> {
                             name = "fecha";
@@ -566,7 +574,7 @@ public class BenchGameTests {
                             safeClose(p);
                             for (int s = 0; s < 36; s++) {
                                 ItemStack in = p.getInventory().getItem(s);
-                                if (in.is(PLANKS) || in.is(COBBLE)) {
+                                if (in.is(FZ_PLANKS) || in.is(FZ_COBBLE)) {
                                     ItemStack rest = io.github.leoascenci0.stashlink.source.ContainerInsert
                                             .insert(boxes.get(rnd.nextInt(boxes.size())), in);
                                     p.getInventory().setItem(s, rest);
@@ -581,15 +589,15 @@ public class BenchGameTests {
                             }
                         }
                     }
-                    if ((name.equals("livro") || name.equals("painel")) && total(boxes, List.of(), PLANKS) + total(boxes, List.of(), COBBLE) < inBoxes) {
+                    if ((name.equals("livro") || name.equals("painel")) && total(boxes, List.of(), FZ_PLANKS) + total(boxes, List.of(), FZ_COBBLE) < inBoxes) {
                         pulls[0]++;
                     }
-                    trail.add(name + "(tábuas=" + total(boxes, players, PLANKS) + " gravetos=" + total(boxes, players, STICK)
+                    trail.add(name + "(tábuas=" + total(boxes, players, FZ_PLANKS) + " gravetos=" + total(boxes, players, STICK)
                             + " baús=" + total(boxes, players, Items.CHEST) + ")");
                     // sticks gastam tábuas: conta tábuas + 0,5*gravetos? Não: conferimos só a pedra (nunca consumida)
                     // e as tábuas COM os gravetos feitos (2 tábuas -> 4 gravetos; "chest" gasta 8 tábuas e faz 1 baú).
-                    int cobble = total(boxes, players, COBBLE);
-                    int planks = total(boxes, players, PLANKS) + 2 * (total(boxes, players, STICK) / 4)
+                    int cobble = total(boxes, players, FZ_COBBLE);
+                    int planks = total(boxes, players, FZ_PLANKS) + 2 * (total(boxes, players, STICK) / 4)
                             + 8 * total(boxes, players, Items.CHEST);
                     // (o baú item consumido da receita não volta; as tábuas dele ficam "na conta" assim)
                     if (cobble != expected[1]) {
