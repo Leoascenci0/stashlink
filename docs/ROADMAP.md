@@ -242,7 +242,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
 
-### Item 13 — Slot de baú travado com um item (pré-visualização) ⬜
+### Item 13 — Slot de baú travado com um item (pré-visualização) ✅
 - **Branch:** `feat/slot-travado-item`
 - Ideia: o jogador **trava um slot de um baú com um item específico**. O slot passa a mostrar só uma **prévia
   (fantasma)** daquele item, e o baú "guarda na memória" que aquele slot é daquele item. É o que o Sophisticated
@@ -255,6 +255,42 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   falso nem perder item.
 - **Pronto quando:** travar/destravar um slot funciona, a prévia aparece, nada duplica nem some (testes no harness
   `:fabric:runGameTest`, incluindo 2 jogadores no mesmo baú) e N/W respeitam o slot reservado.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 13"):** decisões do Eliel (2026-10-03): o slot travado **reserva
+  de verdade** (só aceita o item dele) e o gesto é **Alt + clique** (num slot com item trava para ele; num slot vazio
+  com item no cursor reserva para o item do cursor; num slot já travado destrava). A prévia é **só metadado**: o baú
+  guarda `slot → item` no próprio NBT do bloco (um mixin em `BaseContainerBlockEntity`; sobrevive a reiniciar e some
+  com o bloco quebrado) e o slot continua vazio de verdade, então não existe item falso para duplicar. `Slot.mayPlace`
+  (clique, shift-clique, troca por número, arrastar) e `ContainerInsert` (N, devolução do Litematica) recusam outro
+  item; N prefere o slot reservado e alimenta até um baú que só tem a reserva. W só tira itens (a reserva continua).
+  Servidor valida tudo (menu aberto, distância, claims, baú não aberto por outro jogador); o cliente com o mod recebe a
+  lista de travas e desenha a prévia (item esmaecido + moldura azul); cliente sem o mod vê o slot vazio e nunca recebe o
+  pacote. Baú duplo (uma trava por metade), barril e shulker funcionam.
+- **Testes:** 14 GameTests novos (`LockGameTests`, 36 no total) com cliques reais no menu: travar/destravar, recusa
+  por clique/troca/shift, prévia nunca vira item, N e W, baú duplo, barril, shulker, gravar e recarregar o bloco,
+  quebrar o baú, 2 jogadores no mesmo baú, pacotes e um fuzz de 3000 ações com 2 jogadores (soma de itens conferida após
+  cada ação). **Mutação:** 4 defeitos injetados e pegos (trava ignorada no `mayPlace`, dupe no `insert`, N ignorando a
+  reserva, prévia virando item). **Limites:** funil e mods que mexem direto no container não respeitam a reserva (nada
+  se perde); shift-clique de fora não prefere o slot reservado; só o tipo do item é guardado.
+- **Não testado em jogo ainda (cliente gráfico).** Roteiro para o Eliel (Fabric, `./gradlew :fabric:runClient`, ou o
+  servidor próprio com o mod no servidor **e** no cliente; modo Sobrevivência):
+  1. Num baú, ponha 10 pedras no slot 4. Segure **Alt** e clique no slot: aparece "Slot reservado para Pedra" e o
+     slot ganha uma **moldura azul**. O clique **não** pode pegar a pedra.
+  2. Pegue as pedras (clique normal ou W). O slot fica vazio, mas mostra a **pedra esmaecida** (a prévia) com a moldura.
+  3. Tente colocar terra nesse slot (clique, shift-clique do inventário e tecla numérica): **não entra**. Coloque
+     pedra: entra. A prévia some enquanto há pedra e volta ao esvaziar.
+  4. Feche e reabra o baú: a reserva continua. **Reinicie o mundo/servidor** e reabra: continua.
+  5. Com o baú fechado, aperte **N** com pedras na mochila: elas vão para o slot 4 (mesmo se houver outro baú mais
+     perto que também tenha pedra). Num baú **vazio** com só uma reserva de terra, N com terra na mochila leva a terra
+     para lá.
+  6. Aperte **W** com o slot reservado cheio: leva tudo e a reserva continua.
+  7. **Alt + clique** de novo no slot: "Slot destravado", a prévia some e o slot aceita qualquer item.
+  8. **Baú duplo:** reserve um slot da metade esquerda e um da direita; as duas valem. Repita num barril e numa
+     shulker colocada.
+  9. **2 jogadores:** com os dois no mesmo baú, Alt + clique não muda nada ("Outro jogador está com este container
+     aberto"); depois que um sai, o outro consegue.
+  10. **Sem o mod no cliente** (vanilla entrando no servidor com o mod): o slot reservado aparece **vazio**, sem item
+      falso; nada some. **Sem o mod no servidor:** Alt + clique faz o clique normal do jogo.
+  11. Somar os itens antes e depois: nada duplicou, nada sumiu.
 
 ### Item 14 — Nome do sistema de armazenamento, com resumo do conteúdo e emojis ⬜
 - **Branch:** `feat/nome-armazenamento`

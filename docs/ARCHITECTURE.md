@@ -274,3 +274,86 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Mudança em `ContainerSource.give`.** Agora também consulta a permissão do container (claims), não só "tocado":
   na devolução o jogador pode ter andado para dentro de uma área protegida desde o pedido anterior. No reabastecimento
   isso não muda nada (a permissão já foi consultada e lembrada no `take`).
+
+## Item 13 — Slot de baú travado (reservado) com um item
+
+- **Investigação (como os outros resolvem).** O Sophisticated Storage tem "memória de slot": o jogador marca um slot
+  com um item, o slot vazio mostra um ícone fantasma e o item passa a preferir/ficar nesse slot. O jogo base não tem
+  nada parecido, mas dá as peças: (1) a "tela" que o jogador vê é um **menu** (`ChestMenu`) cujos slots são objetos
+  `Slot`; clique, shift-clique, arrastar e troca por número perguntam `Slot.mayPlace(stack)` antes de colocar
+  (confirmado com `javap`: `moveItemStackTo` só consulta no passo dos slots vazios, o passo de "completar stack igual"
+  não consulta; por isso a trava vale para slot **vazio** ou com o próprio item); (2) o dado do baú mora na *block
+  entity* e é gravado por `saveAdditional` / lido por `loadAdditional`, então qualquer coisa gravada ali sobrevive a
+  reiniciar e some junto com o bloco; (3) um cliente vanilla só vê o que o servidor manda no menu: se a "prévia" nunca
+  for item de verdade, ele vê o slot vazio.
+- **Decisões do Eliel (2026-10-03).** (a) **Reservar de verdade**: o slot só aceita o item dele (clique, shift-clique,
+  troca por número, arrastar, N, devolução do Litematica); N e guardar preferem o slot reservado. (b) **Alt + clique**
+  no slot (qualquer botão) trava/destrava. Descartadas: "só mostrar e preferir" (o slot não ficaria reservado de fato),
+  clique do meio (conflita com mods e com o criativo) e tecla dedicada (mais uma tecla).
+- **A prévia é só metadado, nunca item.** O baú guarda `slot → tipo de item` (`SlotLockHolder`); o slot continua
+  **vazio** de verdade. Por isso: clicar, shift-clicar, clique duplo, arrastar, tecla W e funil não têm o que pegar —
+  não existe item falso para duplicar. Cliente sem o mod enxerga o slot vazio e nunca recebe nada. Só o tipo do item é
+  guardado (não os componentes): um slot reservado para espada aceita qualquer espada.
+- **Onde a memória fica.** Um mixin (`BaseContainerBlockEntityMixin`) faz toda block entity de container (baú, barril,
+  shulker colocada, funil...) implementar `SlotLockHolder` e grava/lê a lista `stashlink_slot_locks` no mesmo NBT do
+  bloco (Codec: `slot` + `item`). Vantagens sobre um arquivo à parte do mod: sobrevive a reiniciar, é copiada com o
+  mundo, e **some quando o bloco é quebrado** (um baú novo no mesmo lugar não herda a reserva — teste
+  `brokenChestTakesItsLocksWithIt`). Funciona igual nos dois loaders (o mixin é do `common`). Descartadas: Data
+  Attachment do Fabric/NeoForge (duas implementações, uma não testável aqui) e `SavedData` por posição (ficaria órfã).
+  **Baú duplo:** são duas block entities; cada metade guarda as suas, com índice **local** (0-26). Quem une as duas é
+  `SlotLocks.locate`, que abre as metades do `CompoundContainer` por um accessor (`CompoundContainerAccessor`) — assim a
+  ordem das metades no container do jogo (que pode ser inversa à do teste) não importa.
+- **Quem barra o item errado.** `SlotMixin` (em `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace`, que sobrescreve sem chamar
+  o pai) devolve falso se o slot está reservado para outro item; `ContainerInsert` (usado por N, devolução do
+  Litematica e reabastecer) faz a mesma checagem em `capacity` e `insert`. As duas usam `SlotLocks.mayPlace`.
+  No **cliente** o mesmo mixin consulta `ClientSlotLocks` (o que o servidor contou), então o clique recusado nem
+  "pisca"; o servidor continua sendo quem decide.
+- **N e W.** `ContainerInsert.insert` agora tem 3 passos: (0) slots reservados para aquele item, (1) completar stacks
+  iguais, (2) slots vazios. `QuickStackLogic` ganhou duas rodadas: primeiro só containers que têm **reserva** para o item
+  (mesmo vazios e mesmo havendo outro baú mais perto que já contém o item), depois a regra de sempre. A permissão
+  (claims) é perguntada no máximo uma vez por container. A tecla W só tira itens: o slot esvazia e a reserva continua
+  (teste `lootAllKeepsTheReservation`).
+- **Validação no servidor (`SlotLockService`).** Pedido `LockSlotRequest(containerId, menuSlot)`; o servidor confere:
+  jogador vivo e não espectador; é **este** o menu aberto (`containerId`); menu de baú/barril/shulker; `stillValid`
+  (distância); índice válido; slot do container (não do jogador) e que sabe guardar trava; claims
+  (`canPlayerUseBlock` em cada block entity); **nenhum outro jogador com o container aberto** (mesma regra da tecla N;
+  mensagem "outro jogador está com este container aberto"). O item da trava é decidido pelo servidor: o do slot, ou o
+  do cursor se o slot está vazio (reservar antes de guardar). Slot já travado: destrava. Erro no tratamento nunca
+  derruba o servidor.
+- **Sincronia com o cliente (`SlotLockSync`).** A cada tick, para cada jogador com menu suportado aberto, o servidor
+  compara o "retrato" das travas com o último enviado e só manda `SlotLocksSync` se mudou (abrir o menu, alguém
+  travar). `IPlatformHelper.sendIfSupported` só envia a quem tem o canal registrado (Fabric: `canSend`; NeoForge:
+  `hasChannel`), então cliente vanilla nunca recebe pacote desconhecido. O cliente (`SlotLockClient`) guarda a lista
+  por `Container` do menu e **desenha** a prévia (`AbstractContainerScreenMixin` depois de `extractSlot`): item
+  esmaecido + moldura azul no slot vazio; só a moldura no slot reservado que tem item. Alt + clique é
+  tratado no `mouseClicked` (o clique normal é engolido; sem o mod no servidor ele segue como sempre).
+- **Limites conhecidos.** (1) **Funil/hopper e outros mods que mexem direto no container** não respeitam a reserva (o
+  `Slot.mayPlace` só vale para menus, e o `canPlaceItem` do baú não é sobrescrevível sem um mixin por classe); o que
+  entra assim fica no slot e pode sair normalmente, nada se perde. (2) Shift-clique **de fora** para o baú não prefere o
+  slot reservado (usa o primeiro vazio permitido); só N/guardar preferem. (3) Os componentes do item não entram na
+  reserva (só o tipo). (4) Shulker box quebrada e pega de volta perde as reservas (o item da shulker só guarda o
+  conteúdo). (5) Baú de ender e contêineres de outros mods (não são `BaseContainerBlockEntity`) não suportam a trava.
+  (6) **Upgraded Iron Chests** (mod carregado nos testes do Item 11) tem "auto-compactação": depois de cada clique ele
+  reorganiza o baú vanilla direto no container, o que ignora a reserva (e mexe nos slots nos testes de clique). Os
+  testes de clique do Item 13 desligam a compactação do jogador de teste (por reflexão). (7) Sem o mod no servidor não
+  há trava (só o modo cliente de W/N/reabastecer; ele não conhece reservas).
+- **Testes (36 GameTests no total, +14 novos em `LockGameTests`, todos com cliques reais `menu.clicked`).** Travar e
+  destravar (slot com item, vazio com item no cursor, vazio sem nada, slot do jogador, índice inválido, menu já
+  fechado); reserva recusa outro item por clique, troca por número e shift-clique; a prévia nunca vira item (clicar,
+  shift, clique duplo, clonar, jogar fora, W, funil via `removeItem`); N prefere o slot reservado, N alimenta uma reserva
+  vazia mesmo havendo baú mais perto, N nunca usa reserva de outro item; W mantém a reserva; baú duplo (metade certa,
+  N, clique); barril e shulker; gravar e recarregar o bloco (o mesmo caminho do disco) e destravar também persiste;
+  quebrar o baú leva as travas; 2 jogadores no mesmo baú (ninguém muda trava com o baú aberto por outro); pacotes
+  (ida e volta, e cliente sem o mod não recebe); **fuzz de 3000 ações com 2 jogadores** (N, W, abrir, fechar,
+  travar/destravar ~135 vezes, clique, shift-clique, troca, clique duplo, arrastar) conferindo **a soma de cada item
+  depois de CADA ação** e a invariante "slot reservado só contém o seu item". **Mutação:** 4 defeitos injetados e
+  pegos — `Slot.mayPlace` ignorando a trava (4 testes), dupe em `ContainerInsert.insert` (9, inclusive os testes dos
+  Itens 11 e 18), N ignorando a reserva (2) e a prévia virando item de verdade (9).
+- **Achados no caminho.** O passo "completar stack igual" do jogo ignora `mayPlace` (por isso a invariante vale para
+  slot vazio ou com o próprio item). A auto-compactação do Upgraded Iron Chests só apareceu porque o clique "caía" no
+  primeiro slot livre em vez do slot clicado.
+- **Não testado em jogo (cliente).** O desenho da prévia, o Alt + clique e a sincronia precisam de cliente gráfico; o
+  `runClientGameTest` do Fabric chegou a abrir o mundo, mas o cliente caiu de forma nativa (erro do driver/JVM, também
+  com o Carpet removido) nesta máquina, então a verificação visual fica no roteiro manual do `ROADMAP.md`. As assinaturas
+  dos alvos de mixin do cliente (`mouseClicked`, `extractSlot`, `getHoveredSlot`) foram conferidas com `javap`. O lado
+  NeoForge compila, mas não tem harness.

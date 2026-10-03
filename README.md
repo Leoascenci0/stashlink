@@ -9,6 +9,7 @@ Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
 - Integração com **Litematica**: construa clicando na pré-visualização com os materiais na shulker.
 - **N** guarda seus itens em baús próximos que já tenham aquele item.
 - **W** dentro de um baú puxa tudo o que couber no inventário.
+- **Alt + clique** num slot de baú o reserva para aquele item: só ele entra, **N** prefere esse slot e o slot vazio mostra uma prévia (só com o mod no servidor e no cliente; vale em baú duplo, barril e shulker colocada).
 
 ## Dois modos de funcionar
 

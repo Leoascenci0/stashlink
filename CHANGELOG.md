@@ -5,10 +5,11 @@
 - **Reabastecer a mão** a partir de shulkers no inventário, e de shulkers/baús/barris colocados perto.
 - **Raio de fontes** configurável (teto definido pelo servidor, máx. 64).
 - **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers; o bloco novo troca no mesmo slot e o anterior volta ao armazenamento (a hotbar não enche).
+- **Slot travado**: Alt + clique num slot de baú reserva o slot para aquele item (só ele entra; N prefere o slot; a prévia aparece no slot vazio). Fica gravado no baú e funciona em baú duplo, barril e shulker colocada.
 - **Tecla N** guarda itens em baús próximos que já têm o item; **tecla W** puxa tudo do container aberto.
 - **Config**: tela no jogo (tecla K), `/stashlink`, preferências por jogador (Realms sem comandos).
 - **Modo cliente**: W, N e reabastecer a mão funcionam em servidor sem o mod (ex.: Realms).
 - Testado em servidor real com 2 jogadores, 289 containers e Carpet; sem dupe nos cenários testados.
 - Testado em jogo pelo Eliel num servidor próprio com o mod instalado (2026-10-03): funciona. O Realms foi abandonado como alvo de teste.
 
-Limites conhecidos: modo cliente (servidor sem o mod) e Easy Place com Litematica ainda sem teste em jogo; NeoForge sem testes automáticos.
+Limites conhecidos: slot travado não vale para funil nem para mods que mexem direto no container, e só com o mod no servidor e no cliente (desenho da prévia ainda sem teste em jogo); modo cliente (servidor sem o mod) e Easy Place com Litematica ainda sem teste em jogo; NeoForge sem testes automáticos.

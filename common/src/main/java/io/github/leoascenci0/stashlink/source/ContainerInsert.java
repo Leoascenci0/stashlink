@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.source;
 
+import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
@@ -13,11 +14,16 @@ public final class ContainerInsert {
     private ContainerInsert() {
     }
 
+    /** O slot aceita o item? O container concorda e o slot não está reservado para outro item (Item 13). */
+    private static boolean accepts(Container c, int slot, ItemStack stack) {
+        return c.canPlaceItem(slot, stack) && SlotLocks.mayPlace(c, slot, stack);
+    }
+
     /** Quantos itens iguais a {@code stack} ainda cabem no container. Não altera nada. */
     public static int capacity(Container c, ItemStack stack) {
         int room = 0;
         for (int slot = 0; slot < c.getContainerSize(); slot++) {
-            if (!c.canPlaceItem(slot, stack)) {
+            if (!accepts(c, slot, stack)) {
                 continue;
             }
             ItemStack cur = c.getItem(slot);
@@ -32,27 +38,31 @@ public final class ContainerInsert {
     }
 
     /**
-     * Guarda o máximo possível (primeiro completando stacks iguais, depois slots vazios) e devolve o que
-     * <b>não</b> coube. Nunca altera o stack recebido.
+     * Guarda o máximo possível e devolve o que <b>não</b> coube. Ordem: (0) slots reservados para este item,
+     * (1) completar stacks iguais, (2) slots vazios. Nunca altera o stack recebido.
      */
     public static ItemStack insert(Container c, ItemStack in) {
         ItemStack rest = in.copy();
         boolean changed = false;
-        for (int pass = 0; pass < 2 && !rest.isEmpty(); pass++) {
+        for (int pass = 0; pass < 3 && !rest.isEmpty(); pass++) {
             for (int slot = 0; slot < c.getContainerSize() && !rest.isEmpty(); slot++) {
                 ItemStack cur = c.getItem(slot);
-                if (!c.canPlaceItem(slot, rest)) {
+                if (!accepts(c, slot, rest)) {
                     continue;
                 }
                 int limit = Math.min(c.getMaxStackSize(rest), rest.getMaxStackSize());
-                if (pass == 0 && !cur.isEmpty() && ItemStack.isSameItemSameComponents(cur, rest)) {
+                boolean sameStack = !cur.isEmpty() && ItemStack.isSameItemSameComponents(cur, rest);
+                if (pass == 0 && !SlotLocks.reservedFor(c, slot, rest)) {
+                    continue;
+                }
+                if (pass <= 1 && sameStack) {
                     int move = Math.min(rest.getCount(), limit - cur.getCount());
                     if (move > 0) {
                         cur.grow(move);
                         rest.shrink(move);
                         changed = true;
                     }
-                } else if (pass == 1 && cur.isEmpty()) {
+                } else if (cur.isEmpty() && (pass == 0 || pass == 2)) {
                     int move = Math.min(rest.getCount(), limit);
                     c.setItem(slot, rest.copyWithCount(move));
                     rest.shrink(move);

@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
@@ -40,6 +41,13 @@ public class StashLinkNeoForgeClient {
             Minecraft mc = Minecraft.getInstance();
             return mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE);
         });
+
+        // Slots travados: Alt + clique pede ao servidor (só se ele conhece o pacote).
+        SlotLockClient.setServerHasMod(() -> {
+            Minecraft mc = Minecraft.getInstance();
+            return mc.getConnection() != null && mc.getConnection().hasChannel(LockSlotRequest.TYPE);
+        });
+        SlotLockClient.setSender(ClientPacketDistributor::sendToServer);
 
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);

@@ -33,6 +33,15 @@ public class FabricPlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public boolean sendIfSupported(ServerPlayer player, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
+        if (!net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(player, payload.type())) {
+            return false;
+        }
+        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, payload);
+        return true;
+    }
+
+    @Override
     public java.nio.file.Path getConfigDir() {
         return FabricLoader.getInstance().getConfigDir();
     }

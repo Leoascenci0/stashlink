@@ -1,5 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
+import io.github.leoascenci0.stashlink.network.LockSlotRequest;
+import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
@@ -28,6 +30,11 @@ public class StashLinkFabricClient implements ClientModInitializer {
         ClientMode.setServerHasModCheck(() -> ClientPlayNetworking.canSend(QuickStackRequest.TYPE));
         // O motor do modo cliente (abre/clica/fecha) anda um passo por tick; fora do modo cliente não faz nada.
         ClientTickEvents.END_CLIENT_TICK.register(ClientMode::tick);
+
+        // Slots travados: Alt + clique pede, o servidor manda a lista de travas para desenhar a prévia.
+        SlotLockClient.setServerHasMod(() -> ClientPlayNetworking.canSend(LockSlotRequest.TYPE));
+        SlotLockClient.setSender(ClientPlayNetworking::send);
+        ClientPlayNetworking.registerGlobalReceiver(SlotLocksSync.TYPE, (payload, context) -> SlotLockClient.apply(payload));
 
         KeyMappingHelper.registerKeyMapping(QuickStackKey.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(mc -> QuickStackKey.poll(mc, () -> {
