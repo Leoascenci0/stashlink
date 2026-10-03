@@ -508,7 +508,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** cada função tem liga/desliga + cadeado na tela, trancada não funciona no servidor, e confirmado em
   jogo (tela, cadeado por operador num servidor com 2 jogadores, comando).
 
-### Item 19 — Botão do meio do mouse puxa o item do armazenamento para a hotbar ⬜
+### Item 19 — Botão do meio do mouse puxa o item do armazenamento para a hotbar ✅
 - **Branch:** `feat/pick-block-armazenamento`
 - Ideia (Eliel, 2026-10-03): ao clicar com o **botão do meio (scroll) do mouse mirando um bloco**, se o item daquele
   bloco estiver guardado em algum container **dentro do raio do jogador**, ele **vai para a hotbar**. Exige **um slot
@@ -519,6 +519,27 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   está); se vale também para o item em shulker no inventário; Litematica ligado (pick block da preview continua
   sendo dele); mirar em baú ou bloco que dá outro item (usa o que o jogo base escolheria). Server-side e validado
   (distância, claim, baú não aberto por outro), sem dupe; modo cliente (sem o mod no servidor) a decidir.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 19"):** a investigação achou que o pick block do jogo é resolvido
+  **no servidor** (`ServerGamePacketListenerImpl.tryPickItem`); o cliente só manda a posição do bloco. Então **não há
+  mixin nem pacote novo no cliente**: um mixin no servidor (`ServerGamePacketListenerImplMixin`) chama
+  `PullItemService.pickBlock` antes do jogo base. Só age quando o jogo base não faria nada (item em nenhum slot do
+  inventário, jogador não criativo): se o item já está na hotbar ou na mochila, o jogo base seleciona/troca como sempre.
+  Vem 1 stack, das mesmas fontes do Litematica (shulkers do inventário, shulkers e baús no raio, `PlayerPrefsStore`).
+  Sem slot livre: avisa na barra de ação e não mexe em nada (a troca no mesmo slot do Item 18 continua só do Litematica).
+  Mira em bloco que dá outro item (trigo → semente): vale o item que o jogo base escolheria. Usa `Feature.PULL`
+  (liga/desliga e cadeado), em silêncio quando trancada. Achado: puxar/reabastecer pelo `PlayerSources` comum **não**
+  conferia "baú aberto por outro jogador"; o botão do meio usa `PlayerSources.operationSkippingOpened`.
+  **Modo cliente: não se aplica** (o pick block é do servidor; sem o mod no servidor continua o jogo base).
+- **Testes:** `PickBlockGameTests` (10 cenários no servidor real, 102 GameTests no total, 2 mutações pegas: ignorar baú
+  aberto por outro e ignorar "já está no inventário").
+- **Roteiro manual (no Prism, Fabric, servidor com o mod, sobrevivência; confira em Opções > Controles qual botão é o "pegar bloco"):**
+  1. Guarde 64 de um bloco (ex.: tijolo) num baú a menos de 8 blocos e deixe esse bloco fora da mochila. Mire um tijolo
+     colocado e aperte o botão do meio: 1 stack vai para a hotbar e para a mão; o baú perde o stack.
+  2. Hotbar com algo no slot selecionado: o item vai para outro slot livre; o seu não é tocado.
+  3. Encha os 9 slots da hotbar e repita: aparece o aviso e nada muda.
+  4. Afaste-se do baú além do raio: nada acontece. Item já na mochila: o jogo base o traz (o baú não é tocado).
+  5. Mire trigo plantado com sementes no baú: vêm as sementes. Com outro jogador com o baú aberto: nada sai.
+  6. Desligue "Trazer item" na config: o botão do meio volta ao jogo base. Criativo: continua dando o item do nada.
 - **Pronto quando:** mirar um bloco, apertar o botão do meio e o item chega à hotbar vindo de um baú no raio; com a
   hotbar cheia nada acontece e nada some; fora do raio não puxa; testes no harness `:fabric:runGameTest`, incluindo 2
   jogadores.

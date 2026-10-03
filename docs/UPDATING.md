@@ -114,6 +114,7 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `ScreenInvoker` (cliente) | `Screen.addRenderableWidget` (protegido; `@Shadow` de método herdado não funciona) | Item 14 |
 | `AbstractContainerScreenMixin` (cliente) | `init()`, `extractLabels(GuiGraphicsExtractor,int,int)`, `removed()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)`, mais `extractRenderState(GuiGraphicsExtractor,int,int,float)` e `mouseScrolled(double,double,double,double)` (painel das estações, Item 16) | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
+| `ServerGamePacketListenerImplMixin` | `ServerGamePacketListenerImpl.tryPickItem(ItemStack)` (privado; pick block resolvido no servidor) e o campo público `player` | Item 19; confira o nome com `javap -p` |
 | `InventoryUtilsMixin` (Litematica) | `InventoryUtils.schematicWorldPickBlock` | Item 7 |
 
 Os GameTests do Item 13 (`LockGameTests`) pegam quebra do `SlotMixin`, da memória no bloco e do baú duplo; o desenho

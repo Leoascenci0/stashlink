@@ -208,9 +208,9 @@ const ITEMS = [
    do:["Cada função (reabastecer, N, W, Litematica, Alt + clique, nome do baú) tem botão liga/desliga e um cadeado na tela de config, igual ao seletor de dificuldade","Liga/desliga é pessoal; o cadeado é do servidor: trancada, a função não funciona ali. Dono ou operador tranca pela tela ou por /stashlink feature; o servidor confere tudo","8 unitários + 7 GameTests (54 no total). Tela ainda não vista em jogo"],
    ok:"Função trancada não funciona no servidor e o botão fica desligado; confirmado em jogo."}
 ,
-  {n:19, phase:"Antes do 1.0", t:"Botão do meio puxa o item do armazenamento", b:"feat/pick-block-armazenamento", f:["F12"], s:"todo",
-   do:["Mirar um bloco e clicar com o botão do meio: se o item está num container dentro do raio, vai para a hotbar","Precisa de um slot livre na hotbar; sem slot livre não faz nada e nunca troca item do jogador","Reaproveita o pedido do Litematica (PullItemService); validado no servidor, sem dupe"],
-   ok:"Item chega à hotbar vindo de um baú no raio; hotbar cheia ou fora do raio não puxa; testes com 2 jogadores."}
+  {n:19, phase:"Antes do 1.0", t:"Botão do meio puxa o item do armazenamento", b:"feat/pick-block-armazenamento", f:["F12"], s:"done",
+   do:["Mirar um bloco e clicar com o botão do meio: se o item está num container dentro do raio, vai para a hotbar","Precisa de um slot livre na hotbar; sem slot livre não faz nada e nunca troca item do jogador","O pick block do jogo é do servidor: um mixin lá chama o PullItemService; só age se o item não está no inventário; criativo e modo cliente ficam com o jogo base; ignora baú aberto por outro jogador"],
+   ok:"Item chega à hotbar vindo de um baú no raio; hotbar cheia ou fora do raio não puxa; 102 GameTests, 2 jogadores, 2 mutações pegas; confirmar em jogo."}
 ,
   {n:20, phase:"Antes do 1.0", t:"Organizar os itens do sistema de armazenamento", b:"feat/organizar-armazenamento", f:["F13"], s:"todo",
    do:["20.1: botão Organizar no baú (junta stacks e ordena por categoria e nome)","20.2: organizar o sistema todo com prévia do que vai mover, Aplicar e Desfazer; destino igual ao da tecla N; respeita slots travados, filtro da N e nunca toca em fornalha/estações","20.3: busca (digitou ferro, lista os baús) e destaque do baú no mundo","Tudo no servidor, soma de itens conferida"],

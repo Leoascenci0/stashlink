@@ -663,3 +663,30 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   (2) Funil e outros mods continuam enchendo um baú "desligado": o botão só governa a N. (3) O botão aparece em toda tela
   de baú/barril/shulker, inclusive baú do End; ali o clique só avisa que não dá. (4) Shulker colocada e depois "pega com
   bloco do meio" no criativo leva o botão (e o rótulo) por `collectComponents`; em sobrevivência vai pelo `getDrops`.
+
+## Item 19 — Botão do meio puxa o item do armazenamento
+
+- **Onde o jogo resolve o pick block.** Desde o 26.x, o cliente só manda `ServerboundPickItemFromBlockPacket(pos)`;
+  `ServerGamePacketListenerImpl.tryPickItem(ItemStack)` escolhe o slot no servidor e só conhece o inventário. Por isso
+  **não há mixin no cliente nem pacote novo** (a ideia inicial de reaproveitar o pacote do Litematica caiu): o
+  `ServerGamePacketListenerImplMixin` (lista comum, serve Fabric e NeoForge) injeta no início de `tryPickItem` e chama
+  `PullItemService.pickBlock`. O item a pegar é o que o jogo base já escolheu (`getCloneItemStack`), então "bloco que dá
+  outro item" (trigo → semente, baú → baú) vem de graça.
+- **Não brigar com o jogo base.** `pickBlock` devolve `false` (e o jogo base segue) se: o item está em qualquer slot da
+  mochila/hotbar (`findSlotMatchingItem`, o jogo base seleciona ou troca), o jogador é criativo (ganha o item do nada),
+  espectador, morto, com GUI aberta, a função `PULL` está trancada/desligada (em silêncio: o botão do meio é apertado o
+  tempo todo), no intervalo de 4 ticks do `PullItemService`, ou não há o item guardado por perto. Só quando traz algo
+  devolve `true` e cancela o jogo base. Usamos `isCreative()` e não `hasInfiniteMaterials()`: em produção são iguais, e o
+  jogador simulado dos testes herda "materiais infinitos" do mundo criativo.
+- **Nunca sobrescreve.** `PullLogic.chooseSlot` (selecionado se livre → mesmo item com espaço → primeiro vazio);
+  hotbar cheia: aviso `stashlink.pick_block.hotbar_full` na barra de ação e nada muda. Sem `owned`/`returnTo`: a troca no
+  mesmo slot (Item 18) é só do Litematica, e o registro do Litematica não é tocado (teste
+  `middleClickLeavesTheLitematicaSlotAlone`). Vem 1 stack (como o Litematica).
+- **Achado: baú aberto por outro jogador.** `PlayerSources.operation` (reabastecer/Litematica) nunca conferia
+  `QuickStackService.openedByAnother` ao **tirar**, só ao devolver (Item 18). O botão do meio usa
+  `PlayerSources.operationSkippingOpened`, que embrulha as entradas com a mesma regra da tecla N. Reabastecer e
+  Litematica não mudaram (decisão a rever, ver handoff).
+- **Shulker no inventário** vale (mesmas fontes). **Raios:** `PlayerPrefsStore` (16/8 baús, 32 a 64 shulkers).
+- **Modo cliente: não se aplica.** Sem o mod no servidor não existe o gancho; o jogo base continua como é.
+- **Limites.** Só Fabric foi testado no harness (o NeoForge compila com o mesmo mixin comum); Ctrl + botão do meio
+  (copiar com dados) só existe em criativo e não é tocado.
