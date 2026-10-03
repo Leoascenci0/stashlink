@@ -6,9 +6,11 @@
   "mixins": [
     "BaseContainerBlockEntityMixin",
     "CompoundContainerAccessor",
+    "EntityMixin",
     "SlotMixin"
   ],
   "client": [
+    "ScreenInvoker",
     "AbstractContainerScreenMixin"
   ],
   "server": [

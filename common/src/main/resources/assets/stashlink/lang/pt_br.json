@@ -35,5 +35,17 @@
   "stashlink.slot_lock.locked": "Slot reservado para %s",
   "stashlink.slot_lock.unlocked": "Slot destravado",
   "stashlink.slot_lock.nothing": "Alt+clique num slot com item, ou num slot vazio segurando um item, para reservá-lo",
-  "stashlink.slot_lock.busy": "Outro jogador está com este container aberto"
+  "stashlink.slot_lock.busy": "Outro jogador está com este container aberto",
+  "key.stashlink.edit_label": "Nomear o container que você está olhando",
+  "stashlink.label.title": "Rótulo do container",
+  "stashlink.label.name": "Nome do container",
+  "stashlink.label.note": "O que tem dentro",
+  "stashlink.label.hint": "Símbolos e :apple: :heart: :diamond_pickaxe: funcionam. Deixe vazio para remover.",
+  "stashlink.label.saved": "Rótulo salvo",
+  "stashlink.label.cleared": "Rótulo removido",
+  "stashlink.label.no_server_mod": "Este servidor não tem o StashLink: rótulos indisponíveis",
+  "stashlink.label.no_reply": "O servidor não respondeu: mire num baú ao alcance",
+  "stashlink.label.aim": "Mire num baú, barril, shulker ou baú do End",
+  "stashlink.label.hint_short": "O que tem aqui?",
+  "stashlink.label.pen": "Nomear este container"
 }

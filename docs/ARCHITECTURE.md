@@ -357,3 +357,87 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   com o Carpet removido) nesta máquina, então a verificação visual fica no roteiro manual do `ROADMAP.md`. As assinaturas
   dos alvos de mixin do cliente (`mouseClicked`, `extractSlot`, `getHoveredSlot`) foram conferidas com `javap`. O lado
   NeoForge compila, mas não tem harness.
+
+## Item 14 — Nome do armazenamento (rótulo) com resumo, ícones e holograma
+
+- **Investigação (como o jogo e os outros resolvem).** (1) O jogo base já dá nome a um container: `BaseContainerBlockEntity`
+  guarda `name` (o "nome personalizado" de um baú renomeado na bigorna) e ele vira o **título da tela** do baú — mas
+  não aparece olhando para o bloco, não tem resumo e não tem emoji. O Sophisticated Storage (de memória, não testado
+  aqui) tem nome e ícone de "memória" na interface do baú, também só dentro da tela. Por isso o mod tem um **rótulo
+  próprio**, separado do nome da bigorna (que continua valendo no título da tela). (2) **Fonte do jogo (conferido no
+  jar e no unifont 17 do 26.3).** A fonte padrão tem uns 60 símbolos úteis (❤ ⭐ ⚡ ✔ ❌ ⚔ ☠ ⛏ ❄ ☀ ☁ ♪ ✉ ⌛ ⚓...) e o
+  unifont cobre quase todo o plano básico, mas **não tem nenhum emoji colorido** (nenhum dos blocos U+1F300–1FAFF:
+  📦🔥🍎😀). Digitar 📦 mostraria um quadradinho. (3) O texto do jogo aceita **ícones inline**: `Component.object` com
+  `AtlasSprite` desenha uma textura de item (atlas `items`, `item/apple`) ou de bloco (atlas `blocks`, `block/oak_log`)
+  no meio da frase, e é um recurso **vanilla** (cliente sem o mod também vê). (4) `Display.TextDisplay` (a entidade de
+  texto do jogo) tem `view_range`, `billboard` (sempre vira para o jogador) e não tem hitbox.
+- **Decisões do Eliel (2026-10-03).** Aparece em **holograma** sobre o baú (descartados: só ao mirar com texto na
+  tela do cliente, e só no título), resumo **digitado**, emojis = **símbolos da fonte + ícones de item**, baú duplo
+  conta como um (descartados: contagem por "sistema" e nomear vários de uma vez). Depois, ao testar a ideia: o
+  holograma só aparece **perto** (~10 blocos, `view_range` 0,16); **baú e barril perdem o rótulo ao quebrar**;
+  **shulker e baú do End mantêm**.
+- **Texto (`LabelText`).** Guarda o texto como foi digitado (limpo), com atalhos `:nome:`; só na hora de mostrar vira
+  `Component`. `:heart:`, `:star:`, `:bolt:`... são símbolos da fonte; `:apple:`, `:oak_log:`... são ícones (lista em
+  `stashlink_sprites.txt`: 2131 nomes gerados dos arquivos `textures/item` e `textures/block`, item vence bloco quando o
+  nome repete). Atalho desconhecido fica como texto. **Servidor limpa tudo que vem da rede** (`sanitize`): sem `§`
+  (formatação), sem caracteres de controle, de direção (U+202A–202E, que embaralham o texto), invisíveis (U+200B–200F,
+  FE00–FE0F, FEFF), de uso privado, não atribuídos nem emoji colorido (U+1F000–1FAFF); espaços juntos, **sem quebra de
+  linha**; nome ≤ 32 e resumo ≤ 64 **pontos de código**; o pacote limita a 256 antes disso. O holograma mostra o nome
+  em negrito e o resumo em cinza.
+- **Onde o rótulo mora.** Baú, barril e shulker: no NBT do próprio bloco (`stashlink_label`), pelo mesmo
+  `BaseContainerBlockEntityMixin` do Item 13 (`LabelHolder`). Por isso some com o baú/barril quebrado (um bloco novo no
+  mesmo lugar não herda). **Shulker:** o mixin também escreve o rótulo no `CUSTOM_DATA` do item solto
+  (`collectImplicitComponents`) e lê ao colocar (`applyImplicitComponents`) — sem registrar componente novo
+  (que exigiria código por loader). **Baú do End** (não é `BaseContainerBlockEntity`, o conteúdo é do jogador e o bloco
+  solta sem dados): `EnderLabels`, um `SavedData` (`data/stashlink/ender_labels.dat`, no mundo principal, com dimensão +
+  posição), então sobrevive a quebrar e recolocar no mesmo lugar. **Baú duplo:** `Labels.set` grava nas duas metades;
+  só a de menor posição (âncora) tem holograma, no meio.
+- **Holograma (`HologramService`).** É um *reflexo*: `TextDisplay` com a tag `stashlink_label_hologram`, **nunca gravado**
+  (`EntityMixin` faz `shouldBeSaved` falso), então não existe holograma órfão (crash, área descarregada, baú quebrado
+  com o mod desligado). A cada 10 ticks compara "o que deveria existir" (blocos com rótulo carregados, rastreados em
+  um conjunto fraco, mais os baús do End do `EnderLabels`) com "o que existe" e corrige: cria, troca se o texto/posição
+  mudou, apaga se o bloco foi quebrado. Nenhum chunk é carregado à força. Sem o mod no **cliente** o jogador ainda vê o
+  holograma (entidade vanilla); o editor exige o mod.
+- **Edição.** Tecla **J** (Controles) olhando para um bloco: `LabelEditRequest(pos)` → servidor responde
+  `LabelEditorData(pos, nome, resumo)` só a quem tem o canal (`sendIfSupported`) → `LabelEditScreen` → `SetLabelRequest`.
+  `LabelService` revalida: vivo e não espectador, `isWithinBlockInteractionRange(pos, 1)`, bloco carregado e que aceita
+  rótulo, `canPlayerUseBlock` em cada metade; limpa o texto. Não exige o baú fechado/desocupado: o rótulo não mexe em
+  nenhum item. Sem o mod no servidor a tecla só mostra um aviso.
+- **Bug achado nos testes.** A primeira versão apagava a lista de blocos rastreados no primeiro ciclo (tratava "primeiro
+  servidor visto" como "servidor trocado"): no jogo real, baús com rótulo carregados antes do primeiro ciclo perderiam o
+  holograma até alguém mexer no rótulo. Corrigido (só zera se o servidor *mudou*) e coberto por teste.
+- **Testes (`LabelGameTests`, +9; 45 no total).** Limpeza do texto (§, direção, controle, emoji, corte, par substituto),
+  atalhos, baú (gravar, ir ao disco e voltar, holograma único na posição certa, nunca gravado, atualizar e remover,
+  nenhum item muda), quebrar baú/barril, shulker (rótulo vai e volta pelo item), baú do End (por posição, recolocar,
+  limpar), baú duplo (duas metades, um holograma no meio, sobra de uma metade), pedidos inválidos (longe, bloco errado,
+  texto gigante), pacotes (ida e volta, limite, cliente sem o mod não recebe). **Mutação:** hologramas gravados no disco,
+  shulker perdendo o rótulo, baú duplo só numa metade e `§` passando — todos pegos.
+- **Limites conhecidos.** (1) Só quem tem o mod edita; cliente vanilla só vê. (2) O rótulo de baú/barril é perdido ao
+  quebrar (decisão); mod de claims que proíba "usar bloco" também proíbe rotular. (3) Ícone de **bloco** usa a textura
+  do bloco no atlas `blocks` (um lado, ex.: tronco), e alguns blocos/itens com textura própria ficam de fora da lista.
+  (4) Texto, ícone e desenho dependem do cliente gráfico (não coberto pelo harness): roteiro manual no `ROADMAP.md`.
+  (5) Holograma é uma entidade por bloco rotulado: milhares de rótulos pesam; o alcance curto (~10 blocos) limita o
+  custo de rede. (6) Para regenerar `stashlink_sprites.txt` numa versão nova: listar `assets/minecraft/textures/item/*.png`
+  (prefixo `i `) e `textures/block/*.png` (prefixo `b `), só nomes `[a-z0-9_]+`, ordenado e sem repetir.
+- **Lápis na tela do baú (pedido do Eliel após testar).** `AbstractContainerScreenMixin` (cliente) ganhou `init` (acrescenta o botão ✎ ao lado do título e dois campos acima da tela, `LabelPanel`) e `keyPressed` (enquanto se digita, as teclas vão para o campo: E não fecha o baú; Enter salva; Esc fecha a tela). O bloco é o que a mira apontava ao abrir a tela. Clicar no lápis pede o texto atual (`LabelEditRequest`) e a resposta preenche os campos; clicar de novo ou Enter grava (`SetLabelRequest`). A tecla J continua, e agora avisa quando não há bloco mirado ou o servidor não responde em 2 s (antes falhava calada). Mixin novo na tabela do `UPDATING.md`. Não testado no jogo (cliente gráfico).
+- **Ajustes após o 1º teste em jogo (Eliel, 2026-10-03).** (1) **Um campo só**: o rótulo na interface é um único texto
+  (até 48 caracteres), num campo na linha do título, ao lado do ✎; abre preenchido (o cliente pede ao servidor ao abrir
+  a tela) e grava com Enter, com o lápis ou ao fechar a tela (`AbstractContainerScreenMixin.removed`). O resumo separado
+  deixou de existir na interface (o modelo ainda tem o campo `note`, vazio). (2) **Holograma menor**: escala 0,5 e sem
+  negrito. (3) **Alcance de 32 blocos decidido pelo servidor**: `view_range` 1,0 no cliente (a distância de
+  desenho é `view_range × 64 × opção "distância de entidades"` do cliente, que o servidor não conhece e que deixava o
+  texto visível de muito longe), e `EntityMixin.broadcastToPlayer` só deixa o servidor mostrar o holograma a quem está a
+  até 32 blocos (o jogo reavalia quando o jogador anda). (4) O primeiro lápis falhava ao abrir o jogo: `@Shadow` de
+  método herdado (`Screen.addRenderableWidget`) não funciona; usa-se o invoker `ScreenInvoker`.
+- **Polimento final da interface.** Com o campo fechado, o nome é desenhado como texto comum ao lado do título (mesma
+  cor, sem fundo; `AbstractContainerScreenMixin.extractLabels`) e o botão mostra ✎; clicar abre o campo e o botão vira ✔;
+  clicar no ✔ (ou Enter) grava e fecha o campo; fechar a tela também grava. Alvo de mixin novo: `extractLabels` (UPDATING).
+- **Posição do holograma (ajuste após teste em jogo).** Em cima do baú o texto ficava longe e **sumia dentro de um baú
+  empilhado por cima**. Agora ele flutua **na frente do bloco** (a face por onde se abre; `Labels.hologramPos`, lê o
+  `FACING` do estado): 0,56 bloco à frente e 0,8 de altura, então cada baú de uma coluna ou fileira tem o seu texto à
+  vista. Barril/shulker virados para cima/baixo, que não têm frente horizontal, ficam com o texto logo acima (1,15).
+  Baú duplo: no meio das duas metades, também à frente. Teste: `hologramStaysVisibleWhenAChestIsStackedAbove`.
+  Limite: se houver um bloco colado na frente do baú, o texto fica atrás dele.
+- **Texto cortado de lado.** Vista de um ângulo, a quina do baú (ou do baú empilhado) escondia metade do texto, porque ele é
+  um objeto no mundo e respeita a profundidade. O holograma agora usa `see_through` (sem teste de profundidade): nunca é
+  cortado, ao custo de também aparecer **através de paredes** dentro dos 32 blocos.
