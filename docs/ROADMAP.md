@@ -235,7 +235,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 ### Item 12 — Release 🟨
 - **Branch:** `chore/release-1.0`
 - README com GIFs, changelog, publicação Modrinth/CurseForge, artefatos por loader via CI.
-- **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes.
+- **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
 ## Como usar este roadmap

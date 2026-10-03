@@ -9,5 +9,6 @@
 - **Config**: tela no jogo (tecla K), `/stashlink`, preferências por jogador (Realms sem comandos).
 - **Modo cliente**: W, N e reabastecer a mão funcionam em servidor sem o mod (ex.: Realms).
 - Testado em servidor real com 2 jogadores, 289 containers e Carpet; sem dupe nos cenários testados.
+- Testado em jogo pelo Eliel num servidor próprio com o mod instalado (2026-10-03): funciona. O Realms foi abandonado como alvo de teste.
 
-Limites conhecidos: modo cliente e Easy Place com Litematica ainda sem teste em jogo; NeoForge sem testes automáticos.
+Limites conhecidos: modo cliente (servidor sem o mod) e Easy Place com Litematica ainda sem teste em jogo; NeoForge sem testes automáticos.
