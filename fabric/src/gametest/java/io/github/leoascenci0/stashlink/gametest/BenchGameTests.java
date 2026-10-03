@@ -179,10 +179,10 @@ public class BenchGameTests {
     @GameTest
     public void chestsReach16AndShulkersReach32(GameTestHelper h) {
         Lab lab = new Lab(h);
-        Lab.fill(lab.chest(24, 2, 4), 0, COBBLE, 5);                       // a 20 blocos: além dos 16 dos baús
-        Lab.fill(lab.block(Blocks.SHULKER_BOX, 34, 2, 4), 0, DIRT, 5);     // a 30 blocos: dentro dos 32 das shulkers
-        Lab.fill(lab.block(Blocks.SHULKER_BOX, 44, 2, 4), 0, Items.SAND, 5); // a 40 blocos: fora
-        Lab.fill(lab.chest(10, 2, 4), 0, Items.GRAVEL, 5);                 // a 6 blocos: dentro
+        Lab.fill(lab.chest(24, 2, 4), 0, Items.AMETHYST_SHARD, 5);                      // a 20 blocos: além dos 16 dos baús
+        Lab.fill(lab.block(Blocks.SHULKER_BOX, 34, 2, 4), 0, Items.CLAY_BALL, 5); // a 30 blocos: dentro dos 32 das shulkers
+        Lab.fill(lab.block(Blocks.SHULKER_BOX, 44, 2, 4), 0, Items.BRICK, 5); // a 40 blocos: fora
+        Lab.fill(lab.chest(10, 2, 4), 0, Items.QUARTZ, 5);                 // a 6 blocos: dentro
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 50, true);
         List<BenchPoolSync.Entry> seen = BenchSync.snapshot(p);
@@ -190,8 +190,9 @@ public class BenchGameTests {
         for (BenchPoolSync.Entry e : seen) {
             items.add(e.item().getItem());
         }
-        check(h, items.contains(Items.GRAVEL) && items.contains(DIRT) && items.size() == 2,
-                "devia ver só o baú a 6 e a shulker a 30: " + items);
+        check(h, items.contains(Items.QUARTZ) && items.contains(Items.CLAY_BALL)
+                && !items.contains(Items.AMETHYST_SHARD) && !items.contains(Items.BRICK),
+                "devia ver o baú a 6 e a shulker a 30, e nem o baú a 20 nem a shulker a 40: " + items);
         clean(lab, h);
     }
 
@@ -377,7 +378,7 @@ public class BenchGameTests {
     public void snapshotListsOnlyChestsBarrelsAndShulkers(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
-        Lab.fill(chest, 0, COBBLE, 10);
+        Lab.fill(chest, 0, Items.PRISMARINE_SHARD, 10);   // item exclusivo: outros testes rodam por perto
         Container furnace = lab.block(Blocks.FURNACE, 4, 2, 2);
         Lab.fill(furnace, 0, Items.GOLD_INGOT, 5);
         Container hopper = lab.block(Blocks.HOPPER, 5, 2, 2);
@@ -386,8 +387,15 @@ public class BenchGameTests {
         Lab.prefs(p, 8, true);
 
         List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
-        check(h, list.size() == 1 && list.get(0).item().is(COBBLE) && list.get(0).count() == 10,
-                "só o baú devia aparecer: " + list.size() + " entradas");
+        int shards = 0;
+        for (BenchPoolSync.Entry e : list) {
+            check(h, !e.item().is(Items.GOLD_INGOT) && !e.item().is(Items.EMERALD),
+                    "o que está na fornalha ou no funil nunca pode aparecer: " + e.item());
+            if (e.item().is(Items.PRISMARINE_SHARD)) {
+                shards += e.count();
+            }
+        }
+        check(h, shards == 10, "o baú devia aparecer com 10 fragmentos: " + shards);
         clean(lab, h);
     }
 

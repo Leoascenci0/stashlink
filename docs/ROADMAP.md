@@ -327,7 +327,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 ### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
 - **Branch:** `feat/raio-128-conduite`
 - Ideia: hoje o teto do raio de baús, barris e bancadas é 16 (`HARD_MAX_RADIUS`; decisão do Eliel, 2026-10-03: o 64 antigo estava desbalanceado). Passa a ser possível **chegar a 32 blocos**, desde que haja um
-  **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 64.
+  **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 16.
 - Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
   água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
 - A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
