@@ -271,6 +271,43 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** dá para nomear, ver o nome/resumo sem abrir o baú, com emojis que aparecem de verdade no jogo, e
   isso persiste ao reiniciar o servidor.
 
+### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
+- **Branch:** `feat/raio-128-conduite`
+- Ideia: hoje o teto do raio é 64 (`HARD_MAX_RADIUS`). Passa a ser possível **chegar a 128 blocos**, desde que haja um
+  **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 64.
+- A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
+  precisa estar ativo (com a estrutura de prismarina completa) ou basta existir; se o raio maior vale por container
+  (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
+  (`maxRadius`) e o custo de varredura medido de novo no harness (chunks descarregados continuam fora; nunca forçar
+  carregar chunk).
+- **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
+  bem abaixo de 5 ms por operação.
+
+### Item 16 — Bancada de trabalho (crafting table) usa o armazenamento como inventário ⬜
+- **Branch:** `feat/bancada-com-armazenamento`
+- Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
+  sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
+- A decidir na investigação: como ligar isso ao menu da bancada (como o Sophisticated Storage / outros mods fazem),
+  quais fontes entram (as mesmas do reabastecimento, `PlayerSources`) e como sincronizar o resultado com o cliente
+  sem item fantasma. Regras de ouro: tirar item dos containers é **sempre server-side** e validado (distância, claim,
+  baú não aberto por outro jogador); nada duplica nem some ao craftar, ao shift-clicar o resultado ou com 2 jogadores.
+- **Pronto quando:** craftar um item usando só materiais que estão nos baús ao redor funciona, nada duplica nem some
+  (testes no harness com 2 jogadores) e respeita o raio.
+
+### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
+- **Branch:** `feat/filtro-tecla-n`
+- Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,
+  a N nunca coloca nada nele (para não encher o baú de armadura, por exemplo).
+- Na **tela de configuração**, categorias de item que a N guarda ou não, cada uma com botão e emoji: 🛡️ **Armadura**
+  (ligado guarda armadura, desligado não guarda), e também ferramentas, armas, comida, poções etc. **Blocos comuns
+  ficam de fora** (não precisam de filtro).
+- A decidir na investigação: onde fica a memória do botão do baú (dados do baú, para sobreviver a reiniciar) e como
+  mostrá-lo na tela do baú sem quebrar quem não tem o mod; como classificar os itens por categoria (tags do jogo) e
+  como isso se combina com "o baú já tem o item" da N; emoji na fonte padrão (ver Item 14). Valores validados no
+  servidor, por jogador (como o `PlayerPrefs`), com o padrão do servidor para quem não personalizou.
+- **Pronto quando:** baú com N desligada nunca recebe nada; armadura com a categoria desligada nunca é guardada pela
+  N; as escolhas persistem; testes no harness (inclusive baú duplo e 2 jogadores).
+
 ## Como usar este roadmap
 
 1. Começar cada sessão: `git status` + `git fetch origin --prune` (regra 7 do Eliel).

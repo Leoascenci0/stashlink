@@ -128,7 +128,10 @@ const FEATURES = [
   {id:"F5", name:"Tecla W: puxar tudo", d:"Dentro de um baú, traz para o inventário tudo o que couber."},
   {id:"F6", name:"Config, tela e comandos", d:"Raio, teclas e exclusões por tela ou /stashlink."},
   {id:"F7", name:"Slot travado com item", d:"Reserva um slot do baú para um item, mostrando só uma prévia."},
-  {id:"F8", name:"Nome do armazenamento", d:"Nome com emojis e resumo do conteúdo, visível sem abrir."}
+  {id:"F8", name:"Nome do armazenamento", d:"Nome com emojis e resumo do conteúdo, visível sem abrir."},
+  {id:"F9", name:"Raio 128 com conduíte", d:"Um conduíte perto do estoque libera raio de até 128 blocos."},
+  {id:"F10", name:"Bancada com armazenamento", d:"Craftar usando os baús próximos como inventário."},
+  {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."}
 ];
 // status: "todo" | "wip" | "done"
 const ITEMS = [
@@ -186,6 +189,16 @@ const ITEMS = [
   {n:14, phase:"Pós-1.0", t:"Nome do armazenamento, com resumo e emojis", b:"feat/nome-armazenamento", f:["F8"], s:"todo",
    do:["Dar nome ao baú/sistema de armazenamento e escrever quais itens ele tem, visível sem abrir","Emojis no nome (a fonte padrão não tem a maioria: investigar fonte própria ou símbolos disponíveis)","O servidor valida e limita o texto; sem o mod no servidor o nome degrada bem"],
    ok:"Nomear, ver nome e resumo sem abrir o baú, com emojis que aparecem de verdade, persistindo ao reiniciar."}
+,
+  {n:15, phase:"Pós-1.0", t:"Raio de até 128 blocos com conduíte", b:"feat/raio-128-conduite", f:["F3","F9"], s:"todo",
+   do:["Teto do raio sobe de 64 para 128 quando há um conduíte instalado perto do estoque","Sem conduíte, o teto continua 64","Varredura medida de novo no harness; chunk descarregado continua fora"],
+   ok:"Com conduíte perto o raio chega a 128, sem ele fica em 64, e a carga segue abaixo de 5 ms por operação."},
+  {n:16, phase:"Pós-1.0", t:"Bancada usa o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"todo",
+   do:["Bancada enxerga os containers próximos como inventário do jogador (raio inicial 64, sobe com o conduíte)","Tirar item é sempre no servidor e validado (distância, claim, baú aberto por outro)","Sem item fantasma nem dupe ao craftar ou shift-clicar o resultado"],
+   ok:"Craftar só com materiais dos baús ao redor funciona, sem duplicar nem sumir (2 jogadores testados)."},
+  {n:17, phase:"Pós-1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"todo",
+   do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
+   ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}
 ];
 const RISKS = [
   ["Duplicar ou perder item em corrida","Simular a operação antes de aplicar; testes automáticos","5"],
