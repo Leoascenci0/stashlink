@@ -4,7 +4,7 @@
 
 - **Reabastecer a mão** a partir de shulkers no inventário, e de shulkers/baús/barris colocados perto.
 - **Raio de fontes** configurável (teto definido pelo servidor, máx. 64).
-- **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers.
+- **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers; o bloco novo troca no mesmo slot e o anterior volta ao armazenamento (a hotbar não enche).
 - **Tecla N** guarda itens em baús próximos que já têm o item; **tecla W** puxa tudo do container aberto.
 - **Config**: tela no jogo (tecla K), `/stashlink`, preferências por jogador (Realms sem comandos).
 - **Modo cliente**: W, N e reabastecer a mão funcionam em servidor sem o mod (ex.: Realms).

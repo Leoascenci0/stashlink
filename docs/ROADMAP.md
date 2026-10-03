@@ -232,13 +232,12 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 - **Não testado:** Realms/anticheat e timeouts do modo cliente (precisa de jogo real; os roteiros do 10.2/10.3
   continuam valendo) e GameTest no NeoForge.
 
-### Item 12 — Release 🟨
+### Item 12 — Preparar o release (workflow, changelog, README) ✅
 - **Branch:** `chore/release-1.0`
-- README com GIFs, changelog, publicação Modrinth/CurseForge, artefatos por loader via CI.
+- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 19** (último), porque ainda há itens a implementar antes (13–18), decisão do Eliel em 2026-10-03.
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
-- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens), testar o workflow criando a tag `v1.0.0`.
 
-## Ideias pós-1.0 (Itens 13–14)
+## Itens a implementar antes do release (Itens 13–18)
 
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
@@ -310,7 +309,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** baú com N desligada nunca recebe nada; armadura com a categoria desligada nunca é guardada pela
   N; as escolhas persistem; testes no harness (inclusive baú duplo e 2 jogadores).
 
-### Item 18 — Litematica: trocar o bloco no mesmo slot e devolver o anterior ao armazenamento ⬜
+### Item 18 — Litematica: trocar o bloco no mesmo slot e devolver o anterior ao armazenamento ✅
 - **Branch:** `feat/litematica-troca-no-slot`
 - Problema (achado pelo Eliel testando em jogo, 2026-10-03): construindo com Litematica, apareceu uma laje de pinheiro
   uma única vez; o mod puxou o item para a mão, e como ela não foi usada nos próximos ~30 blocos, **a hotbar foi
@@ -324,9 +323,40 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   nunca perder item); se vale só para o slot que o mod escolheu (nunca mexer em item que o jogador colocou ali);
   quando devolver (ao pedir outro item, ao trocar de slot, ao fechar o Litematica); e se o mesmo vale para o modo
   cliente (mover por cliques de inventário). Server-side e validado, como o resto.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 18"):** o servidor guarda, por jogador, **qual slot da hotbar é do
+  mod** (`PulledSlot`: slot, item, quantos o mod pôs e de onde vieram). No pedido seguinte, se a schematic pede
+  outro bloco, o item antigo é devolvido e o novo ocupa **o mesmo slot**. Ordem da devolução: shulker do
+  inventário ou container de origem (só se ainda está no raio, liberado e sem outro jogador com ele aberto) → mochila
+  → se nada aceitar, o item **fica** no slot (e o novo vai para outro slot, como antes): nunca no chão, nunca perdido.
+  Só mexe no que o mod pôs: slot trocado pelo jogador, item do jogador e slot travado nunca são tocados. Devolve só
+  **ao pedir outro bloco** (decisão do Eliel, 2026-10-03): sobra no máximo 1 stack do mod na hotbar ao terminar.
+  O modo cliente não foi alterado: ele não puxa para a hotbar (só W, N e reabastecer), então não há o que trocar.
+- **Testes:** 8 unitários (`PullSwapTest`, incluindo 31 pedidos de tipos diferentes) e 8 GameTests novos
+  (`SwapGameTests`, 22 no total): 35 pedidos de 31 tipos mantêm a hotbar com 1 slot e cada tipo volta ao baú de onde
+  veio; origem cheia; origem fora do raio; baú quebrado; mochila e origem cheias; slot do jogador intocado; 2
+  jogadores no mesmo baú (com baú aberto por outro); fuzz de 300 passos com 2 jogadores (soma de itens conferida
+  depois de cada ação). **Mutação:** dupe injetado (não esvaziar o slot ao devolver) pego por 5 unitários + 7
+  GameTests; perda injetada (mochila "aceita" e descarta) pega por 2 + 5; ignorar "baú aberto por outro" pego pelo
+  teste de 2 jogadores.
+- **Não testado em jogo ainda.** Roteiro para o Eliel (Fabric, `./gradlew :fabric:runClient -PcompatMods`, ou o
+  servidor próprio com o mod; Litematica 0.29.1 + MaLiLib 0.30.2 + Tweakeroo 0.30.1; modo Sobrevivência):
+  1. Guardar numa shulker no inventário (ou em baús perto) pelo menos 30 tipos de bloco, 64 de cada, e carregar
+     uma schematic que use todos. Hotbar vazia.
+  2. Construir com Easy Place percorrendo a schematic: a cada tipo novo, o bloco antigo some do slot e o novo ocupa
+     **o mesmo slot**. A hotbar nunca passa de 1 slot do mod (mais o que você mesmo pôs).
+  3. Conferir de onde veio: abrir a shulker/baú e ver que o que sobrou do bloco anterior voltou para lá.
+  4. Encher o baú de origem (ou ficar fora do raio) e pedir outro bloco: o antigo vai para a mochila, nada no chão.
+  5. Pôr outro item seu (picareta) no slot do mod e pedir um bloco novo: a picareta não pode ser tocada.
+  6. Somar os itens antes e depois (descontando o que foi colocado): nada duplicou, nada sumiu.
 - **Pronto quando:** construir 30+ blocos de tipos diferentes mantém a hotbar limpa, o item anterior volta para onde
   estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
   confirmado em jogo com Litematica.
+
+### Item 19 — Release 1.0 (publicação) ⬜
+- **Branch:** `chore/publicar-1.0`
+- Último item do plano: só entra depois dos Itens 13–18. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–18 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
+- **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Como usar este roadmap
 

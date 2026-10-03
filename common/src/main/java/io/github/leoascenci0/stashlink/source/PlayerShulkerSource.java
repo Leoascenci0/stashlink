@@ -16,6 +16,7 @@ import java.util.function.Predicate;
  */
 public final class PlayerShulkerSource implements ItemSource {
     private final List<ItemStack> inventory;
+    private boolean touched;
 
     public PlayerShulkerSource(List<ItemStack> inventory) {
         this.inventory = inventory;
@@ -46,9 +47,15 @@ public final class PlayerShulkerSource implements ItemSource {
                 List<ItemStack> out = ShulkerStorage.extract(stack, filter, remaining);
                 remaining -= ItemSource.sum(out);
                 taken.addAll(out);
+                touched |= !out.isEmpty();
             }
         }
         return taken;
+    }
+
+    /** {@code true} se esta instância já tirou algo de alguma shulker do inventário. */
+    public boolean touched() {
+        return touched;
     }
 
     /**

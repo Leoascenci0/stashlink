@@ -5,7 +5,7 @@
   "name": "StashLink GameTests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["io.github.leoascenci0.stashlink.gametest.StashLinkGameTests"]
+    "fabric-gametest": ["io.github.leoascenci0.stashlink.gametest.StashLinkGameTests", "io.github.leoascenci0.stashlink.gametest.SwapGameTests"]
   },
   "depends": { "stashlink": "*" }
 }

@@ -27,3 +27,4 @@ runs
 .vscode/
 graphify-out/
 *.log
+common/logs/
