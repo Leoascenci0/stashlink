@@ -27,21 +27,21 @@ public final class PlayerPrefsStore {
 
     /** Raio efetivo do jogador: a escolha dele ou o padrão do servidor, sempre entre 0 e o teto. */
     public static int radius(ServerPlayer player) {
-        int r = of(player).radius();
+        int r = StashLinkConfig.isFeatureLocked(Feature.RADIUS) ? PlayerPrefs.UNSET : of(player).radius();   // trancado: vale o do servidor
         return r == PlayerPrefs.UNSET ? StashLinkConfig.effectiveRadius()
                 : Math.max(0, Math.min(r, StashLinkConfig.radiusCap()));
     }
 
     /** Raio das shulkers colocadas: a escolha do jogador ou o padrão do servidor (32), limitado ao teto. */
     public static int shulkerRadius(ServerPlayer player) {
-        int s = of(player).shulkerRadius();
+        int s = StashLinkConfig.isFeatureLocked(Feature.SHULKER_RADIUS) ? PlayerPrefs.UNSET : of(player).shulkerRadius();
         return s == PlayerPrefs.UNSET ? StashLinkConfig.effectiveShulkerRadius()
                 : Math.max(0, Math.min(s, StashLinkConfig.shulkerCap()));
     }
 
     /** Baús e barris entram como fonte? A escolha do jogador, ou o padrão do servidor. */
     public static boolean includeChests(ServerPlayer player) {
-        int c = of(player).chests();
+        int c = StashLinkConfig.isFeatureLocked(Feature.CHESTS) ? PlayerPrefs.UNSET : of(player).chests();
         return c == PlayerPrefs.UNSET ? StashLinkConfig.includeChests : c == 1;
     }
 

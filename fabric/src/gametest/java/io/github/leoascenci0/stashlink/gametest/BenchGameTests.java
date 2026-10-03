@@ -204,6 +204,24 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Cadeado nos ajustes: trancado, o valor do servidor vale e o pedido pessoal do jogador é ignorado. */
+    @GameTest
+    public void lockedSettingsUseTheServerValue(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ServerPlayer p = lab.player(4, 2, 4);
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(3, 0, List.of(), 0, 5));
+        check(h, PlayerPrefsStore.radius(p) == 3 && PlayerPrefsStore.shulkerRadius(p) == 5 && !PlayerPrefsStore.includeChests(p),
+                "destrancado: valem as escolhas do jogador");
+        StashLinkConfig.setFeatureLocked(Feature.RADIUS, true);
+        StashLinkConfig.setFeatureLocked(Feature.SHULKER_RADIUS, true);
+        StashLinkConfig.setFeatureLocked(Feature.CHESTS, true);
+        check(h, PlayerPrefsStore.radius(p) == StashLinkConfig.effectiveRadius()
+                        && PlayerPrefsStore.shulkerRadius(p) == StashLinkConfig.effectiveShulkerRadius()
+                        && PlayerPrefsStore.includeChests(p) == StashLinkConfig.includeChests,
+                "trancado: vale o valor do servidor, não o do jogador");
+        clean(lab, h);
+    }
+
     @GameTest
     public void fullBagLeavesChestsIntact(GameTestHelper h) {
         Lab lab = new Lab(h);

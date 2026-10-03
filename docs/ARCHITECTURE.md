@@ -564,3 +564,8 @@ O raio único de até 64 estava desbalanceado (a bancada alcançava baús a 50 b
 - `NearbyContainers.collect` varre os chunks do maior raio e confere cada tipo com o seu. A bancada usa as mesmas fontes e os mesmos raios:
   não existe raio só de bancada.
 - Teste: `chestsReach16AndShulkersReach32` (baú a 6 entra; baú a 20 não; shulker a 30 entra; a 40 não, com raio pedido 50).
+- **Cadeado nos ajustes (Eliel, 2026-10-03):** os três ajustes da aba Ajustes (raio de baús/bancadas, raio de shulkers, usar baús)
+  ganharam o mesmo cadeado das funções. São entradas do enum `Feature` marcadas como `isSetting()` (sem liga/desliga, só cadeado),
+  então reaproveitam a máscara, o pacote `SetFeatureLockRequest`, o `/stashlink feature radius|shulker_radius|chests lock|unlock` e a
+  gravação em `lockedFeatures`. Trancado, `PlayerPrefsStore` ignora a escolha do jogador e vale o valor do servidor. A aba Funções
+  não lista os ajustes. Teste: `lockedSettingsUseTheServerValue`.

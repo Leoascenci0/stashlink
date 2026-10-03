@@ -114,6 +114,9 @@ public class StashLinkConfigScreen extends Screen {
     /** Uma linha por função: botão liga/desliga (pessoal) + cadeado (do servidor), como a dificuldade do jogo. */
     private int initFeatures(int x, int y) {
         for (Feature feature : Feature.values()) {
+            if (feature.isSetting()) {
+                continue;   // ajustes (raios, usar baús) ficam na aba Ajustes, só com cadeado
+            }
             boolean locked = isLocked(feature);
 
             Button toggle = Button.builder(featureLabel(feature, locked), b -> {
@@ -208,11 +211,21 @@ public class StashLinkConfigScreen extends Screen {
         }
 
         if (!clientModeActive) {
-            addRenderableWidget(new RadiusSlider(x, y, local, false));
+            // Cada ajuste tem um cadeado ao lado, como as funções: trancado, o valor do servidor vale para todos.
+            RadiusSlider chestSlider = new RadiusSlider(x, y, local, false, isLocked(Feature.RADIUS));
+            chestSlider.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.radius.tip",
+                    "How far chests, barrels and workbenches reach (max 16)")));
+            addRenderableWidget(chestSlider);
+            addSettingLock(Feature.RADIUS, x, y);
             y += ROW;
-            addRenderableWidget(new RadiusSlider(x, y, local, true));
+            RadiusSlider shulkerSlider = new RadiusSlider(x, y, local, true, isLocked(Feature.SHULKER_RADIUS));
+            shulkerSlider.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.shulker_radius.tip",
+                    "How far placed shulker boxes reach (max 64)")));
+            addRenderableWidget(shulkerSlider);
+            addSettingLock(Feature.SHULKER_RADIUS, x, y);
             y += ROW;
-            addRenderableWidget(Button.builder(chestsLabel(), b -> {
+            boolean chestsLocked = isLocked(Feature.CHESTS);
+            Button chests = Button.builder(chestsLabel(chestsLocked), b -> {
                 if (local) {
                     StashLinkConfig.includeChests = !StashLinkConfig.includeChests;
                 } else {
@@ -220,8 +233,11 @@ public class StashLinkConfigScreen extends Screen {
                     ClientPrefs.chests = ClientPrefs.chests == PlayerPrefs.UNSET ? 1
                             : (ClientPrefs.chests == 1 ? 0 : PlayerPrefs.UNSET);
                 }
-                b.setMessage(chestsLabel());
-            }).bounds(x, y, WIDTH, 20).build());
+                b.setMessage(chestsLabel(false));
+            }).bounds(x, y, WIDTH - LOCK_SIZE - 4, 20).build();
+            chests.active = !chestsLocked;
+            addRenderableWidget(chests);
+            addSettingLock(Feature.CHESTS, x, y);
             y += ROW;
         }
 
@@ -289,9 +305,21 @@ public class StashLinkConfigScreen extends Screen {
                 ClientPrefs.clientModeEnabled ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
     }
 
-    private Component chestsLabel() {
+    /** Cadeado de um ajuste, no fim da linha (igual ao das funções). */
+    private void addSettingLock(Feature setting, int x, int y) {
+        boolean locked = isLocked(setting);
+        LockIconButton lock = new LockIconButton(x + WIDTH - LOCK_SIZE, y, b -> toggleLock(setting));
+        lock.setLocked(locked);
+        lock.active = canEditLocks();
+        lock.setTooltip(Tooltip.create(lockTip(locked)));
+        addRenderableWidget(lock);
+    }
+
+    private Component chestsLabel(boolean locked) {
         Component value;
-        if (local) {
+        if (locked && !local) {
+            value = Component.translatableWithFallback("stashlink.feature.state_locked", "Locked");
+        } else if (local) {
             value = StashLinkConfig.includeChests ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF;
         } else if (ClientPrefs.chests == PlayerPrefs.UNSET) {
             value = Component.translatableWithFallback("stashlink.config.server_default", "Server default");
@@ -334,11 +362,16 @@ public class StashLinkConfigScreen extends Screen {
         private final boolean local;
         /** {@code true}: raio das shulkers colocadas (vai até 64); {@code false}: baús, barris e bancadas (até 16). */
         private final boolean shulker;
+        /** Trancado pelo servidor (num servidor): o valor dele vale e o slider fica desligado. */
+        private final boolean serverLocked;
 
-        RadiusSlider(int x, int y, boolean local, boolean shulker) {
-            super(x, y, WIDTH, 20, Component.empty(), toSlider(cap(local, shulker), initial(local, shulker)));
+        RadiusSlider(int x, int y, boolean local, boolean shulker, boolean serverLocked) {
+            super(x, y, WIDTH - LOCK_SIZE - 4, 20, Component.empty(),
+                    toSlider(cap(local, shulker), initial(local, shulker)));
             this.local = local;
             this.shulker = shulker;
+            this.serverLocked = serverLocked && !local;
+            this.active = !this.serverLocked;
             updateMessage();
         }
 
@@ -368,11 +401,13 @@ public class StashLinkConfigScreen extends Screen {
 
         @Override
         protected void updateMessage() {
-            setMessage(shulker
-                    ? Component.translatableWithFallback("stashlink.config.shulker_radius",
-                            "Shulker radius: %s blocks", radius())
-                    : Component.translatableWithFallback("stashlink.config.radius",
-                            "Chest, barrel and workbench radius: %s blocks", radius()));
+            Component name = Component.translatableWithFallback(
+                    shulker ? "stashlink.config.shulker_radius.name" : "stashlink.config.radius.name",
+                    shulker ? "Shulkers" : "Chests and workbenches");
+            Component value = serverLocked
+                    ? Component.translatableWithFallback("stashlink.feature.state_locked", "Locked")
+                    : Component.translatableWithFallback("stashlink.config.blocks", "%s blocks", radius());
+            setMessage(Component.empty().append(name).append(": ").append(value));
         }
 
         @Override

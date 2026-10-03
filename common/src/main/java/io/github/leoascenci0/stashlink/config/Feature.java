@@ -27,14 +27,33 @@ public enum Feature {
     /** Tecla J / lápis no baú: nome e resumo do armazenamento, com holograma. */
     LABEL("label"),
     /** Bancadas e estações usam o armazenamento por perto como se fosse a mochila (Item 16). */
-    BENCH("bench");
+    BENCH("bench"),
+    // As três abaixo são AJUSTES, não funções: não têm liga/desliga. Só reaproveitam o cadeado (o servidor tranca e o
+    // valor dele passa a valer para todos) e a mesma máscara de bits que viaja pela rede.
+    /** Ajuste: raio de baús, barris e bancadas. */
+    RADIUS("radius", true),
+    /** Ajuste: raio das shulkers colocadas. */
+    SHULKER_RADIUS("shulker_radius", true),
+    /** Ajuste: usar baús e barris como fonte. */
+    CHESTS("chests", true);
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 
     private final String id;
+    private final boolean setting;
 
     Feature(String id) {
+        this(id, false);
+    }
+
+    Feature(String id, boolean setting) {
         this.id = id;
+        this.setting = setting;
+    }
+
+    /** É um ajuste (raio, usar baús) e não uma função com liga/desliga? Só tem cadeado. */
+    public boolean isSetting() {
+        return setting;
     }
 
     public String id() {
