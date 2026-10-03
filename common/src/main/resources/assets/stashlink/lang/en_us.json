@@ -60,6 +60,8 @@
   "stashlink.feature.pull.tip": "Bring the item you need to your hotbar when building with Litematica.",
   "stashlink.feature.slot_lock": "Reserve slots (Alt+click)",
   "stashlink.feature.slot_lock.tip": "Alt+click a chest slot to reserve it for one item.",
+  "stashlink.feature.label": "Name containers (J)",
+  "stashlink.feature.label.tip": "Press J or use the pencil in a chest to name it and describe what is inside.",
   "stashlink.feature.state_locked": "Locked",
   "stashlink.feature.locked_here": "This feature is locked on this server",
   "stashlink.feature.disabled_by_you": "This feature is turned off in the StashLink settings",

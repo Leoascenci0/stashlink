@@ -23,7 +23,9 @@ public enum Feature {
     /** Litematica (e pegar bloco): trazer o item do armazenamento para a hotbar. */
     PULL("pull"),
     /** Alt + clique: reservar um slot de baú para um item. */
-    SLOT_LOCK("slot_lock");
+    SLOT_LOCK("slot_lock"),
+    /** Tecla J / lápis no baú: nome e resumo do armazenamento, com holograma. */
+    LABEL("label");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

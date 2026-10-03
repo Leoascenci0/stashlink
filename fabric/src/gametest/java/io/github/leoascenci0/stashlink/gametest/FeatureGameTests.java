@@ -5,6 +5,7 @@ import io.github.leoascenci0.stashlink.config.FeaturePolicyService;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
+import io.github.leoascenci0.stashlink.label.LabelService;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
@@ -15,6 +16,7 @@ import io.github.leoascenci0.stashlink.refill.RefillService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -192,6 +194,26 @@ public class FeatureGameTests {
                 "trancada: a reserva existente não podia mais valer");
         lock(Feature.SLOT_LOCK, false);
         check(h, SlotLocks.lockedItem(chest, 3) == Items.COBBLESTONE, "destrancada: a reserva volta a valer");
+        resetLocks();
+        lab.cleanup();
+        h.succeed();
+    }
+
+    @GameTest
+    public void labelRespectsLock(GameTestHelper h) {
+        resetLocks();
+        Lab lab = new Lab(h);
+        lab.chest(4, 2, 4);
+        BlockPos pos = h.absolutePos(new BlockPos(4, 2, 4));
+        ServerPlayer p = lab.player(3, 2, 3);
+
+        lock(Feature.LABEL, true);
+        check(h, !LabelService.apply(p, pos, "Pedras", "so pedra"), "trancada: nao podia nomear");
+        lock(Feature.LABEL, false);
+        check(h, LabelService.apply(p, pos, "Pedras", "so pedra"), "destrancada: devia nomear");
+
+        disableFor(p, Feature.LABEL);
+        check(h, !LabelService.apply(p, pos, "Outro", "x"), "desligada pelo jogador: nao podia nomear");
         resetLocks();
         lab.cleanup();
         h.succeed();

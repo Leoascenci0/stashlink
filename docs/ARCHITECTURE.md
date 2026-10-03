@@ -461,4 +461,4 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Slot reservado trancado:** `SlotLocks.lockedItem` devolve nada, então a prévia, a regra do `mayPlace` e a preferência da
   N somem juntas; as reservas continuam gravadas no baú e voltam quando o cadeado abre.
 - **Tela:** duas abas (Funções / Ajustes) para caber em janelas baixas; cadeado é o `LockIconButton` do próprio jogo.
-- **Testes:** `FeatureTest` (8, unitários) e `FeatureGameTests` (6, no total 42 GameTests).
+- **Testes:** `FeatureTest` (8, unitários) e `FeatureGameTests` (7, no total 54 GameTests).

@@ -60,6 +60,8 @@
   "stashlink.feature.pull.tip": "Traz o item que você precisa para a hotbar ao construir com o Litematica.",
   "stashlink.feature.slot_lock": "Reservar slots (Alt+clique)",
   "stashlink.feature.slot_lock.tip": "Alt+clique num slot de baú para reservá-lo para um item.",
+  "stashlink.feature.label": "Nomear baús (J)",
+  "stashlink.feature.label.tip": "A tecla J ou o lápis no baú dá nome e resumo do que há dentro.",
   "stashlink.feature.state_locked": "Trancada",
   "stashlink.feature.locked_here": "Esta função está trancada neste servidor",
   "stashlink.feature.disabled_by_you": "Esta função está desligada nas configurações do StashLink",

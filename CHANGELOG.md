@@ -7,7 +7,7 @@
 - **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers; o bloco novo troca no mesmo slot e o anterior volta ao armazenamento (a hotbar não enche).
 - **Slot travado**: Alt + clique num slot de baú reserva o slot para aquele item (só ele entra; N prefere o slot; a prévia aparece no slot vazio). Fica gravado no baú e funciona em baú duplo, barril e shulker colocada.
 - **Tecla N** guarda itens em baús próximos que já têm o item; **tecla W** puxa tudo do container aberto.
-- **Liga/desliga + cadeado** em cada função (reabastecer, N, W, Litematica, Alt + clique), como o seletor de dificuldade: o botão é seu, o cadeado é do servidor (dono ou operador, pela tela ou `/stashlink feature <nome> lock|unlock`); trancada, a função não funciona naquele servidor.
+- **Liga/desliga + cadeado** em cada função (reabastecer, N, W, Litematica, Alt + clique, nome do baú), como o seletor de dificuldade: o botão é seu, o cadeado é do servidor (dono ou operador, pela tela ou `/stashlink feature <nome> lock|unlock`); trancada, a função não funciona naquele servidor.
 - **Config**: tela no jogo (tecla K), `/stashlink`, preferências por jogador (Realms sem comandos).
 - **Modo cliente**: W, N e reabastecer a mão funcionam em servidor sem o mod (ex.: Realms).
 - Testado em servidor real com 2 jogadores, 289 containers e Carpet; sem dupe nos cenários testados.

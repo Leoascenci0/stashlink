@@ -422,7 +422,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   deixam de valer (e voltam quando o cadeado abre).
 - **Regra daqui para frente:** toda função nova (Itens 14-17, 19...) entra no enum `Feature`, ganha linha na tela
   (idioma `stashlink.feature.<id>` e `.tip`) e passa por `FeatureGate` no servidor.
-- **Testes:** 8 unitários (`FeatureTest`) e 6 GameTests (`FeatureGameTests`, 42 no total): cada função respeita o
+- **Testes:** 8 unitários (`FeatureTest`) e 7 GameTests (`FeatureGameTests`, 54 no total): cada função respeita o
   cadeado e o desligar pessoal; só o dono/operador tranca; reserva existente deixa de valer trancada. A tela **não foi
   vista em jogo** ainda.
 - **Pronto quando:** cada função tem liga/desliga + cadeado na tela, trancada não funciona no servidor, e confirmado em
