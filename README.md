@@ -1,5 +1,7 @@
 # StashLink
 
+<p align="center"><img src="docs/img/icon.png" alt="StashLink" width="160"></p>
+
 Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
 
 - Use itens de **shulker boxes** direto do inventário, sem colocá-las no chão.
