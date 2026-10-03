@@ -44,7 +44,8 @@ public abstract class AbstractContainerScreenMixin {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         stashlink$labelPanel = null;
         if (LootAllService.isSupportedMenu(self.getMenu())) {
-            stashlink$labelPanel = LabelPanel.create(leftPos, topPos, imageWidth, self::setFocused);
+            stashlink$labelPanel = LabelPanel.create(leftPos, topPos, imageWidth,
+                    Minecraft.getInstance().font.width(self.getTitle()), self::setFocused);
             if (stashlink$labelPanel != null) {
                 for (AbstractWidget widget : stashlink$labelPanel.widgets()) {
                     ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
@@ -52,6 +53,7 @@ public abstract class AbstractContainerScreenMixin {
             }
         }
     }
+/** Fechar a tela grava o texto que ficou no campo. */    @Inject(method = "removed", at = @At("HEAD"))    private void stashlink$saveLabelOnClose(CallbackInfo ci) {        if (stashlink$labelPanel != null) {            stashlink$labelPanel.onClose();        }    }
 
     /** Digitando no campo do rótulo, as teclas pertencem ao campo (E não fecha o baú). */
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)

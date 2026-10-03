@@ -29,8 +29,14 @@ public final class LabelCompat {
     /** Marca das entidades de holograma do mod (para reconhecê-las e nunca gravá-las no disco). */
     public static final String HOLOGRAM_TAG = "stashlink_label_hologram";
 
-    /** Quanto o holograma "enxerga": multiplicador da distância padrão (64 blocos) -> ~10 blocos. */
-    private static final float VIEW_RANGE = 0.16f;
+    /** Alcance de desenho no cliente (multiplicador de 64 blocos): folgado de propósito; quem decide quem vê é o servidor ({@link #SHOW_RANGE}). */
+    private static final float VIEW_RANGE = 1.0f;
+
+    /** Distância (blocos) até onde o servidor mostra o holograma a um jogador. */
+    public static final double SHOW_RANGE = 32.0;
+
+    /** Tamanho do texto (1 = tamanho de placa grande). */
+    private static final float SCALE = 0.5f;
 
     private LabelCompat() {
     }
@@ -55,6 +61,12 @@ public final class LabelCompat {
         tag.put("text", ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text)
                 .getOrThrow(IllegalStateException::new));
         tag.putString("billboard", "center");
+        CompoundTag transformation = new CompoundTag();
+        transformation.put("left_rotation", floats(0, 0, 0, 1));
+        transformation.put("right_rotation", floats(0, 0, 0, 1));
+        transformation.put("scale", floats(SCALE, SCALE, SCALE));
+        transformation.put("translation", floats(0, 0, 0));
+        tag.put("transformation", transformation);
         tag.putFloat("view_range", VIEW_RANGE);
         tag.putString("alignment", "center");
         tag.putInt("line_width", 220);
@@ -73,6 +85,7 @@ public final class LabelCompat {
         }
         return entity;
     }
+private static ListTag floats(float... values) {        ListTag list = new ListTag();        for (float v : values) {            list.add(net.minecraft.nbt.FloatTag.valueOf(v));        }        return list;    }
 
     // ----------------------------------------------------------- rótulo no item da shulker
 

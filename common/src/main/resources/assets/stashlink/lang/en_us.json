@@ -38,13 +38,14 @@
   "stashlink.slot_lock.busy": "Another player has this container open",
   "key.stashlink.edit_label": "Name the container you are looking at",
   "stashlink.label.title": "Container label",
-  "stashlink.label.name": "Name",
+  "stashlink.label.name": "Container name",
   "stashlink.label.note": "What is inside",
-  "stashlink.label.hint": "Symbols and :apple: :heart: :diamond_pickaxe: work. Leave both empty to remove.",
+  "stashlink.label.hint": "Symbols and :apple: :heart: :diamond_pickaxe: work. Leave empty to remove.",
   "stashlink.label.saved": "Label saved",
   "stashlink.label.cleared": "Label removed",
   "stashlink.label.no_server_mod": "This server does not have StashLink: labels are unavailable",
   "stashlink.label.no_reply": "No reply from the server: aim at a chest within reach",
   "stashlink.label.aim": "Aim at a chest, barrel, shulker box or ender chest",
+  "stashlink.label.hint_short": "What is in here?",
   "stashlink.label.pen": "Name this container"
 }

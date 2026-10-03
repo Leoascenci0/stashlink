@@ -252,6 +252,26 @@ public class LabelGameTests {
         h.succeed();
     }
 
+
+    @GameTest
+    public void hologramIsShownOnlyWithin32Blocks(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        lab.chest(2, 2, 2);
+        ServerPlayer near = player(lab, 4, 2, 4);
+        ServerPlayer far = player(lab, 4, 2, 4);
+        BlockPos pos = abs(lab, 2, 2, 2);
+        check(h, set(near, pos, "Longe e perto", ""), "gravou");
+        sync(lab);
+        Display.TextDisplay holo = holos(lab, pos).get(0);
+        check(h, holo.broadcastToPlayer(near), "jogador perto vê o holograma");
+        far.setPos(lab.helper.absoluteVec(new Vec3(4, 2, 4)).add(0, 0, 40));      // 40 blocos
+        check(h, !holo.broadcastToPlayer(far), "a 40 blocos não vê");
+        far.setPos(lab.helper.absoluteVec(new Vec3(4, 2, 4)).add(0, 0, 25));      // 25 blocos
+        check(h, holo.broadcastToPlayer(far), "a 25 blocos vê");
+        lab.cleanup();
+        sync(lab);
+        h.succeed();
+    }
     // ---------------------------------------------------------------- validação
 
     @GameTest

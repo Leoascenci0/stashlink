@@ -420,3 +420,12 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   custo de rede. (6) Para regenerar `stashlink_sprites.txt` numa versão nova: listar `assets/minecraft/textures/item/*.png`
   (prefixo `i `) e `textures/block/*.png` (prefixo `b `), só nomes `[a-z0-9_]+`, ordenado e sem repetir.
 - **Lápis na tela do baú (pedido do Eliel após testar).** `AbstractContainerScreenMixin` (cliente) ganhou `init` (acrescenta o botão ✎ ao lado do título e dois campos acima da tela, `LabelPanel`) e `keyPressed` (enquanto se digita, as teclas vão para o campo: E não fecha o baú; Enter salva; Esc fecha a tela). O bloco é o que a mira apontava ao abrir a tela. Clicar no lápis pede o texto atual (`LabelEditRequest`) e a resposta preenche os campos; clicar de novo ou Enter grava (`SetLabelRequest`). A tecla J continua, e agora avisa quando não há bloco mirado ou o servidor não responde em 2 s (antes falhava calada). Mixin novo na tabela do `UPDATING.md`. Não testado no jogo (cliente gráfico).
+- **Ajustes após o 1º teste em jogo (Eliel, 2026-10-03).** (1) **Um campo só**: o rótulo na interface é um único texto
+  (até 48 caracteres), num campo na linha do título, ao lado do ✎; abre preenchido (o cliente pede ao servidor ao abrir
+  a tela) e grava com Enter, com o lápis ou ao fechar a tela (`AbstractContainerScreenMixin.removed`). O resumo separado
+  deixou de existir na interface (o modelo ainda tem o campo `note`, vazio). (2) **Holograma menor**: escala 0,5 e sem
+  negrito. (3) **Alcance de 32 blocos decidido pelo servidor**: `view_range` 1,0 no cliente (a distância de
+  desenho é `view_range × 64 × opção "distância de entidades"` do cliente, que o servidor não conhece e que deixava o
+  texto visível de muito longe), e `EntityMixin.broadcastToPlayer` só deixa o servidor mostrar o holograma a quem está a
+  até 32 blocos (o jogo reavalia quando o jogador anda). (4) O primeiro lápis falhava ao abrir o jogo: `@Shadow` de
+  método herdado (`Screen.addRenderableWidget`) não funciona; usa-se o invoker `ScreenInvoker`.

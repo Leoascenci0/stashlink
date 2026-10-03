@@ -106,7 +106,7 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 | `ServerPlayerMixin` | `ServerPlayer.tick` (reabastecer sem mão vazia visível) | Item 4 |
 | `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
 | `BaseContainerBlockEntityMixin` (rótulo) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo no item, via `CUSTOM_DATA`) | Item 14; `LabelCompat.writeToItem/readFromItem` |
-| `EntityMixin` | `Entity.shouldBeSaved` (hologramas de rótulo nunca vão para o disco) e `Entity.entityTags()` | Item 14 |
+| `EntityMixin` | `Entity.shouldBeSaved`, `Entity.broadcastToPlayer(ServerPlayer)` (alcance de 32 blocos do holograma) e `Entity.entityTags()` | Item 14 |
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `ScreenInvoker` (cliente) | `Screen.addRenderableWidget` (protegido; `@Shadow` de método herdado não funciona) | Item 14 |

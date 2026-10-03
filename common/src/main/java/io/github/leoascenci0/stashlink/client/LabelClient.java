@@ -41,9 +41,12 @@ public final class LabelClient {
     }
 
     /** O painel do lápis pede o texto atual; a resposta chega em {@link #openEditor}. */
-    public static void fetch(LabelPanel panel) {
+    public static void fetch(LabelPanel panel, boolean silent) {
         awaiting = panel;
         request(Minecraft.getInstance(), panel.pos());
+        if (silent) {
+            pendingSince = Long.MIN_VALUE;                   // abrir a tela não deve reclamar se não houver resposta
+        }
     }
 
     public static void save(net.minecraft.core.BlockPos pos, String name, String note) {
@@ -99,7 +102,7 @@ public final class LabelClient {
         pendingSince = Long.MIN_VALUE;
         Minecraft mc = Minecraft.getInstance();
         if (awaiting != null && awaiting.pos().equals(data.pos())) {
-            awaiting.fill(data.name(), data.note());
+            awaiting.fill(data.name());
             awaiting = null;
         } else if (mc.player != null && !ClientCompat.hasScreenOpen(mc)) {
             ClientCompat.openScreen(mc, new LabelEditScreen(data.pos(), data.name(), data.note(),

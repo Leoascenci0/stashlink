@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * maçã; {@code :heart:} vira ❤. Emoji de verdade digitado é descartado (apareceria como quadradinho).
  */
 public final class LabelText {
-    public static final int MAX_NAME = 32;
+    public static final int MAX_NAME = 48;
     public static final int MAX_NOTE = 64;
 
     private static final Pattern TOKEN = Pattern.compile(":([a-z0-9_]{1,48}):");
@@ -166,14 +166,14 @@ public final class LabelText {
         return out;
     }
 
-    /** O que o holograma mostra: nome em negrito, e embaixo a nota em cinza. {@code null} se o rótulo é vazio. */
+    /** O que o holograma mostra: nome, e embaixo a nota em cinza. {@code null} se o rótulo é vazio. */
     public static Component hologram(Label label) {
         if (label.isEmpty()) {
             return null;
         }
         MutableComponent out = Component.empty();
         if (!label.name().isEmpty()) {
-            out.append(toComponent(label.name()).withStyle(ChatFormatting.BOLD));
+            out.append(toComponent(label.name()));
         }
         if (!label.note().isEmpty()) {
             if (!label.name().isEmpty()) {
