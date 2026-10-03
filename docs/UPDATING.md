@@ -105,6 +105,8 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 |---|---|---|
 | `ServerPlayerMixin` | `ServerPlayer.tick` (reabastecer sem mão vazia visível) | Item 4 |
 | `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
+| `BaseContainerBlockEntityMixin` (rótulo) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo no item, via `CUSTOM_DATA`) | Item 14; `LabelCompat.writeToItem/readFromItem` |
+| `EntityMixin` | `Entity.shouldBeSaved` (hologramas de rótulo nunca vão para o disco) e `Entity.entityTags()` | Item 14 |
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `AbstractContainerScreenMixin` (cliente) | `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)` | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
@@ -112,6 +114,10 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 
 Os GameTests do Item 13 (`LockGameTests`) pegam quebra do `SlotMixin`, da memória no bloco e do baú duplo; o desenho
 da prévia e o Alt + clique só se conferem no jogo (roteiro no `ROADMAP.md`).
+Os do Item 14 (`LabelGameTests`) pegam quebra do texto limpo, do holograma (nunca gravado, sem órfão), da shulker/baú do End e do
+baú duplo. Se mudar a versão: `EntityTypes.TEXT_DISPLAY`, os campos NBT do `text_display` (`text`, `billboard`, `view_range`...),
+`Component.object(AtlasSprite)` e os nomes das texturas (`stashlink_sprites.txt` é gerado de `textures/item` e `textures/block`;
+regenere com o comando no fim da seção "Item 14" do `ARCHITECTURE.md`) ficam em `LabelCompat`/`LabelText`.
 
 Ao achar uma chamada nova que quebrou: crie o wrapper, ponha um javadoc dizendo **o que mudou e em qual versão**,
 e acrescente uma linha na tabela acima.

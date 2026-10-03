@@ -1,5 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
+import io.github.leoascenci0.stashlink.network.LabelEditRequest;
+import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
@@ -35,6 +37,13 @@ public class StashLinkFabricClient implements ClientModInitializer {
         SlotLockClient.setServerHasMod(() -> ClientPlayNetworking.canSend(LockSlotRequest.TYPE));
         SlotLockClient.setSender(ClientPlayNetworking::send);
         ClientPlayNetworking.registerGlobalReceiver(SlotLocksSync.TYPE, (payload, context) -> SlotLockClient.apply(payload));
+
+        // Rótulos de baú (Item 14): tecla J pede o editor; o servidor responde com o texto atual.
+        LabelClient.setServerHasMod(() -> ClientPlayNetworking.canSend(LabelEditRequest.TYPE));
+        LabelClient.setSenders(ClientPlayNetworking::send, ClientPlayNetworking::send);
+        ClientPlayNetworking.registerGlobalReceiver(LabelEditorData.TYPE, (payload, context) -> LabelClient.openEditor(payload));
+        KeyMappingHelper.registerKeyMapping(LabelClient.KEY);
+        ClientTickEvents.END_CLIENT_TICK.register(LabelClient::poll);
 
         KeyMappingHelper.registerKeyMapping(QuickStackKey.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(mc -> QuickStackKey.poll(mc, () -> {

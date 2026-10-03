@@ -35,5 +35,13 @@
   "stashlink.slot_lock.locked": "Slot reserved for %s",
   "stashlink.slot_lock.unlocked": "Slot unlocked",
   "stashlink.slot_lock.nothing": "Alt+click a slot with an item, or an empty slot while holding one, to reserve it",
-  "stashlink.slot_lock.busy": "Another player has this container open"
+  "stashlink.slot_lock.busy": "Another player has this container open",
+  "key.stashlink.edit_label": "Name the container you are looking at",
+  "stashlink.label.title": "Container label",
+  "stashlink.label.name": "Name",
+  "stashlink.label.note": "What is inside",
+  "stashlink.label.hint": "Symbols and :apple: :heart: :diamond_pickaxe: work. Leave both empty to remove.",
+  "stashlink.label.saved": "Label saved",
+  "stashlink.label.cleared": "Label removed",
+  "stashlink.label.no_server_mod": "This server does not have StashLink: labels are unavailable"
 }

@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
@@ -49,11 +50,19 @@ public class StashLinkNeoForgeClient {
         });
         SlotLockClient.setSender(ClientPacketDistributor::sendToServer);
 
+        // Rótulos de baú (Item 14): tecla J pede o editor ao servidor (só se ele conhece o pacote).
+        LabelClient.setServerHasMod(() -> {
+            Minecraft mc = Minecraft.getInstance();
+            return mc.getConnection() != null && mc.getConnection().hasChannel(LabelEditRequest.TYPE);
+        });
+        LabelClient.setSenders(ClientPacketDistributor::sendToServer, ClientPacketDistributor::sendToServer);
+
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
             event.register(LootAllKey.KEY);
             event.register(ConfigKey.KEY);
+            event.register(LabelClient.KEY);
         });
         // Tecla W: gatilho é a tela de container. Cancelar o evento engole a tecla (não fecha a tela etc.).
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre event) -> {
@@ -72,6 +81,7 @@ public class StashLinkNeoForgeClient {
         NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> {
             Minecraft mc = Minecraft.getInstance();
             ConfigKey.poll(mc);
+            LabelClient.poll(mc);
             QuickStackKey.poll(mc, () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(QuickStackRequest.INSTANCE);

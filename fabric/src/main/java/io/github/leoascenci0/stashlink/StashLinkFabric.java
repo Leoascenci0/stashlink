@@ -4,6 +4,11 @@ import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
+import io.github.leoascenci0.stashlink.label.HologramService;
+import io.github.leoascenci0.stashlink.label.LabelService;
+import io.github.leoascenci0.stashlink.network.LabelEditRequest;
+import io.github.leoascenci0.stashlink.network.LabelEditorData;
+import io.github.leoascenci0.stashlink.network.SetLabelRequest;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
@@ -61,6 +66,16 @@ public class StashLinkFabric implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(LockSlotRequest.TYPE,
                 (payload, context) -> SlotLockService.handle(context.player(), payload));
         PayloadTypeRegistry.clientboundPlay().register(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC);
+
+        // Rótulos de baú (Item 14): hologramas por tick; editar = pedido -> editor no cliente -> pedido de gravar.
+        ServerTickEvents.END_SERVER_TICK.register(HologramService::tick);
+        PayloadTypeRegistry.serverboundPlay().register(LabelEditRequest.TYPE, LabelEditRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(LabelEditRequest.TYPE,
+                (payload, context) -> LabelService.handleEdit(context.player(), payload));
+        PayloadTypeRegistry.clientboundPlay().register(LabelEditorData.TYPE, LabelEditorData.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(SetLabelRequest.TYPE, SetLabelRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SetLabelRequest.TYPE,
+                (payload, context) -> LabelService.handleSet(context.player(), payload));
 
         // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
         PayloadTypeRegistry.serverboundPlay().register(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC);

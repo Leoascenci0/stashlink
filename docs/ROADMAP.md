@@ -292,7 +292,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
       falso; nada some. **Sem o mod no servidor:** Alt + clique faz o clique normal do jogo.
   11. Somar os itens antes e depois: nada duplicou, nada sumiu.
 
-### Item 14 — Nome do sistema de armazenamento, com resumo do conteúdo e emojis ⬜
+### Item 14 — Nome do sistema de armazenamento, com resumo do conteúdo e emojis ✅
 - **Branch:** `feat/nome-armazenamento`
 - Ideia: dar um **nome ao baú/sistema de armazenamento** e poder **escrever ali quais itens ele tem, sem precisar
   abrir**. O nome aceita **emojis**.
@@ -305,6 +305,23 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   precisa degradar bem.
 - **Pronto quando:** dá para nomear, ver o nome/resumo sem abrir o baú, com emojis que aparecem de verdade no jogo, e
   isso persiste ao reiniciar o servidor.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 14"):** decisões do Eliel (2026-10-03): o nome e o resumo aparecem
+  num **holograma** (texto flutuante) sobre o baú, **visto só de perto** (~10 blocos); o resumo é **digitado à mão**;
+  emojis = **símbolos que a fonte do jogo já tem (❤ ⭐ ⚡ ✔ ⚔ ⛏...) + ícones de item/bloco inline** (`:apple:`,
+  `:diamond_pickaxe:`, `:oak_log:`), porque a fonte padrão **não tem** 📦🔥🍎 (conferi o unifont do 26.3); baú duplo =
+  um só rótulo/holograma. **Tecla J** (Controles) olhando para o bloco abre o editor (nome até 32 e resumo até 64
+  caracteres). O rótulo mora no bloco: **baú e barril perdem ao quebrar; shulker leva no item e o baú do End guarda
+  por posição** (sobrevive a quebrar e recolocar). O holograma é só reflexo do rótulo: nunca vai para o disco e é
+  recriado quando o bloco carrega. O servidor limpa o texto (sem `§`, sem invisíveis/direção, sem emoji que a fonte não
+  desenha) e revalida alcance, tipo de bloco e claims. Sem o mod no servidor: nada muda (tecla avisa). Cliente sem o
+  mod num servidor com o mod **vê o holograma** (é entidade de texto comum), mas não edita.
+- **Roteiro manual (cliente gráfico; o harness não abre janela):** (1) olhe para um baú e aperte **J**: abre o editor;
+  digite `Pedras :cobblestone:` e `tudo de construção ❤`, **Concluído** → um texto aparece sobre o baú, com o ícone da
+  pedra e o ❤ desenhados (não quadradinhos); (2) afaste-se ~15 blocos: o texto some, volte: aparece; (3) baú duplo: um
+  só texto no meio; (4) quebre o baú → o texto some; coloque outro → sem texto; (5) shulker: nomeie, quebre, pegue o
+  item, coloque → o nome volta; baú do End: nomeie, quebre, recoloque no mesmo lugar → volta; (6) saia e entre no
+  mundo / reinicie o servidor: o texto continua; (7) digite um emoji colorido (📦) → ele é descartado ao salvar;
+  (8) num servidor **sem** o mod, J só mostra o aviso.
 
 ### Item 15 — Raio de até 128 blocos com conduíte (conduit) perto do estoque ⬜
 - **Branch:** `feat/raio-128-conduite`
