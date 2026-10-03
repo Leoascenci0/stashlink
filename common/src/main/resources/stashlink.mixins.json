@@ -9,6 +9,7 @@
     "EntityMixin",
     "ServerPlaceRecipeMixin",
     "ShulkerBoxBlockMixin",
+    "ServerGamePacketListenerImplMixin",
     "ServerPlayerMixin",
     "SlotMixin"
   ],

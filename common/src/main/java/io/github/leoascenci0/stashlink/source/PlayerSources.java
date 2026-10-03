@@ -25,7 +25,15 @@ public final class PlayerSources {
 
     /** Uma operação de puxar itens: as fontes e, depois, de onde saiu o que foi puxado (para devolver depois). */
     public static Operation operation(ServerPlayer player) {
-        return new Operation(player);
+        return new Operation(player, false);
+    }
+
+    /**
+     * Como {@link #operation(ServerPlayer)}, mas ignorando containers que <b>outro</b> jogador está olhando (a mesma
+     * regra da tecla N). Usado pelo botão do meio (Item 19), que tira itens de baús sem o jogador abri-los.
+     */
+    public static Operation operationSkippingOpened(ServerPlayer player) {
+        return new Operation(player, true);
     }
 
     /** Valor calculado uma vez, só quando alguém pede; {@link #made()} diz se já foi pedido. */
@@ -54,21 +62,23 @@ public final class PlayerSources {
 
     public static final class Operation {
         private final ServerPlayer player;
+        private final boolean skipOpenedByOthers;
         private final PlayerShulkerSource shulkers;
         private final Memo<NearbyContainers.Found> nearby;
         private final Memo<ContainerSource> placed;
         private final Memo<ContainerSource> storage;
         private final ItemSource source;
 
-        private Operation(ServerPlayer player) {
+        private Operation(ServerPlayer player, boolean skipOpenedByOthers) {
             this.player = player;
+            this.skipOpenedByOthers = skipOpenedByOthers;
             // As shulkers estão nos slots normais do inventário; as mãos ficam fora desta lista.
             this.shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
             // Prioridade: shulkers no inventário, shulkers colocadas no raio, baús/barris no raio. As duas últimas
             // são preguiçosas: a varredura só acontece se as anteriores não bastarem.
             this.nearby = new Memo<>(() -> NearbyContainers.find(player));
-            this.placed = new Memo<>(() -> new ContainerSource(nearby.get().shulkers()));
-            this.storage = new Memo<>(() -> new ContainerSource(nearby.get().storage()));
+            this.placed = new Memo<>(() -> new ContainerSource(guard(nearby.get().shulkers())));
+            this.storage = new Memo<>(() -> new ContainerSource(guard(nearby.get().storage())));
             this.source = new PrioritizedItemSource(List.of(
                     shulkers,
                     new LazyItemSource(placed::get),
@@ -77,6 +87,20 @@ public final class PlayerSources {
 
         public ItemSource source() {
             return source;
+        }
+
+        /** Com {@code skipOpenedByOthers}, esconde das fontes o que outro jogador está olhando; senão devolve igual. */
+        private List<ContainerSource.Entry> guard(List<ContainerSource.Entry> entries) {
+            if (!skipOpenedByOthers) {
+                return entries;
+            }
+            List<ContainerSource.Entry> out = new ArrayList<>();
+            for (ContainerSource.Entry entry : entries) {
+                out.add(new ContainerSource.Entry(entry.container(),
+                        () -> !QuickStackService.openedByAnother(player, entry.container()) && entry.allowed().getAsBoolean(),
+                        entry.where()));
+            }
+            return out;
         }
 
         /** De onde saiu o que esta operação já puxou. Vazia se nada saiu ainda. */
