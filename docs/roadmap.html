@@ -131,7 +131,10 @@ const FEATURES = [
   {id:"F8", name:"Nome do armazenamento", d:"Nome com emojis e resumo do conteúdo, visível sem abrir."},
   {id:"F9", name:"Raio 128 com conduíte", d:"Um conduíte perto do estoque libera raio de até 128 blocos."},
   {id:"F10", name:"Bancada com armazenamento", d:"Craftar usando os baús próximos como inventário."},
-  {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."}
+  {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."},
+  {id:"F12", name:"Botão do meio puxa o item", d:"Mirando um bloco, traz o item do baú no raio para a hotbar."},
+  {id:"F13", name:"Organizar o armazenamento", d:"Ordenar baú e sistema com prévia, desfazer e busca."},
+  {id:"F14", name:"Shift + mouse coleta", d:"Segurar Shift e passar o mouse coleta os itens sem clicar um a um."}
 ];
 // status: "todo" | "wip" | "done"
 const ITEMS = [
@@ -181,7 +184,7 @@ const ITEMS = [
    do:["GameTest do Fabric com servidor real e jogadores em sobrevivência: 14 cenários passam (2 jogadores no mesmo baú, fuzz de 3000 ações com soma de itens conferida, 289 containers)","Carpet e Upgraded Iron Chests testados juntos; desempenho com 289 containers: média abaixo de 1 ms por operação; achado e corrigido: tecla W ignorava slots travados por jogador","Não testado: Sophisticated (só NeoForge), Realms/anticheat e Easy Place com Litematica/Tweakeroo em jogo (eles carregam junto sem erro de Mixin; roteiro no ROADMAP)"],
    ok:"Sem dupe, sem crash e sem queda de TPS nos cenários testados."},
   {n:12, phase:"Polimento", t:"Preparar o release (workflow, changelog, README)", b:"chore/release-1.0", f:[], s:"done",
-   do:["Workflow release.yml: tag v* gera release em rascunho com um jar por loader","CHANGELOG.md e README com instalação e testes","A publicação em si foi movida para o Item 19 (último), pois ainda há itens a implementar"],
+   do:["Workflow release.yml: tag v* gera release em rascunho com um jar por loader","CHANGELOG.md e README com instalação e testes","A publicação em si foi movida para o Item 22 (último), pois ainda há itens a implementar"],
    ok:"Workflow, changelog e README prontos para o release."},
   {n:13, phase:"Antes do 1.0", t:"Slot de baú travado com um item (prévia)", b:"feat/slot-travado-item", f:["F7"], s:"done",
    do:["Alt + clique num slot de baú reserva o slot para aquele item: só ele entra (clique, shift-clique, troca por número, N), e a prévia aparece no slot vazio","A memória fica no próprio bloco (sobrevive a reiniciar e some com o baú quebrado); a prévia nunca é item de verdade: sem dupe por clique, shift-clique, funil ou tecla W; cliente sem o mod vê o slot vazio","N prefere o slot reservado (até num baú vazio); W mantém a reserva; tudo validado no servidor; 14 GameTests novos (36 no total) com fuzz de 2 jogadores, mutação pega. Cliente gráfico ainda não testado em jogo"],
@@ -191,11 +194,11 @@ const ITEMS = [
    ok:"Nomear, ver o nome sem abrir o baú, com ícones que aparecem de verdade, persistindo ao reiniciar; confirmado em jogo pelo Eliel (47 testes no servidor real)."}
 ,
   {n:15, phase:"Antes do 1.0", t:"Raio de até 128 blocos com conduíte", b:"feat/raio-128-conduite", f:["F3","F9"], s:"todo",
-   do:["Teto do raio sobe de 64 para 128 quando há um conduit (o bloco submerso, ativo com a estrutura de prismarina) perto do estoque","Sem conduíte, o teto continua 64","Varredura medida de novo no harness; chunk descarregado continua fora"],
-   ok:"Com conduíte perto o raio chega a 128, sem ele fica em 64, e a carga segue abaixo de 5 ms por operação."},
-  {n:16, phase:"Antes do 1.0", t:"Bancada usa o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"todo",
-   do:["Bancada enxerga os containers próximos como inventário do jogador (raio inicial 64, sobe com o conduíte)","Tirar item é sempre no servidor e validado (distância, claim, baú aberto por outro)","Sem item fantasma nem dupe ao craftar ou shift-clicar o resultado"],
-   ok:"Craftar só com materiais dos baús ao redor funciona, sem duplicar nem sumir (2 jogadores testados)."},
+   do:["Teto do raio dos baús sobe de 16 para 32 quando há um conduit (o bloco submerso, ativo com a estrutura de prismarina) perto do estoque","Sem conduíte, o teto continua 16","Varredura medida de novo no harness; chunk descarregado continua fora"],
+   ok:"Com conduíte perto o raio dos baús chega a 32, sem ele fica em 16, e a carga segue abaixo de 5 ms por operação."},
+  {n:16, phase:"Antes do 1.0", t:"Bancadas usam o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"done",
+   do:["Livro de receitas (bancada, fornalha, defumador, alto-forno): o mod traz dos baús do raio só o que falta na mochila e devolve a sobra; o livro acende o que dá para fazer com os baús","Painel Armazenamento (só baús e barris, nunca shulkers) ao lado de todas as estações (inclui cortador, tear, cartografia, amolar, ferreiro, bigorna, encantamento, poções): clique leva um stack ao cursor, botão direito leva um; com busca e rolagem","Funil, dispenser, dropper, fornalha, poções e crafter com item dentro nunca são tocados (por N, W, reabastecer, livro e painel): teste prova. Tirar item é sempre no servidor (raio, claim, baú aberto por outro jogador)","Nova função Bancadas com armazenamento, com liga/desliga e cadeado. 13 GameTests (67 no total), mutação pega. Tela e painel ainda não vistos em jogo"],
+   ok:"Craftar só com materiais dos baús funciona em todas as estações, sem duplicar nem sumir (2 jogadores); confirmado em jogo."},
   {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"todo",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}
@@ -208,8 +211,20 @@ const ITEMS = [
    do:["Cada função (reabastecer, N, W, Litematica, Alt + clique, nome do baú) tem botão liga/desliga e um cadeado na tela de config, igual ao seletor de dificuldade","Liga/desliga é pessoal; o cadeado é do servidor: trancada, a função não funciona ali. Dono ou operador tranca pela tela ou por /stashlink feature; o servidor confere tudo","8 unitários + 7 GameTests (54 no total). Tela ainda não vista em jogo"],
    ok:"Função trancada não funciona no servidor e o botão fica desligado; confirmado em jogo."}
 ,
-  {n:19, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
-   do:["Só depois dos Itens 13–18","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–18 e os limites conhecidos"],
+  {n:19, phase:"Antes do 1.0", t:"Botão do meio puxa o item do armazenamento", b:"feat/pick-block-armazenamento", f:["F12"], s:"todo",
+   do:["Mirar um bloco e clicar com o botão do meio: se o item está num container dentro do raio, vai para a hotbar","Precisa de um slot livre na hotbar; sem slot livre não faz nada e nunca troca item do jogador","Reaproveita o pedido do Litematica (PullItemService); validado no servidor, sem dupe"],
+   ok:"Item chega à hotbar vindo de um baú no raio; hotbar cheia ou fora do raio não puxa; testes com 2 jogadores."}
+,
+  {n:20, phase:"Antes do 1.0", t:"Organizar os itens do sistema de armazenamento", b:"feat/organizar-armazenamento", f:["F13"], s:"todo",
+   do:["20.1: botão Organizar no baú (junta stacks e ordena por categoria e nome)","20.2: organizar o sistema todo com prévia do que vai mover, Aplicar e Desfazer; destino igual ao da tecla N; respeita slots travados, filtro da N e nunca toca em fornalha/estações","20.3: busca (digitou ferro, lista os baús) e destaque do baú no mundo","Tudo no servidor, soma de itens conferida"],
+   ok:"Organizar baú e sistema com prévia e desfazer, sem duplicar nem sumir (2 jogadores); busca acha e destaca o baú."}
+,
+  {n:21, phase:"Antes do 1.0", t:"Shift + passar o mouse coleta os itens do baú", b:"feat/shift-passar-coleta", f:["F5","F14"], s:"todo",
+   do:["Com Shift pressionado, cada slot por onde o mouse passa recebe um shift-clique, uma vez por passagem","Usa cliques de inventário: funciona em servidor sem o mod; vale baú→mochila e mochila→baú","Limite de cliques por tick; nunca em slot de resultado; opção na config; para com a mochila cheia"],
+   ok:"Passar o mouse com Shift coleta só o que passou; nada duplica nem some, nem com latência alta."}
+,
+  {n:22, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
+   do:["Só depois dos Itens 13–21","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–21 e os limites conhecidos"],
    ok:"Versão 1.0 publicada e baixável para cada loader."}
 ];
 const RISKS = [

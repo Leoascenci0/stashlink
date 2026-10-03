@@ -49,13 +49,18 @@ final class Lab {
      * não reabastece nem puxa item para criativo, então não serve para testar essas partes.
      */
     ServerPlayer player(double x, double y, double z) {
+        return player(x, y, z, GameType.SURVIVAL);
+    }
+
+    /** Igual a {@link #player(double, double, double)}, num modo de jogo à escolha (ex.: criativo). */
+    ServerPlayer player(double x, double y, double z, GameType mode) {
         MinecraftServer server = level.getServer();
         GameProfile profile = new GameProfile(UUID.randomUUID(), "survival-mock");
         CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
         ServerPlayer p = new ServerPlayer(server, level, cookie.gameProfile(), cookie.clientInformation()) {
             @Override
             public GameType gameMode() {
-                return GameType.SURVIVAL;
+                return mode;
             }
         };
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
@@ -66,7 +71,7 @@ final class Lab {
     }
 
     static void prefs(ServerPlayer p, int radius, boolean chests) {
-        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(radius, chests ? 1 : 0, List.of()));
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(radius, chests ? 1 : 0, List.of(), 0, radius));   // shulkers com o mesmo raio: isola do teste ao lado
     }
 
     /** Coloca um bloco-container e devolve o container (a block entity). */
@@ -79,6 +84,21 @@ final class Lab {
             throw new IllegalStateException("sem container em " + pos);
         }
         return c;
+    }
+
+    /** Coloca um bloco comum na posição absoluta {@code pos} e o remove no fim do teste. */
+    BlockPos bareAt(Block block, BlockPos pos) {
+        level.setBlock(pos, block.defaultBlockState(), 3);
+        placed.add(pos);
+        return pos;
+    }
+
+    /** Coloca um bloco comum (sem container), por exemplo uma bancada, e o remove no fim do teste. */
+    BlockPos bare(Block block, int x, int y, int z) {
+        BlockPos pos = helper.absolutePos(new BlockPos(x, y, z));
+        level.setBlock(pos, block.defaultBlockState(), 3);
+        placed.add(pos);
+        return pos;
     }
 
     Container chest(int x, int y, int z) {

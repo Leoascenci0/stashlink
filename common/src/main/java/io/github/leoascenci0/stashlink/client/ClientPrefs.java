@@ -30,6 +30,8 @@ public final class ClientPrefs {
     public static int radius = PlayerPrefs.UNSET;
     /** -1 = padrão do servidor, 0 = não, 1 = sim. */
     public static int chests = PlayerPrefs.UNSET;
+    /** Raio das shulkers colocadas. -1 = padrão do servidor. */
+    public static int shulkerRadius = PlayerPrefs.UNSET;
     public static TreeSet<Integer> lockedSlots = new TreeSet<>();
     /** Modo cliente: em servidor sem o mod, o cliente faz o trabalho sozinho. Ligado por padrão. */
     public static boolean clientModeEnabled = true;
@@ -49,7 +51,7 @@ public final class ClientPrefs {
     }
 
     public static PlayerPrefs toPrefs() {
-        return new PlayerPrefs(radius, chests, List.copyOf(lockedSlots), disabledFeatures).sanitized();
+        return new PlayerPrefs(radius, chests, List.copyOf(lockedSlots), disabledFeatures, shulkerRadius).sanitized();
     }
 
     /** O jogador deixou esta função ligada na tela de config? (Cadeado do servidor é outra conta: ClientFeatures.) */
@@ -71,6 +73,7 @@ public final class ClientPrefs {
     private static final class Data {
         int radius = PlayerPrefs.UNSET;
         int chests = PlayerPrefs.UNSET;
+        int shulkerRadius = PlayerPrefs.UNSET;
         int[] lockedSlots = new int[0];
         // Valor inicial true: arquivo antigo sem o campo continua com o modo cliente ligado.
         boolean clientModeEnabled = true;
@@ -93,6 +96,8 @@ public final class ClientPrefs {
                 return;
             }
             radius = d.radius < 0 ? PlayerPrefs.UNSET : Math.min(d.radius, StashLinkConfig.HARD_MAX_RADIUS);
+            shulkerRadius = d.shulkerRadius < 0 ? PlayerPrefs.UNSET
+                    : Math.min(d.shulkerRadius, StashLinkConfig.HARD_MAX_SHULKER_RADIUS);
             chests = d.chests < 0 ? PlayerPrefs.UNSET : (d.chests == 0 ? 0 : 1);
             TreeSet<Integer> slots = new TreeSet<>();
             if (d.lockedSlots != null) {
@@ -116,6 +121,7 @@ public final class ClientPrefs {
             Data d = new Data();
             d.radius = radius;
             d.chests = chests;
+            d.shulkerRadius = shulkerRadius;
             d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
             d.clientModeEnabled = clientModeEnabled;
             d.disabledFeatures = disabledFeatures;

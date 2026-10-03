@@ -462,9 +462,154 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   N somem juntas; as reservas continuam gravadas no baú e voltam quando o cadeado abre.
 - **Tela:** duas abas (Funções / Ajustes) para caber em janelas baixas; cadeado é o `LockIconButton` do próprio jogo.
 - **Testes:** `FeatureTest` (8, unitários) e `FeatureGameTests` (7, no total 54 GameTests).
+
+## Item 16 — Bancadas usam o armazenamento como inventário
+
+**Investigação (como o jogo 26.3 monta uma receita).** Três fatos mandam no desenho:
+
+1. **O livro de receitas coloca ingredientes por um único ponto**, `ServerPlaceRecipe.placeRecipe` (estático). Bancada
+   (`CraftingMenu`), fornalha, defumador e alto-forno (`AbstractFurnaceMenu`) chamam a mesma função; a grade 2x2 da mochila
+   (`InventoryMenu`) também. Ela só lê a **mochila** (`Inventory.fillStackedContents`), faz a conta (receita com forma,
+   sem forma, "máximo" com shift, limpar a grade) e move os itens da mochila para a grade. Reescrever isso seria copiar
+   código do jogo e quebrar a cada versão.
+2. **O cliente decide se manda o pedido**: `RecipeBookComponent.tryPlaceRecipe` só repete o clique na mesma receita se o
+   cliente a considera "fazível" (conta feita com a mochila **dele**). Cliente vanilla manda o primeiro clique sempre, mas
+   bloqueia o segundo na mesma receita enquanto ela estiver vermelha. Por isso, com o mod no cliente, o servidor manda o que
+   há no armazenamento e o livro soma isso ao que ele conhece (`RecipeBookComponentMixin`).
+3. **Só bancada e fornalhas têm livro.** Cortador de pedra, tear, cartografia, amolar, ferreiro, bigorna, encantamento e
+   suporte de poções (`AbstractContainerMenu` / `ItemCombinerMenu`) não têm: o jogador põe o item direto no slot. Não há
+   "uma peça de código" de receita para elas; o que elas têm em comum é o **cursor** (o item que se carrega com o mouse) e
+   os slots de entrada.
+
+**Como outros mods fazem.** Sophisticated Storage, Refined Storage e afins fazem uma de duas coisas: uma **tela própria**
+(grade do armazenamento ao lado da estação; o clique pega o item para o cursor) ou **preenchem a grade** a partir da rede.
+O StashLink faz as duas, sobre as mesmas fontes: livro de receitas para as 4 estações que têm livro, e um **painel
+"Armazenamento"** para todas (decisão do Eliel: "todas as bancadas").
+
+**Decisões do Eliel (2026-10-03).** Todas as estações; o livro acende + aviso na barra de ação; mochila primeiro e baús só
+se faltar; (REVISTO depois, ver a seção "a bancada usa só baús e barris": nem shulkers, e vale "usar baús como fonte". O liga/desliga + cadeado da função, Item 18.1, é o
+consentimento).
+
+**Peças.**
+- `bench/BenchPool`: o armazenamento visto pela estação: shulkers no inventário, shulkers colocadas, baús e barris no raio
+  (`PlayerPrefsStore.radius`, nunca um número fixo; o Item 15 sobe o teto sem mexer aqui). Mesmas regras de sempre:
+  container trancado, de loot ou sem permissão fica de fora (`NearbyContainers`), e baú **aberto por outro jogador**
+  também (`QuickStackService.openedByAnother`). Fornalha, suporte de poções, funil, dispenser, dropper e crafter **nunca**
+  entram: `NearbyContainers` só aceita `ChestBlockEntity`, `BarrelBlockEntity` e `ShulkerBoxBlockEntity` (instanceof do
+  tipo concreto, não do tipo base). Foi preciso criar `ItemSource.forEachStack` (listar sem tirar) e
+  `NearbyContainers.find(player, chests)`.
+- `bench/BenchRecipe` + `mixin/ServerPlaceRecipeMixin`: **antes** de o jogo colocar a receita, calcula o que falta na
+  mochila (`BenchCompat.missingIngredients`, repete a conta do jogo com o armazenamento somado) e traz **só isso** do
+  armazenamento para a mochila; o jogo roda **sem mudar**; **depois**, o que sobrou do que foi trazido volta à origem
+  (`ContainerSource.give` só devolve ao que foi tocado). Sem lugar na mochila, volta tudo ao container antes de o jogo
+  olhar. Espectador, função trancada/desligada e menu que não é estação: o mod não faz nada. Criativo funciona (o livro continua pedindo ingredientes da mochila).
+- `bench/BenchPullService` + `BenchPullRequest`: painel. O cliente pede "este item" (um stack, ou um com o botão direito);
+  o servidor confere (estação aberta com o mesmo `containerId`, função ligada, cursor livre ou do mesmo item, no máximo 1
+  pedido por tick) e **põe no cursor**, tirando do container no mesmo passo. Depois é item de verdade na mão: colocar no
+  slot, shift-clicar o resultado e fechar a tela são cliques normais do jogo. Por isso não existe item fantasma.
+- `bench/BenchSync` + `BenchPoolSync`: servidor → cliente com o mod: a lista (tipo + quantidade, até 512 tipos, em ordem de
+  nome) ao abrir a estação, quando o mod mexe no armazenamento e a cada 5 s. Cliente sem o mod nunca recebe, e a
+  varredura não se repete para ele.
+- Cliente: `BenchPanel` (grade rolável com busca, à direita da estação), `BenchClient` (guarda a lista) e dois mixins:
+  `AbstractContainerScreenMixin` (desenhar o painel, clique, rolagem, teclas da busca) e `RecipeBookComponentMixin`
+  (soma o armazenamento na conta do livro e refaz quando a lista muda).
+- `compat/mc/BenchCompat`: tudo do jogo que pode mudar: quais menus são estação, a conta do livro
+  (`StackedItemContents`), a identidade de um stack.
+
+**Estações (a investigação pedida).**
+
+| Estação | Entra? | Como |
+|---|---|---|
+| Bancada | sim | livro de receitas + painel |
+| Fornalha, defumador, alto-forno | sim | livro de receitas (põe na entrada) + painel |
+| Cortador de pedra, tear, mesa de cartografia, pedra de amolar, mesa de ferreiro | sim | painel (o item vai ao cursor e o jogador põe no slot) |
+| Bigorna, mesa de encantamento | sim | painel. O XP e os lápis continuam sendo do jogador (o mod só entrega o item), então não há nada especial a proteger |
+| Suporte de poções | sim | painel (garrafas, ingrediente, pó de blaze). O tempo da poção é do bloco; o mod nunca toca nos itens que já estão lá |
+| Grade 2x2 da mochila (`InventoryMenu`) | **não** | não é uma bancada; usaria o armazenamento em qualquer tela |
+| Crafter (bloco automático) | **não** | é redstone, não há jogador no meio |
+
+**Regra: o inventário interno das estações não é armazenamento.** Garantido por construção (a lista de blocos de
+`NearbyContainers` é por tipo concreto) **e por teste**: `stationsWithItemsInsideAreNeverTouched` (fornalha, defumador,
+alto-forno, suporte de poções, funil, dispenser, dropper e crafter com pedra dentro; N, reabastecer, W, livro de receitas
+e painel rodam; nenhum slot muda) e `snapshotListsOnlyChestsBarrelsAndShulkers` (a lista nunca mostra o que está na
+fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na investigação).
+
+**Limites conhecidos.**
+- O livro precisa de **espaço na mochila** para o que ele traz (o jogo base também precisa ao limpar a grade): sem lugar,
+  não puxa e nada se perde.
+- Só itens **comuns** (sem dano, encantamento ou nome) alimentam o livro, como no jogo base; o painel mostra tudo, inclusive
+  item encantado (para bigorna, ferreiro e amolar).
+- A lista do painel tem teto de 512 tipos de item por pacote; passando disso entram os primeiros em ordem de nome.
+- O raio é o do jogador (`PlayerPrefsStore.radius`, padrão 8, teto 64); o Item 15 só muda o teto.
+- Os mixins de cliente (`RecipeBookComponentMixin` e as novas partes de `AbstractContainerScreenMixin`) só se conferem no
+  jogo: o `runClientGameTest` não roda nesta máquina.
+- **Suspeita (ServerPlayerMixin na lista "server"):** no Fabric a lista `"server"` do arquivo de mixins vale só para o
+  servidor **dedicado**; o servidor integrado do mundo único roda no processo do cliente e não carregaria esse mixin.
+  O `ServerPlayerMixin` foi movido para a lista comum (`ServerPlayer` existe nos dois lados; não faz mal ao dedicado).
+  Não foi confirmado com o log do Prism.
+
 - **Posição final do holograma (Eliel, depósito de baús virados para a parede, 2026-10-03).** "Na frente do bloco" falhava quando a
   frente do baú aponta para longe de quem olha (estoques com baús de costas) e o texto ficava atrás deles. Como o holograma já
   é `see_through`, agora ele fica no **centro do próprio bloco**, perto do topo (`Labels.hologramPos`, 0,75): visível de qualquer
   lado e sempre dentro do bloco do seu baú (nunca no vizinho nem no de cima). Teste:
   `hologramBelongsToItsOwnChestFromAnySideAndStack` (empilhado, virado ao sul e ao leste). Limite: em paredes grandes de baús
   nomeados, todos os nomes até 32 blocos aparecem juntos (atravessam os blocos); se poluir, mostrar só o do baú mirado.
+
+## Raios por tipo de container (Eliel, 2026-10-03)
+
+O raio único de até 64 estava desbalanceado (a bancada alcançava baús a 50 blocos). Agora são dois:
+- **Baús, barris e bancadas:** teto duro 16 (`StashLinkConfig.HARD_MAX_RADIUS`), padrão 8. O Item 15 (conduíte) vai subir o teto para 32.
+- **Shulkers colocadas:** raio próprio, padrão 32 (`StashLinkConfig.shulkerRadius`), a tela deixa subir até 64 (`HARD_MAX_SHULKER_RADIUS`);
+  o servidor pode baixar o teto em `maxShulkerRadius`. É uma preferência por jogador (`PlayerPrefs.shulkerRadius`, quinto campo do pacote).
+- `NearbyContainers.collect` varre os chunks do maior raio e confere cada tipo com o seu. A bancada usa as mesmas fontes e os mesmos raios:
+  não existe raio só de bancada.
+- Teste: `chestsReach16AndShulkersReach32` (baú a 6 entra; baú a 20 não; shulker a 30 entra; a 40 não, com raio pedido 50).
+- **Cadeado nos ajustes (Eliel, 2026-10-03):** os três ajustes da aba Ajustes (raio de baús/bancadas, raio de shulkers, usar baús)
+  ganharam o mesmo cadeado das funções. São entradas do enum `Feature` marcadas como `isSetting()` (sem liga/desliga, só cadeado),
+  então reaproveitam a máscara, o pacote `SetFeatureLockRequest`, o `/stashlink feature radius|shulker_radius|chests lock|unlock` e a
+  gravação em `lockedFeatures`. Trancado, `PlayerPrefsStore` ignora a escolha do jogador e vale o valor do servidor. A aba Funções
+  não lista os ajustes. Teste: `lockedSettingsUseTheServerValue`.
+
+## Item 16 — itens emprestados voltam à origem (Eliel, 2026-10-03)
+
+Pedido do Eliel depois de testar: ao escolher outra receita (ou outro item no painel), o item anterior ia para a **mochila**; devia
+voltar ao **baú de origem**. E dois jogadores querendo o mesmo item não podem duplicar nem brigar: vale quem clicou primeiro.
+
+- **`bench/BenchLedger`** (caderno por jogador): lembra o que o mod tirou do armazenamento para a estação aberta (grade, slot de
+  entrada, cursor) e a **origem** (posições dos containers, nunca objetos). Enquanto o item está na estação ele é só daquele jogador:
+  nenhum outro o enxerga, então **a promessa é física** (o item saiu do baú no mesmo passo em que entrou na grade). Quem chega depois
+  encontra o baú sem ele e não puxa nada; se o primeiro desistir, o item volta e o segundo passa a conseguir.
+- **Devolução à origem** (`BenchPool.returnTarget`, o mesmo desenho da troca de slot do Litematica: só containers que ainda estão
+  no alcance, liberados e sem outro jogador olhando; se nenhum aceitar, o item **fica** onde está, nunca no chão):
+  1. ao escolher **outra receita**: o que o mod pôs na grade e sobrou volta antes de montar a nova (`returnFromGrid`);
+  2. ao pegar **outro item no painel**: o do cursor volta (`returnCursor`);
+  3. ao **fechar** a estação: o jogo devolve a grade à mochila e, no tick seguinte, `BenchSync` chama `BenchLedger.tick`, que devolve de lá.
+- **O que foi gasto não volta:** a conta é refeita a cada tick contra o que ainda está no cursor e nos slots de entrada; item craftado
+  (ou levado pelo jogador para a mochila) sai do caderno.
+- Escolha de desenho: o item **sai do baú ao escolher a receita** (como o jogo já fazia), em vez de só ser consumido ao pegar o
+  resultado. Isso mantém o craft 100% vanilla (grade de verdade, shift-clique) e dá a "promessa" pedida sem fila nem reserva
+  virtual; o custo é que o baú fica sem o item enquanto a bancada está aberta.
+- **Raio em mundo próprio:** nos sliders, mudar o raio em mundo único só alterava o padrão do servidor, e a preferência pessoal antiga
+  (que vale mais) continuava mandando. Agora o slider muda os dois.
+- Testes: `switchingRecipeReturnsLeftoversToTheChest`, `closingTheBenchReturnsUnusedItemsToTheChest`,
+  `panelSwapReturnsTheCursorItemToItsChest`, `twoPlayersNeverShareTheSameItems` (GameTests 74 no total). Mutação: sem devolver ao
+  trocar de receita, sem devolver ao fechar e sem registrar no caderno: pegos por 1, 2 e 3 testes.
+
+## Item 14 — rótulo da shulker na sobrevivência (Eliel, 2026-10-03)
+
+O rótulo da shulker se perdia ao quebrar em **sobrevivência**: o drop vem da tabela de loot (`blocks/<cor>_shulker_box`), cujo
+`copy_components` só inclui `custom_name`, `container`, `lock` e `container_loot`; o rótulo viaja em `CUSTOM_DATA`. Só o criativo, que
+copia todos os componentes do bloco, o preservava (e foi onde o Item 14 foi conferido). `ShulkerBoxBlockMixin` acrescenta o rótulo ao
+item solto no fim de `ShulkerBoxBlock.getDrops`. Teste do caso real: `shulkerKeepsTheLabelWhenBrokenInSurvival` (usa o drop de verdade,
+não `collectComponents`); sem o mixin ele falha.
+
+## Item 16 — a bancada usa só baús e barris (Eliel, 2026-10-03)
+
+Depois de testar em jogo, duas decisões que **substituem** as anteriores deste item:
+- **Shulkers nunca servem à bancada**, nem a do inventário nem a colocada (`BenchPool` só monta a fonte de baús e barris). As
+  shulkers continuam sendo fonte do reabastecimento, da N e do Litematica; só a bancada/painel as ignora.
+- **"Usar baús como fonte" vale para a bancada**: com o ajuste em Não, ela não enxerga armazenamento nenhum (painel "Nada por perto").
+  Antes a função ignorava esse ajuste porque tinha o próprio liga/desliga; agora vale o ajuste e o liga/desliga.
+- Devolver itens emprestados (caderno) continua possível mesmo se o ajuste for desligado no meio: o item volta a quem o emprestou.
+- Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach16AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
+  ajuste e deixar as shulkers servirem foram pegos.

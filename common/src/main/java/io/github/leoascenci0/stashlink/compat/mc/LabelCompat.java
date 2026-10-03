@@ -98,6 +98,16 @@ private static ListTag floats(float... values) {        ListTag list = new ListT
         builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 
+    /**
+     * Coloca o rótulo num item já pronto (o drop da shulker em sobrevivência). Mantém o que já houver em CUSTOM_DATA.
+     * Na sobrevivência o jogo monta o drop pela tabela de loot, que só copia nome, conteúdo, chave e loot; o rótulo
+     * (que viaja em CUSTOM_DATA) ficaria para trás.
+     */
+    public static void writeToStack(net.minecraft.world.item.ItemStack stack, Label label) {
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag ->
+                tag.put(Label.KEY, Label.CODEC.encodeStart(NbtOps.INSTANCE, label).getOrThrow(IllegalStateException::new)));
+    }
+
     /** Lê o rótulo do item da shulker que acabou de ser colocada; {@link Label#EMPTY} se não tem. */
     public static Label readFromItem(DataComponentGetter components) {
         CustomData data = components.get(DataComponents.CUSTOM_DATA);

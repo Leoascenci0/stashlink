@@ -32,6 +32,13 @@ public interface ItemSource {
         return stack;
     }
 
+    /**
+     * Lista o conteúdo desta fonte (um stack por vez, sem fundir iguais; quem chama soma). Não altera nada. Só
+     * mostra o que a fonte deixaria <b>tirar</b>: container sem permissão não aparece. Padrão: não mostra nada.
+     */
+    default void forEachStack(java.util.function.Consumer<ItemStack> sink) {
+    }
+
     /** Soma das quantidades de uma lista de stacks. */
     static int sum(List<ItemStack> stacks) {
         int total = 0;

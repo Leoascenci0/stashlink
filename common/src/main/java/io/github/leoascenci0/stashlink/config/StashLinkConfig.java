@@ -23,7 +23,10 @@ import java.util.TreeSet;
  */
 public final class StashLinkConfig {
     /** Teto duro, imposto pelo código: nenhum arquivo, comando ou pedido de cliente passa disto (performance). */
-    public static final int HARD_MAX_RADIUS = 64;
+    public static final int HARD_MAX_RADIUS = 16;
+
+    /** Teto duro do raio das shulkers colocadas (maior que o de baús: são poucas e não pesam). */
+    public static final int HARD_MAX_SHULKER_RADIUS = 64;
 
     /** Nome do arquivo dentro da pasta de config do loader. */
     public static final String FILE_NAME = "stashlink.json";
@@ -36,6 +39,12 @@ public final class StashLinkConfig {
 
     /** Teto do raio definido pelo servidor: só editável no arquivo, nunca por comando/tela. */
     public static int maxRadius = HARD_MAX_RADIUS;
+
+    /** Raio (em blocos) das shulkers colocadas. Padrão 32; a tela deixa subir até {@link #shulkerCap()}. */
+    public static int shulkerRadius = 32;
+
+    /** Teto do raio de shulkers definido pelo servidor (só no arquivo), nunca acima de {@link #HARD_MAX_SHULKER_RADIUS}. */
+    public static int maxShulkerRadius = HARD_MAX_SHULKER_RADIUS;
 
     /** Se baús e barris (além de shulkers colocadas) servem de fonte. Desligado por padrão. */
     public static boolean includeChests = false;
@@ -90,6 +99,16 @@ public final class StashLinkConfig {
         return Math.max(0, Math.min(maxRadius, HARD_MAX_RADIUS));
     }
 
+    /** Teto real do raio de shulkers: o do servidor, mas nunca acima do teto do código. */
+    public static int shulkerCap() {
+        return Math.max(0, Math.min(maxShulkerRadius, HARD_MAX_SHULKER_RADIUS));
+    }
+
+    /** Raio de shulkers realmente usado: sempre entre 0 e {@link #shulkerCap()}. */
+    public static int effectiveShulkerRadius() {
+        return Math.max(0, Math.min(shulkerRadius, shulkerCap()));
+    }
+
     /** Raio realmente usado: sempre entre 0 e {@link #radiusCap()}. */
     public static int effectiveRadius() {
         return Math.max(0, Math.min(sourceRadius, radiusCap()));
@@ -114,6 +133,8 @@ public final class StashLinkConfig {
     private static final class Data {
         int sourceRadius = 8;
         int maxRadius = HARD_MAX_RADIUS;
+        int shulkerRadius = 32;
+        int maxShulkerRadius = HARD_MAX_SHULKER_RADIUS;
         boolean includeChests = false;
         int[] lockedSlots = new int[0];
         String[] lockedFeatures = new String[0];
@@ -124,6 +145,8 @@ public final class StashLinkConfig {
         Data d = new Data();
         d.sourceRadius = sourceRadius;
         d.maxRadius = maxRadius;
+        d.shulkerRadius = shulkerRadius;
+        d.maxShulkerRadius = maxShulkerRadius;
         d.includeChests = includeChests;
         d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
         d.lockedFeatures = lockedFeatures.stream().map(Feature::id).toArray(String[]::new);
@@ -141,6 +164,8 @@ public final class StashLinkConfig {
         }
         maxRadius = clamp(d.maxRadius, 0, HARD_MAX_RADIUS);
         sourceRadius = clamp(d.sourceRadius, 0, maxRadius);
+        maxShulkerRadius = clamp(d.maxShulkerRadius, 0, HARD_MAX_SHULKER_RADIUS);
+        shulkerRadius = clamp(d.shulkerRadius, 0, maxShulkerRadius);
         includeChests = d.includeChests;
         Set<Integer> slots = new TreeSet<>();
         if (d.lockedSlots != null) {

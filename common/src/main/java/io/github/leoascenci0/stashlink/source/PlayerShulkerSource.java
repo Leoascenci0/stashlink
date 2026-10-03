@@ -53,6 +53,19 @@ public final class PlayerShulkerSource implements ItemSource {
         return taken;
     }
 
+    @Override
+    public void forEachStack(java.util.function.Consumer<ItemStack> sink) {
+        for (ItemStack box : inventory) {
+            if (ShulkerStorage.isShulker(box)) {
+                for (ItemStack stack : ShulkerStorage.read(box)) {
+                    if (!stack.isEmpty()) {
+                        sink.accept(stack);
+                    }
+                }
+            }
+        }
+    }
+
     /** {@code true} se esta instância já tirou algo de alguma shulker do inventário. */
     public boolean touched() {
         return touched;

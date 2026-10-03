@@ -114,6 +114,9 @@ public class StashLinkConfigScreen extends Screen {
     /** Uma linha por função: botão liga/desliga (pessoal) + cadeado (do servidor), como a dificuldade do jogo. */
     private int initFeatures(int x, int y) {
         for (Feature feature : Feature.values()) {
+            if (feature.isSetting()) {
+                continue;   // ajustes (raios, usar baús) ficam na aba Ajustes, só com cadeado
+            }
             boolean locked = isLocked(feature);
 
             Button toggle = Button.builder(featureLabel(feature, locked), b -> {
@@ -208,19 +211,34 @@ public class StashLinkConfigScreen extends Screen {
         }
 
         if (!clientModeActive) {
-            addRenderableWidget(new RadiusSlider(x, y, local));
-
+            // Cada ajuste tem um cadeado ao lado, como as funções: trancado, o valor do servidor vale para todos.
+            RadiusSlider chestSlider = new RadiusSlider(x, y, local, false, isLocked(Feature.RADIUS));
+            chestSlider.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.radius.tip",
+                    "How far chests, barrels and workbenches reach (max 16)")));
+            addRenderableWidget(chestSlider);
+            addSettingLock(Feature.RADIUS, x, y);
             y += ROW;
-            addRenderableWidget(Button.builder(chestsLabel(), b -> {
+            RadiusSlider shulkerSlider = new RadiusSlider(x, y, local, true, isLocked(Feature.SHULKER_RADIUS));
+            shulkerSlider.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.shulker_radius.tip",
+                    "How far placed shulker boxes reach (max 64)")));
+            addRenderableWidget(shulkerSlider);
+            addSettingLock(Feature.SHULKER_RADIUS, x, y);
+            y += ROW;
+            boolean chestsLocked = isLocked(Feature.CHESTS);
+            Button chests = Button.builder(chestsLabel(chestsLocked), b -> {
                 if (local) {
                     StashLinkConfig.includeChests = !StashLinkConfig.includeChests;
+                    ClientPrefs.chests = StashLinkConfig.includeChests ? 1 : 0;   // a pessoal vale mais que o padrão
                 } else {
                     // Padrão do servidor -> sim -> não -> padrão do servidor.
                     ClientPrefs.chests = ClientPrefs.chests == PlayerPrefs.UNSET ? 1
                             : (ClientPrefs.chests == 1 ? 0 : PlayerPrefs.UNSET);
                 }
-                b.setMessage(chestsLabel());
-            }).bounds(x, y, WIDTH, 20).build());
+                b.setMessage(chestsLabel(false));
+            }).bounds(x, y, WIDTH - LOCK_SIZE - 4, 20).build();
+            chests.active = !chestsLocked;
+            addRenderableWidget(chests);
+            addSettingLock(Feature.CHESTS, x, y);
             y += ROW;
         }
 
@@ -288,9 +306,21 @@ public class StashLinkConfigScreen extends Screen {
                 ClientPrefs.clientModeEnabled ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
     }
 
-    private Component chestsLabel() {
+    /** Cadeado de um ajuste, no fim da linha (igual ao das funções). */
+    private void addSettingLock(Feature setting, int x, int y) {
+        boolean locked = isLocked(setting);
+        LockIconButton lock = new LockIconButton(x + WIDTH - LOCK_SIZE, y, b -> toggleLock(setting));
+        lock.setLocked(locked);
+        lock.active = canEditLocks();
+        lock.setTooltip(Tooltip.create(lockTip(locked)));
+        addRenderableWidget(lock);
+    }
+
+    private Component chestsLabel(boolean locked) {
         Component value;
-        if (local) {
+        if (locked && !local) {
+            value = Component.translatableWithFallback("stashlink.feature.state_locked", "Locked");
+        } else if (local) {
             value = StashLinkConfig.includeChests ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF;
         } else if (ClientPrefs.chests == PlayerPrefs.UNSET) {
             value = Component.translatableWithFallback("stashlink.config.server_default", "Server default");
@@ -331,42 +361,74 @@ public class StashLinkConfigScreen extends Screen {
     /** Slider de 0 até o teto (local: o do jogo; servidor: o do código, e o servidor limita), passos de 1 bloco. */
     private static final class RadiusSlider extends AbstractSliderButton {
         private final boolean local;
+        /** {@code true}: raio das shulkers colocadas (vai até 64); {@code false}: baús, barris e bancadas (até 16). */
+        private final boolean shulker;
+        /** Trancado pelo servidor (num servidor): o valor dele vale e o slider fica desligado. */
+        private final boolean serverLocked;
 
-        RadiusSlider(int x, int y, boolean local) {
-            super(x, y, WIDTH, 20, Component.empty(), toSlider(local, initial(local)));
+        RadiusSlider(int x, int y, boolean local, boolean shulker, boolean serverLocked) {
+            super(x, y, WIDTH - LOCK_SIZE - 4, 20, Component.empty(),
+                    toSlider(cap(local, shulker), initial(local, shulker, serverLocked)));
             this.local = local;
+            this.shulker = shulker;
+            this.serverLocked = serverLocked;
+            this.active = !this.serverLocked;
             updateMessage();
         }
 
-        private static int cap(boolean local) {
+        private static int cap(boolean local, boolean shulker) {
+            if (shulker) {
+                return local ? StashLinkConfig.shulkerCap() : StashLinkConfig.HARD_MAX_SHULKER_RADIUS;
+            }
             return local ? StashLinkConfig.radiusCap() : StashLinkConfig.HARD_MAX_RADIUS;
         }
 
         /** Num servidor, sem preferência ainda, mostra o padrão do código; a preferência só vira "escolhida" ao mexer. */
-        private static int initial(boolean local) {
-            return local || ClientPrefs.radius == PlayerPrefs.UNSET ? StashLinkConfig.sourceRadius : ClientPrefs.radius;
+        private static int initial(boolean local, boolean shulker, boolean locked) {
+            if (locked && local) {   // trancado no meu mundo: mostra o valor que está valendo (o do servidor)
+                return shulker ? StashLinkConfig.shulkerRadius : StashLinkConfig.sourceRadius;
+            }
+            if (shulker) {
+                return ClientPrefs.shulkerRadius == PlayerPrefs.UNSET ? StashLinkConfig.shulkerRadius
+                        : ClientPrefs.shulkerRadius;
+            }
+            return ClientPrefs.radius == PlayerPrefs.UNSET ? StashLinkConfig.sourceRadius : ClientPrefs.radius;
         }
 
-        private static double toSlider(boolean local, int radius) {
-            int cap = cap(local);
+        private static double toSlider(int cap, int radius) {
             return cap == 0 ? 0 : Math.max(0, Math.min(1, radius / (double) cap));
         }
 
         private int radius() {
-            return (int) Math.round(this.value * cap(local));
+            return (int) Math.round(this.value * cap(local, shulker));
         }
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.translatableWithFallback("stashlink.config.radius",
-                    "Source radius: %s blocks", radius()));
+            Component name = Component.translatableWithFallback(
+                    shulker ? "stashlink.config.shulker_radius.name" : "stashlink.config.radius.name",
+                    shulker ? "Shulkers" : "Chests and workbenches");
+            Component locked = Component.translatableWithFallback("stashlink.feature.state_locked", "Locked");
+            // Num servidor o valor trancado é desconhecido (só "Trancada"); no meu mundo mostro o valor e a palavra.
+            Component value = serverLocked && !local ? locked
+                    : Component.translatableWithFallback("stashlink.config.blocks", "%s blocks", radius());
+            Component text = Component.empty().append(name).append(": ").append(value);
+            setMessage(serverLocked && local ? text.copy().append(" (").append(locked).append(")") : text);
         }
 
         @Override
         protected void applyValue() {
-            if (local) {
-                StashLinkConfig.trySetRadius(radius());
+            // Em mundo próprio muda também a preferência pessoal: ela vale mais que o padrão do servidor, e se ficasse
+            // com um valor antigo o slider pareceria não fazer nada.
+            if (shulker) {
+                if (local) {
+                    StashLinkConfig.shulkerRadius = Math.min(radius(), StashLinkConfig.shulkerCap());
+                }
+                ClientPrefs.shulkerRadius = radius();
             } else {
+                if (local) {
+                    StashLinkConfig.trySetRadius(radius());
+                }
                 ClientPrefs.radius = radius();
             }
         }

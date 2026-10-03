@@ -36,21 +36,24 @@ class StashLinkConfigTest {
 
     @Test
     void roundTripKeepsValues(@TempDir Path dir) {
-        StashLinkConfig.sourceRadius = 20;
-        StashLinkConfig.maxRadius = 40;
+        StashLinkConfig.sourceRadius = 10;
+        StashLinkConfig.shulkerRadius = 40;
+        StashLinkConfig.maxRadius = 12;
         StashLinkConfig.includeChests = true;
         StashLinkConfig.lockedSlots = new TreeSet<>(Set.of(9, 35));
         Path file = dir.resolve("sub/stashlink.json");
         assertTrue(StashLinkConfig.save(file));
 
         StashLinkConfig.sourceRadius = 1;
-        StashLinkConfig.maxRadius = 64;
+        StashLinkConfig.maxRadius = StashLinkConfig.HARD_MAX_RADIUS;
+        StashLinkConfig.shulkerRadius = 1;
         StashLinkConfig.includeChests = false;
         StashLinkConfig.lockedSlots = new TreeSet<>();
         assertTrue(StashLinkConfig.load(file));
 
-        assertEquals(20, StashLinkConfig.sourceRadius);
-        assertEquals(40, StashLinkConfig.maxRadius);
+        assertEquals(10, StashLinkConfig.sourceRadius);
+        assertEquals(40, StashLinkConfig.shulkerRadius);
+        assertEquals(12, StashLinkConfig.maxRadius);
         assertTrue(StashLinkConfig.includeChests);
         assertEquals(Set.of(9, 35), StashLinkConfig.lockedSlots);
     }

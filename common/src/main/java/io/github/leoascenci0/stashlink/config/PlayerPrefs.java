@@ -12,16 +12,22 @@ import java.util.TreeSet;
  * @param chests           {@link #UNSET} = padrão do servidor, 0 = não usar baús/barris como fonte, 1 = usar
  * @param lockedSlots      slots (0-35) que a tecla N nunca esvazia
  * @param disabledFeatures máscara ({@link Feature#bit()}) das funções que o jogador desligou para si
+ * @param shulkerRadius   raio das shulkers colocadas, ou {@link #UNSET} para o padrão do servidor
  */
-public record PlayerPrefs(int radius, int chests, List<Integer> lockedSlots, int disabledFeatures) {
+public record PlayerPrefs(int radius, int chests, List<Integer> lockedSlots, int disabledFeatures, int shulkerRadius) {
     public static final int UNSET = -1;
 
     /** Sem personalização nenhuma: vale tudo o que o servidor definir. */
-    public static final PlayerPrefs NONE = new PlayerPrefs(UNSET, UNSET, List.of(), 0);
+    public static final PlayerPrefs NONE = new PlayerPrefs(UNSET, UNSET, List.of(), 0, UNSET);
 
     /** Atalho sem funções desligadas. */
     public PlayerPrefs(int radius, int chests, List<Integer> lockedSlots) {
         this(radius, chests, lockedSlots, 0);
+    }
+
+    /** Atalho sem raio de shulker personalizado. */
+    public PlayerPrefs(int radius, int chests, List<Integer> lockedSlots, int disabledFeatures) {
+        this(radius, chests, lockedSlots, disabledFeatures, UNSET);
     }
 
     /**
@@ -39,6 +45,7 @@ public record PlayerPrefs(int radius, int chests, List<Integer> lockedSlots, int
                 }
             }
         }
-        return new PlayerPrefs(r, c, new ArrayList<>(slots), disabledFeatures & Feature.ALL_MASK);
+        int s = shulkerRadius < 0 ? UNSET : Math.min(shulkerRadius, StashLinkConfig.shulkerCap());
+        return new PlayerPrefs(r, c, new ArrayList<>(slots), disabledFeatures & Feature.ALL_MASK, s);
     }
 }

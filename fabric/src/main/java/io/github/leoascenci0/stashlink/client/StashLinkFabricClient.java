@@ -1,5 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
+import io.github.leoascenci0.stashlink.network.BenchPoolSync;
+import io.github.leoascenci0.stashlink.network.BenchPullRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
@@ -51,6 +53,11 @@ public class StashLinkFabricClient implements ClientModInitializer {
         SlotLockClient.setServerHasMod(() -> ClientPlayNetworking.canSend(LockSlotRequest.TYPE));
         SlotLockClient.setSender(ClientPlayNetworking::send);
         ClientPlayNetworking.registerGlobalReceiver(SlotLocksSync.TYPE, (payload, context) -> SlotLockClient.apply(payload));
+
+        // Bancadas com armazenamento (Item 16): o servidor manda a lista; o painel pede um item ao cursor.
+        BenchClient.setServerHasMod(() -> ClientPlayNetworking.canSend(BenchPullRequest.TYPE));
+        BenchClient.setSender(ClientPlayNetworking::send);
+        ClientPlayNetworking.registerGlobalReceiver(BenchPoolSync.TYPE, (payload, context) -> BenchClient.apply(payload));
 
         // Rótulos de baú (Item 14): tecla J pede o editor; o servidor responde com o texto atual.
         LabelClient.setServerHasMod(() -> ClientPlayNetworking.canSend(LabelEditRequest.TYPE));

@@ -22,8 +22,9 @@ public record PlayerPrefsRequest(PlayerPrefs prefs) implements CustomPacketPaylo
             ByteBufCodecs.VAR_INT, r -> r.prefs().chests() + 1,
             ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(StashLinkConfig.INVENTORY_SLOTS)), r -> r.prefs().lockedSlots(),
             ByteBufCodecs.VAR_INT, r -> r.prefs().disabledFeatures(),
-            (radius, chests, slots, disabled) ->
-                    new PlayerPrefsRequest(new PlayerPrefs(radius - 1, chests - 1, slots, disabled)));
+            ByteBufCodecs.VAR_INT, r -> r.prefs().shulkerRadius() + 1,
+            (radius, chests, slots, disabled, shulker) ->
+                    new PlayerPrefsRequest(new PlayerPrefs(radius - 1, chests - 1, slots, disabled, shulker - 1)));
 
     @Override
     public CustomPacketPayload.Type<PlayerPrefsRequest> type() {

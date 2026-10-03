@@ -15,7 +15,7 @@ Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
 ## Dois modos de funcionar
 
 - **Servidor com o StashLink** (mundo local, ou servidor com o mod): o servidor faz o trabalho. Raio configurável
-  (até 64 blocos), usa shulkers e baús próximos, e tudo é validado no servidor.
+  (baús até 16 blocos, shulkers até 64), usa shulkers e baús próximos, e tudo é validado no servidor.
 - **Modo cliente** (servidor **sem** o mod, como um Realms): o mod funciona só no seu cliente, agindo como um
   jogador. Ele abre o container, move os itens por cliques de inventário e fecha — o mesmo que você faria à mão,
   só que automático. Liga/desliga em "Modo cliente" na tela de configuração (padrão: ligado). Cobre **W**

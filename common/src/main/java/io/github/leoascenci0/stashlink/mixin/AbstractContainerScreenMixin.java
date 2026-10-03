@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.mixin;
 
+import io.github.leoascenci0.stashlink.client.BenchPanel;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
 import io.github.leoascenci0.stashlink.client.SlotLockClient;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
@@ -37,6 +38,10 @@ public abstract class AbstractContainerScreenMixin {
     @Unique
     private LabelPanel stashlink$labelPanel;
 
+    /** Painel "Armazenamento" das estações (Item 16); só existe em tela de estação. */
+    @Unique
+    private BenchPanel stashlink$benchPanel;
+
 
     /** O lápis de rótulo ao lado do título, em baú/barril/shulker (só se o servidor tem o mod e se mirava um bloco). */
     @Inject(method = "init", at = @At("TAIL"))
@@ -51,6 +56,52 @@ public abstract class AbstractContainerScreenMixin {
                     ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
                 }
             }
+        }
+    }
+
+    /** O painel "Armazenamento" ao lado da estação (bancada, fornalha, ferreiro...). Só aparece se o servidor mandou a lista. */
+    @Inject(method = "init", at = @At("TAIL"))
+    private void stashlink$addBenchPanel(CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        stashlink$benchPanel = BenchPanel.create(self.getMenu(), leftPos, topPos, imageWidth, self);
+        if (stashlink$benchPanel != null) {
+            for (AbstractWidget widget : stashlink$benchPanel.widgets()) {
+                ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
+            }
+        }
+    }
+
+    /** Desenha o painel por cima de tudo (depois dos slots), com a dica do item sob o mouse. */
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void stashlink$drawBenchPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                          CallbackInfo ci) {
+        if (stashlink$benchPanel != null) {
+            stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
+            stashlink$benchPanel.draw(graphics, mouseX, mouseY, delta);
+        }
+    }
+
+    /** Roda do mouse sobre o painel rola a lista (e não troca o item da hotbar). */
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void stashlink$scrollBenchPanel(double x, double y, double scrollX, double scrollY,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        if (stashlink$benchPanel != null) {
+            stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
+        }
+        if (stashlink$benchPanel != null && stashlink$benchPanel.mouseScrolled(x, y, scrollY)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    /** Clique no painel: pede o item ao servidor; nunca chega ao jogo (que trataria como clique fora e soltaria o cursor). */
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void stashlink$clickBenchPanel(MouseButtonEvent event, boolean doubleClick,
+                                           CallbackInfoReturnable<Boolean> cir) {
+        if (stashlink$benchPanel != null) {
+            stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
+        }
+        if (stashlink$benchPanel != null && stashlink$benchPanel.mouseClicked(event.x(), event.y(), event.button())) {
+            cir.setReturnValue(true);
         }
     }
 
@@ -74,6 +125,9 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void stashlink$typingInLabel(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (stashlink$labelPanel != null && stashlink$labelPanel.onKey(event)) {
+            cir.setReturnValue(true);
+        }
+        if (stashlink$benchPanel != null && stashlink$benchPanel.onKey(event)) {
             cir.setReturnValue(true);
         }
     }

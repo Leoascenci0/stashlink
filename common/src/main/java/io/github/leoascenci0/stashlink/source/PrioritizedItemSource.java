@@ -58,6 +58,17 @@ public final class PrioritizedItemSource implements ItemSource {
         return taken;
     }
 
+    @Override
+    public void forEachStack(java.util.function.Consumer<ItemStack> sink) {
+        for (ItemSource source : sources) {
+            try {
+                source.forEachStack(sink);
+            } catch (RuntimeException e) {
+                // fonte com problema conta como vazia
+            }
+        }
+    }
+
     /** Devolve o stack às fontes, na ordem de prioridade; retorna o que nenhuma quis. */
     @Override
     public ItemStack give(ItemStack stack) {
