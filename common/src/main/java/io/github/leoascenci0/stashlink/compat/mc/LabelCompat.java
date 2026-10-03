@@ -71,6 +71,8 @@ public final class LabelCompat {
         tag.putString("alignment", "center");
         tag.putInt("line_width", 220);
         tag.putBoolean("shadow", true);
+        // Sem teste de profundidade: vista de lado, a quina do próprio baú (ou do baú empilhado) cortava o texto.
+        tag.putBoolean("see_through", true);
         ListTag tags = new ListTag();
         tags.add(StringTag.valueOf(HOLOGRAM_TAG));
         tag.put("Tags", tags);

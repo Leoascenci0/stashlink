@@ -438,3 +438,6 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   vista. Barril/shulker virados para cima/baixo, que não têm frente horizontal, ficam com o texto logo acima (1,15).
   Baú duplo: no meio das duas metades, também à frente. Teste: `hologramStaysVisibleWhenAChestIsStackedAbove`.
   Limite: se houver um bloco colado na frente do baú, o texto fica atrás dele.
+- **Texto cortado de lado.** Vista de um ângulo, a quina do baú (ou do baú empilhado) escondia metade do texto, porque ele é
+  um objeto no mundo e respeita a profundidade. O holograma agora usa `see_through` (sem teste de profundidade): nunca é
+  cortado, ao custo de também aparecer **através de paredes** dentro dos 32 blocos.
