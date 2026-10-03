@@ -9,6 +9,7 @@ import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
 import io.github.leoascenci0.stashlink.source.StackListSink;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -99,15 +100,84 @@ public final class PullItemService {
         } else {
             LEDGER.put(player, next);
         }
-        int slot = result.slot();
-        if (slot == PullLogic.NO_SLOT) {
-            return;
-        }
-        // Seleciona o slot que recebeu o item, como o "pick block" faria. O cliente atualiza o slot
-        // selecionado por este pacote e o conteúdo pelo envio normal de inventário no fim do tick.
-        if (inventory.getSelectedSlot() != slot) {
+        select(player, result.slot());
+    }
+
+    /**
+     * Seleciona o slot que recebeu o item, como o "pick block" faria. O cliente atualiza o slot selecionado por
+     * este pacote e o conteúdo pelo envio normal de inventário no fim do tick.
+     */
+    private static void select(ServerPlayer player, int slot) {
+        Inventory inventory = player.getInventory();
+        if (slot != PullLogic.NO_SLOT && inventory.getSelectedSlot() != slot) {
             inventory.setSelectedSlot(slot);
             McCompat.sendHeldSlot(player, slot);
         }
+    }
+
+    /**
+     * Item 19: o botão do meio do mouse mirando um bloco. O jogo base trata isso no servidor
+     * ({@code tryPickItem}) e só sabe pegar o que já está no inventário; o mixin chama aqui antes dele.
+     *
+     * <p>Só age quando o jogo base não faria nada: o item não está em nenhum slot do inventário (se estiver, o
+     * jogo base seleciona ou troca para a hotbar, e nada muda) e o jogador não é criativo (criativo ganha o item
+     * do nada). Diferente do Litematica, <b>nunca troca</b> o que o jogador tem: sem slot livre na hotbar só avisa.
+     * O raio, as trancas e as permissões vêm das mesmas fontes do reabastecimento.
+     *
+     * @param wanted o item que o jogo base escolheu para aquele bloco ({@code getCloneItemStack})
+     * @return {@code true} se o item foi trazido (o jogo base não deve continuar); {@code false} deixa o jogo
+     *         base fazer o que faria sem o StashLink
+     */
+    public static boolean pickBlock(ServerPlayer player, ItemStack wanted) {
+        try {
+            return pickBlockChecked(player, wanted);
+        } catch (RuntimeException e) {
+            // Roda dentro do pacote do jogo: um erro aqui nunca pode derrubar o servidor nem o pick block normal.
+            Constants.LOG.error("Falha ao puxar item do pick block de {}", player.getGameProfile().name(), e);
+            return false;
+        }
+    }
+
+    private static boolean pickBlockChecked(ServerPlayer player, ItemStack wanted) {
+        if (wanted.isEmpty() || !player.isAlive() || player.isSpectator() || player.isCreative()
+                || player.containerMenu != player.inventoryMenu) {
+            return false;
+        }
+        // Quieto de propósito: o botão do meio é apertado o tempo todo, e avisar "trancado" a cada clique irritaria.
+        if (!FeatureGate.allowSilently(player, Feature.PULL)) {
+            return false;
+        }
+        Inventory inventory = player.getInventory();
+        if (inventory.findSlotMatchingItem(wanted) != -1) {
+            return false;
+        }
+        long now = McCompat.gameTime(player);
+        Long last = LAST_REQUEST.get(player);
+        if (last != null && now >= last && now - last < MIN_TICKS_BETWEEN_REQUESTS) {
+            return false;
+        }
+        LAST_REQUEST.put(player, now);
+
+        ItemStack model = wanted.copyWithCount(1);
+        ItemSource source = PlayerSources.operationSkippingOpened(player).source();
+        if (source.available(model) <= 0) {
+            return false;   // nada guardado por perto: o jogo base também não faria nada
+        }
+        List<ItemStack> hotbar = inventory.getNonEquipmentItems().subList(0, Inventory.getSelectionSize());
+        if (PullLogic.chooseSlot(hotbar, inventory.getSelectedSlot(), model) == PullLogic.NO_SLOT) {
+            player.sendOverlayMessage(Component.translatableWithFallback("stashlink.pick_block.hotbar_full",
+                    "Hotbar full: free a slot to bring this item"));
+            return false;
+        }
+        // Sem "owned"/"returnTo": a troca no mesmo slot do Item 18 é só do Litematica. Aqui o item vai para um slot
+        // livre, e depois dele o jogador manda (o registro do Litematica não é tocado).
+        PullLogic.Result result = PullLogic.pull(hotbar, inventory.getSelectedSlot(), model, model.getMaxStackSize(),
+                source, null, null);
+        if (result.slot() == PullLogic.NO_SLOT) {
+            return false;
+        }
+        select(player, result.slot());
+        player.inventoryMenu.broadcastChanges();
+        return true;
     }
 }
