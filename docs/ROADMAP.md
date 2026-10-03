@@ -310,6 +310,24 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** baú com N desligada nunca recebe nada; armadura com a categoria desligada nunca é guardada pela
   N; as escolhas persistem; testes no harness (inclusive baú duplo e 2 jogadores).
 
+### Item 18 — Litematica: trocar o bloco no mesmo slot e devolver o anterior ao armazenamento ⬜
+- **Branch:** `feat/litematica-troca-no-slot`
+- Problema (achado pelo Eliel testando em jogo, 2026-10-03): construindo com Litematica, apareceu uma laje de pinheiro
+  uma única vez; o mod puxou o item para a mão, e como ela não foi usada nos próximos ~30 blocos, **a hotbar foi
+  enchendo** de itens puxados. Hoje cada pedido (`PullItemService` / `PullLogic.pullIntoHotbar`) acha um slot da hotbar
+  e seleciona ele, sem devolver nada.
+- Ideia: os blocos se **trocam no mesmo slot** conforme a schematic pede. Quando um novo bloco é puxado, o que ficou
+  de antes **volta para o armazenamento de onde veio** (shulker do inventário ou container do raio), e o novo ocupa o
+  mesmo slot.
+- A decidir na investigação: como lembrar de onde cada item veio (origem por pedido; o `ContainerSource` já devolve
+  só ao que ele mesmo tocou); o que fazer se a origem está cheia ou fora do raio (cair no inventário, nunca no chão,
+  nunca perder item); se vale só para o slot que o mod escolheu (nunca mexer em item que o jogador colocou ali);
+  quando devolver (ao pedir outro item, ao trocar de slot, ao fechar o Litematica); e se o mesmo vale para o modo
+  cliente (mover por cliques de inventário). Server-side e validado, como o resto.
+- **Pronto quando:** construir 30+ blocos de tipos diferentes mantém a hotbar limpa, o item anterior volta para onde
+  estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
+  confirmado em jogo com Litematica.
+
 ## Como usar este roadmap
 
 1. Começar cada sessão: `git status` + `git fetch origin --prune` (regra 7 do Eliel).

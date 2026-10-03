@@ -199,6 +199,10 @@ const ITEMS = [
   {n:17, phase:"Pós-1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"todo",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}
+,
+  {n:18, phase:"Pós-1.0", t:"Litematica: trocar o bloco no mesmo slot", b:"feat/litematica-troca-no-slot", f:["F2"], s:"todo",
+   do:["Hoje cada item puxado vai para um slot da hotbar e ela vai enchendo (achado em jogo: uma laje de pinheiro usada uma vez ficou na mão)","Novo bloco ocupa o mesmo slot; o anterior volta ao armazenamento de onde veio","Origem cheia ou fora do raio: cai no inventário, nunca no chão e nunca perde item"],
+   ok:"Construir 30+ blocos de tipos diferentes mantém a hotbar limpa e nada duplica nem some; confirmado em jogo."}
 ];
 const RISKS = [
   ["Duplicar ou perder item em corrida","Simular a operação antes de aplicar; testes automáticos","5"],
