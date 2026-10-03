@@ -107,8 +107,8 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 | `ServerPlaceRecipeMixin` | `ServerPlaceRecipe.placeRecipe(CraftingMenuAccess, int, int, List, List, Inventory, RecipeHolder, boolean, boolean)` (o livro de receitas traz do armazenamento antes e devolve a sobra depois) | Item 16; confira o descritor completo com `javap -p` |
 | `RecipeBookComponentMixin` (cliente) | `tick()`, o privado `updateStackedContents()` e a chamada interna `selectMatchingRecipes()`; campos `menu`, `stackedContents`, `timesInventoryChanged` | Item 16 |
 | `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
-| `BaseContainerBlockEntityMixin` (rótulo) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo no item, via `CUSTOM_DATA`) | Item 14; `LabelCompat.writeToItem/readFromItem` |
-| `ShulkerBoxBlockMixin` | `ShulkerBoxBlock.getDrops(BlockState, LootParams.Builder)` (na sobrevivência o drop vem da tabela de loot, que não copia o rótulo em CUSTOM_DATA; o mixin o põe no item) | Item 14; `LabelCompat.writeToStack` |
+| `BaseContainerBlockEntityMixin` (rótulo e botão da N) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo e o "recebe com a N" no item, via `CUSTOM_DATA`); `saveAdditional`/`loadAdditional` gravam `stashlink_no_quick_stack` (`ValueInput.getBooleanOr`, `ValueOutput.putBoolean`) | Itens 14 e 17; `LabelCompat.writeToItem/readFromItem/readNoQuickStackFromItem` |
+| `ShulkerBoxBlockMixin` | `ShulkerBoxBlock.getDrops(BlockState, LootParams.Builder)` (na sobrevivência o drop vem da tabela de loot, que não copia o rótulo nem o botão da N em CUSTOM_DATA; o mixin os põe no item) | Itens 14 e 17; `LabelCompat.writeToStack` |
 | `EntityMixin` | `Entity.shouldBeSaved`, `Entity.broadcastToPlayer(ServerPlayer)` (alcance de 32 blocos do holograma) e `Entity.entityTags()` | Item 14 |
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
@@ -122,6 +122,10 @@ Os do Item 14 (`LabelGameTests`) pegam quebra do texto limpo, do holograma (nunc
 baú duplo. Se mudar a versão: `EntityTypes.TEXT_DISPLAY`, os campos NBT do `text_display` (`text`, `billboard`, `view_range`...),
 `Component.object(AtlasSprite)` e os nomes das texturas (`stashlink_sprites.txt` é gerado de `textures/item` e `textures/block`;
 regenere com o comando no fim da seção "Item 14" do `ARCHITECTURE.md`) ficam em `LabelCompat`/`LabelText`.
+Os do Item 17 (`FilterGameTests`) pegam a N ignorando o botão do baú ou as categorias, o botão perdido no disco, na shulker
+(`collectComponents` e drop de sobrevivência) e o pedido aceito com o baú aberto por outro jogador. Se mudar a versão:
+as tags de item (`ItemTags.HEAD_ARMOR`, `PICKAXES`, `SWORDS`, `SPEARS`, `ARROWS`...) e os componentes `FOOD`/`POTION_CONTENTS`
+ficam só em `compat/mc/ItemKinds`; um teste de classificação (`itemsAreClassifiedByGameTags`) acusa tag renomeada.
 
 Ao achar uma chamada nova que quebrou: crie o wrapper, ponha um javadoc dizendo **o que mudou e em qual versão**,
 e acrescente uma linha na tabela acima.

@@ -196,9 +196,9 @@ const ITEMS = [
   {n:16, phase:"Antes do 1.0", t:"Bancadas usam o armazenamento como inventário", b:"feat/bancada-com-armazenamento", f:["F10"], s:"done",
    do:["Livro de receitas (bancada, fornalha, defumador, alto-forno): o mod traz dos baús do raio só o que falta na mochila e devolve a sobra; o livro acende o que dá para fazer com os baús","Painel Armazenamento (só baús e barris, nunca shulkers) ao lado de todas as estações (inclui cortador, tear, cartografia, amolar, ferreiro, bigorna, encantamento, poções): clique leva um stack ao cursor, botão direito leva um; com busca e rolagem","Funil, dispenser, dropper, fornalha, poções e crafter com item dentro nunca são tocados (por N, W, reabastecer, livro e painel): teste prova. Tirar item é sempre no servidor (raio, claim, baú aberto por outro jogador)","Nova função Bancadas com armazenamento, com liga/desliga e cadeado. 13 GameTests (67 no total), mutação pega. Tela e painel ainda não vistos em jogo"],
    ok:"Craftar só com materiais dos baús funciona em todas as estações, sem duplicar nem sumir (2 jogadores); confirmado em jogo."},
-  {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"todo",
+  {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"done",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
-   ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste."}
+   ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste (92 GameTests, 6 mutações pegas; visual a conferir em jogo)."}
 ,
   {n:18, phase:"Antes do 1.0", t:"Litematica: trocar o bloco no mesmo slot", b:"feat/litematica-troca-no-slot", f:["F2"], s:"done",
    do:["O servidor lembra qual slot da hotbar é do mod: ao pedir outro bloco, o novo ocupa o mesmo slot e o anterior volta ao armazenamento de onde veio (shulker no inventário ou container no raio)","Origem cheia, fora do raio, quebrada ou aberta por outro jogador: vai para a mochila; mochila cheia também: o item fica onde estava. Nunca no chão, nunca perdido","Só mexe no que o mod pôs: slot trocado pelo jogador ou travado nunca é tocado. 8 unitários + 8 GameTests (22 no total), mutação pega. Ainda não testado em jogo"],
@@ -281,3 +281,4 @@ document.addEventListener("click", e => {
 renderFeatures(); renderItems();
 const first = ITEMS.find(i => i.s !== "done"); if (first) $("item-"+first.n).open = true;
 </script>
+

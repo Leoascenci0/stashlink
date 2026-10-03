@@ -33,9 +33,9 @@ public final class LootAllKey {
     public static boolean onKeyPressed(Minecraft mc, Screen screen, KeyEvent event, Runnable send) {
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen)
                 || !LootAllService.isSupportedMenu(containerScreen.getMenu())
-                // Digitando num campo de texto a tecla é letra, não comando (as telas suportadas não têm um,
-                // mas se algum mod acrescentar, não roubamos a digitação).
-                || screen.getFocused() instanceof EditBox
+                // Digitando num campo de texto VISÍVEL a tecla é letra, não comando (o campo do nome do baú fica invisível
+                // e, se por acaso guardar o foco, não pode engolir a W).
+                || (screen.getFocused() instanceof EditBox box && box.visible && box.isFocused())
                 || !ClientCompat.keyMatches(KEY, event)) {
             return false;
         }

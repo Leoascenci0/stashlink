@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 /**
@@ -43,10 +44,17 @@ public final class ClientMoveLogic {
      * @return índices de menu, em ordem
      */
     public static List<Integer> stackSlots(List<MenuEntry> entries, IntPredicate locked, Set<Integer> tried) {
+        return stackSlots(entries, locked, s -> false, tried);
+    }
+
+    /** Como acima; {@code excluded} são itens que a N nunca guarda (categoria desligada, Item 17). */
+    public static List<Integer> stackSlots(List<MenuEntry> entries, IntPredicate locked,
+                                           Predicate<ItemStack> excluded, Set<Integer> tried) {
         List<Integer> out = new ArrayList<>();
         for (MenuEntry e : entries) {
             if (!e.isPlayerSlot() || e.isHotbar() || e.invIndex() >= MenuEntry.INVENTORY_SIZE
-                    || e.stack().isEmpty() || locked.test(e.invIndex()) || tried.contains(e.menuIndex())) {
+                    || e.stack().isEmpty() || locked.test(e.invIndex()) || excluded.test(e.stack())
+                    || tried.contains(e.menuIndex())) {
                 continue;
             }
             if (containerHas(entries, e.stack())) {
@@ -58,10 +66,15 @@ public final class ClientMoveLogic {
 
     /** Quantos itens "guardáveis" há na mochila (fora hotbar e travados). Serve para medir quanto saiu. */
     public static int storableCount(List<MenuEntry> entries, IntPredicate locked) {
+        return storableCount(entries, locked, s -> false);
+    }
+
+    /** Como acima, sem contar os itens {@code excluded} (que a N não vai guardar). */
+    public static int storableCount(List<MenuEntry> entries, IntPredicate locked, Predicate<ItemStack> excluded) {
         int n = 0;
         for (MenuEntry e : entries) {
             if (e.isPlayerSlot() && !e.isHotbar() && e.invIndex() < MenuEntry.INVENTORY_SIZE
-                    && !locked.test(e.invIndex())) {
+                    && !locked.test(e.invIndex()) && !excluded.test(e.stack())) {
                 n += e.stack().getCount();
             }
         }

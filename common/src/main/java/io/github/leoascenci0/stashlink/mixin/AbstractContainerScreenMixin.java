@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
+import io.github.leoascenci0.stashlink.client.ReceivePanel;
 import io.github.leoascenci0.stashlink.client.SlotLockClient;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -38,6 +39,10 @@ public abstract class AbstractContainerScreenMixin {
     @Unique
     private LabelPanel stashlink$labelPanel;
 
+    /** Botão "N" (recebe com a tecla N), Item 17. */
+    @Unique
+    private ReceivePanel stashlink$receivePanel;
+
     /** Painel "Armazenamento" das estações (Item 16); só existe em tela de estação. */
     @Unique
     private BenchPanel stashlink$benchPanel;
@@ -56,6 +61,31 @@ public abstract class AbstractContainerScreenMixin {
                     ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
                 }
             }
+        }
+    }
+
+    /** O botão "N" (recebe itens com a tecla N) na linha do título, em baú/barril/shulker. */
+    @Inject(method = "init", at = @At("TAIL"))
+    private void stashlink$addReceiveButton(CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        stashlink$receivePanel = null;
+        if (LootAllService.isSupportedMenu(self.getMenu())) {
+            stashlink$receivePanel = ReceivePanel.create(self.getMenu(), Minecraft.getInstance().player.getInventory(),
+                    leftPos, topPos, imageWidth);
+            if (stashlink$receivePanel != null) {
+                for (AbstractWidget widget : stashlink$receivePanel.widgets()) {
+                    ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
+                }
+            }
+        }
+    }
+
+    /** O botão acompanha o que o servidor contou (a resposta chega depois de a tela abrir). */
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    private void stashlink$refreshReceiveButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                                CallbackInfo ci) {
+        if (stashlink$receivePanel != null) {
+            stashlink$receivePanel.refresh();
         }
     }
 

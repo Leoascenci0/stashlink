@@ -41,17 +41,17 @@ public final class LabelPanel {
         this.pos = pos;
         this.focus = focus;
         this.titleWidth = titleWidth;
-        int penX = left + width - 22;
+        int penX = left + width - 20;                       // o botão "N" (ReceivePanel) fica à esquerda do lápis
         int fieldX = left + 8 + titleWidth + 6;
         this.textX = 8 + titleWidth + 6;
-        this.textWidth = Math.max(40, penX - 3 - fieldX);
+        this.textWidth = Math.max(40, penX - ReceivePanel.RESERVED - 3 - fieldX);
         field = new EditBox(mc.font, fieldX, top + 3, textWidth, 14,
                 Component.translatableWithFallback("stashlink.label.name", "Name"));
         field.setMaxLength(LabelText.MAX_NAME);
         field.setHint(Component.translatableWithFallback("stashlink.label.hint_short", "What is in here?"));
         field.setVisible(false);
         pen = Button.builder(PEN, b -> onPen())
-                .bounds(penX, top + 3, 14, 14)
+                .bounds(penX, top + 4, 12, 12)
                 .tooltip(Tooltip.create(Component.translatableWithFallback("stashlink.label.pen", "Name this container")))
                 .build();
     }

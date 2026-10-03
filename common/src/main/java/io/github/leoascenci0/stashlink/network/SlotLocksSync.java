@@ -12,8 +12,14 @@ import java.util.List;
 /**
  * Servidor → cliente com o mod: "estes slots do menu {@code containerId} estão reservados para estes itens".
  * Só enviado a quem tem o mod (cliente vanilla nunca recebe). É só aparência/previsão; nunca cria item.
+ * {@code receives} é o botão "recebe itens com a N" do container (Item 17).
  */
-public record SlotLocksSync(int containerId, List<Entry> entries) implements CustomPacketPayload {
+public record SlotLocksSync(int containerId, List<Entry> entries, boolean receives) implements CustomPacketPayload {
+    /** Sem mudar o botão da N (padrão: recebe). */
+    public SlotLocksSync(int containerId, List<Entry> entries) {
+        this(containerId, entries, true);
+    }
+
     /** {@code menuSlot} é o índice do slot no menu; {@code item} é só o ícone (quantidade 1). */
     public record Entry(int menuSlot, ItemStack item) {
         @Override
@@ -37,6 +43,7 @@ public record SlotLocksSync(int containerId, List<Entry> entries) implements Cus
     public static final StreamCodec<RegistryFriendlyByteBuf, SlotLocksSync> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, SlotLocksSync::containerId,
             ENTRY_CODEC.apply(ByteBufCodecs.list(256)), SlotLocksSync::entries,
+            ByteBufCodecs.BOOL, SlotLocksSync::receives,
             SlotLocksSync::new);
 
     @Override
