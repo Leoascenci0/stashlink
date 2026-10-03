@@ -53,7 +53,22 @@ public abstract class AbstractContainerScreenMixin {
             }
         }
     }
-/** Fechar a tela grava o texto que ficou no campo. */    @Inject(method = "removed", at = @At("HEAD"))    private void stashlink$saveLabelOnClose(CallbackInfo ci) {        if (stashlink$labelPanel != null) {            stashlink$labelPanel.onClose();        }    }
+
+    /** O nome do baú, como texto comum ao lado do título. */
+    @Inject(method = "extractLabels", at = @At("TAIL"))
+    private void stashlink$drawLabelName(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
+        if (stashlink$labelPanel != null) {
+            stashlink$labelPanel.drawName(graphics);
+        }
+    }
+
+    /** Fechar a tela grava o texto que ficou no campo. */
+    @Inject(method = "removed", at = @At("HEAD"))
+    private void stashlink$saveLabelOnClose(CallbackInfo ci) {
+        if (stashlink$labelPanel != null) {
+            stashlink$labelPanel.onClose();
+        }
+    }
 
     /** Digitando no campo do rótulo, as teclas pertencem ao campo (E não fecha o baú). */
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)

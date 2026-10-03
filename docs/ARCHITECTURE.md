@@ -429,3 +429,6 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   texto visível de muito longe), e `EntityMixin.broadcastToPlayer` só deixa o servidor mostrar o holograma a quem está a
   até 32 blocos (o jogo reavalia quando o jogador anda). (4) O primeiro lápis falhava ao abrir o jogo: `@Shadow` de
   método herdado (`Screen.addRenderableWidget`) não funciona; usa-se o invoker `ScreenInvoker`.
+- **Polimento final da interface.** Com o campo fechado, o nome é desenhado como texto comum ao lado do título (mesma
+  cor, sem fundo; `AbstractContainerScreenMixin.extractLabels`) e o botão mostra ✎; clicar abre o campo e o botão vira ✔;
+  clicar no ✔ (ou Enter) grava e fecha o campo; fechar a tela também grava. Alvo de mixin novo: `extractLabels` (UPDATING).

@@ -110,7 +110,7 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `ScreenInvoker` (cliente) | `Screen.addRenderableWidget` (protegido; `@Shadow` de método herdado não funciona) | Item 14 |
-| `AbstractContainerScreenMixin` (cliente) | `init()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)` | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
+| `AbstractContainerScreenMixin` (cliente) | `init()`, `extractLabels(GuiGraphicsExtractor,int,int)`, `removed()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)` | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
 | `InventoryUtilsMixin` (Litematica) | `InventoryUtils.schematicWorldPickBlock` | Item 7 |
 
 Os GameTests do Item 13 (`LockGameTests`) pegam quebra do `SlotMixin`, da memória no bloco e do baú duplo; o desenho

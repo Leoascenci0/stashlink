@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.label.LabelText;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -9,35 +10,47 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * O "lápis" na tela do baú: um botão ✎ no canto da linha do título e, ao lado do título, um campo com o nome
- * do baú (o texto que aparece no holograma). Já abre preenchido; Enter, o lápis ou fechar a tela gravam.
- * O servidor limpa e valida o texto.
+ * O "lápis" na tela do baú. Fechado: o nome do baú aparece como texto comum ao lado do título ("Baú"), sem
+ * fundo, e o botão mostra ✎. Clicar no ✎ abre o campo de digitação e o botão vira ✔; clicar no ✔ (ou Enter)
+ * grava e fecha o campo. Fechar a tela também grava. O servidor limpa e valida o texto.
  */
 public final class LabelPanel {
+    private static final Component PEN = Component.literal("✎");
+    private static final Component CHECK = Component.literal("✔");
+
     private final BlockPos pos;
     private final EditBox field;
     private final Button pen;
     private final Consumer<GuiEventListener> focus;
-    /** O que o servidor tem gravado (para só enviar quando mudou). */
+    private final int titleWidth;
+    private final int textX;
+    private final int textWidth;
+    private boolean editing;
+    /** O que o servidor tem gravado (também é o que se mostra com o campo fechado). */
     private String saved = "";
 
     private LabelPanel(BlockPos pos, int left, int top, int width, int titleWidth, Consumer<GuiEventListener> focus) {
         Minecraft mc = Minecraft.getInstance();
         this.pos = pos;
         this.focus = focus;
+        this.titleWidth = titleWidth;
         int penX = left + width - 22;
         int fieldX = left + 8 + titleWidth + 6;
-        field = new EditBox(mc.font, fieldX, top + 3, Math.max(40, penX - 3 - fieldX), 14,
+        this.textX = 8 + titleWidth + 6;
+        this.textWidth = Math.max(40, penX - 3 - fieldX);
+        field = new EditBox(mc.font, fieldX, top + 3, textWidth, 14,
                 Component.translatableWithFallback("stashlink.label.name", "Name"));
         field.setMaxLength(LabelText.MAX_NAME);
         field.setHint(Component.translatableWithFallback("stashlink.label.hint_short", "What is in here?"));
-        pen = Button.builder(Component.literal("✎"), b -> onPen())
+        field.setVisible(false);
+        pen = Button.builder(PEN, b -> onPen())
                 .bounds(penX, top + 3, 14, 14)
                 .tooltip(Tooltip.create(Component.translatableWithFallback("stashlink.label.pen", "Name this container")))
                 .build();
@@ -63,23 +76,38 @@ public final class LabelPanel {
     }
 
     private void onPen() {
-        if (field.isFocused()) {
-            save();
-            focus.accept(null);
+        if (editing) {
+            finish();
         } else {
+            editing = true;
+            field.setValue(saved);
+            field.setVisible(true);
+            pen.setMessage(CHECK);
             focus.accept(field);
         }
+    }
+
+    /** Grava e volta ao texto simples. */
+    private void finish() {
+        save();
+        editing = false;
+        field.setVisible(false);
+        pen.setMessage(PEN);
+        focus.accept(null);
     }
 
     /** O servidor mandou o texto atual. Não atropela o que a pessoa já está digitando. */
     public void fill(String name) {
         saved = name;
-        if (!field.isFocused()) {
+        if (!editing) {
             field.setValue(name);
         }
     }
 
     private void save() {
+        if (!editing) {
+            return;
+        }
         String value = LabelText.sanitize(field.getValue(), LabelText.MAX_NAME);
         if (!value.equals(saved)) {
             LabelClient.save(pos, value, "");
@@ -92,17 +120,26 @@ public final class LabelPanel {
         save();
     }
 
+    /** Com o campo fechado, desenha o nome como o título: mesma cor, sem sombra e sem fundo. Coordenadas relativas à tela. */
+    public void drawName(GuiGraphicsExtractor graphics) {
+        if (editing || saved.isEmpty()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        var clipped = mc.font.substrByWidth(LabelText.toComponent(saved), textWidth);
+        graphics.text(mc.font, Language.getInstance().getVisualOrder(clipped), textX, 6, 0xFF404040, false);
+    }
+
     /**
-     * Teclas enquanto se digita: Enter grava; Esc segue o caminho normal (fecha a tela, e fechar grava); o resto
-     * vai para o campo e <b>nunca</b> para o jogo (senão E fecharia o baú e os números trocariam itens).
+     * Teclas enquanto se digita: Enter grava e fecha o campo; Esc segue o caminho normal (fecha a tela, e fechar
+     * grava); o resto vai para o campo e <b>nunca</b> para o jogo (senão E fecharia o baú).
      */
     public boolean onKey(KeyEvent event) {
-        if (!field.isFocused() || event.isEscape()) {
+        if (!editing || !field.isFocused() || event.isEscape()) {
             return false;
         }
         if (event.isConfirmation()) {
-            save();
-            focus.accept(null);
+            finish();
             return true;
         }
         return field.keyPressed(event) || field.canConsumeInput();
