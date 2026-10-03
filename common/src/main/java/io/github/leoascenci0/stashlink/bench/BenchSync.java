@@ -27,7 +27,8 @@ public final class BenchSync {
 
     private static final class State {
         final AbstractContainerMenu menu;
-        List<BenchPoolSync.Entry> last = List.of();
+        /** Nulo até o primeiro envio: a primeira lista vai sempre, mesmo vazia (o painel mostra "nada por perto"). */
+        List<BenchPoolSync.Entry> last = null;
         int age;
         boolean dirty = true;
         boolean unsupported;
