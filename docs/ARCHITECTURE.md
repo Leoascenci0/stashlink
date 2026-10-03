@@ -487,7 +487,7 @@ O StashLink faz as duas, sobre as mesmas fontes: livro de receitas para as 4 est
 "Armazenamento"** para todas (decisão do Eliel: "todas as bancadas").
 
 **Decisões do Eliel (2026-10-03).** Todas as estações; o livro acende + aviso na barra de ação; mochila primeiro e baús só
-se faltar; a função usa baús mesmo com "incluir baús" desligado (o liga/desliga + cadeado da função, Item 18.1, é o
+se faltar; (REVISTO depois, ver a seção "a bancada usa só baús e barris": nem shulkers, e vale "usar baús como fonte". O liga/desliga + cadeado da função, Item 18.1, é o
 consentimento).
 
 **Peças.**
@@ -602,3 +602,14 @@ O rótulo da shulker se perdia ao quebrar em **sobrevivência**: o drop vem da t
 copia todos os componentes do bloco, o preservava (e foi onde o Item 14 foi conferido). `ShulkerBoxBlockMixin` acrescenta o rótulo ao
 item solto no fim de `ShulkerBoxBlock.getDrops`. Teste do caso real: `shulkerKeepsTheLabelWhenBrokenInSurvival` (usa o drop de verdade,
 não `collectComponents`); sem o mixin ele falha.
+
+## Item 16 — a bancada usa só baús e barris (Eliel, 2026-10-03)
+
+Depois de testar em jogo, duas decisões que **substituem** as anteriores deste item:
+- **Shulkers nunca servem à bancada**, nem a do inventário nem a colocada (`BenchPool` só monta a fonte de baús e barris). As
+  shulkers continuam sendo fonte do reabastecimento, da N e do Litematica; só a bancada/painel as ignora.
+- **"Usar baús como fonte" vale para a bancada**: com o ajuste em Não, ela não enxerga armazenamento nenhum (painel "Nada por perto").
+  Antes a função ignorava esse ajuste porque tinha o próprio liga/desliga; agora vale o ajuste e o liga/desliga.
+- Devolver itens emprestados (caderno) continua possível mesmo se o ajuste for desligado no meio: o item volta a quem o emprestou.
+- Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach16AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
+  ajuste e deixar as shulkers servirem foram pegos.

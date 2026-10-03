@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.Origin;
 import net.minecraft.core.BlockPos;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
@@ -9,7 +10,6 @@ import io.github.leoascenci0.stashlink.source.ContainerSource;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.LazyItemSource;
 import io.github.leoascenci0.stashlink.source.NearbyContainers;
-import io.github.leoascenci0.stashlink.source.PlayerShulkerSource;
 import io.github.leoascenci0.stashlink.source.PrioritizedItemSource;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,11 +26,12 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * O "armazenamento" que as bancadas (Item 16) enxergam como se fosse a mochila: shulkers no inventário, shulkers
- * colocadas, baús e barris dentro do raio do jogador ({@code PlayerPrefsStore.radius}, nunca um número fixo).
+ * O "armazenamento" que as bancadas (Item 16) enxergam como se fosse a mochila: **só baús e barris** dentro do raio do
+ * jogador ({@code PlayerPrefsStore.radius}, nunca um número fixo), e só se o ajuste "Usar baús como fonte" estiver ligado.
+ * Shulkers (do inventário ou colocadas) ficam de fora de propósito.
  * Mesmas regras de todo o mod: só container que o jogador poderia abrir (claims, trancado, baú de loot) e <b>nunca
  * um que outro jogador está olhando</b>. Fornalha, suporte de poções, funil, dispenser e dropper nunca entram:
- * {@link NearbyContainers} só aceita baú, barril e shulker.
+ * {@link NearbyContainers} só aceita baú, barril e shulker (e daqui só saem baús e barris).
  *
  * <p>Uma instância vale para uma operação (um clique): a varredura é preguiçosa e as permissões ficam lembradas.
  */
@@ -41,19 +42,15 @@ public final class BenchPool {
 
     private final ItemSource source;
     private final ServerPlayer player;
-    private final PlayerShulkerSource shulkers;
-    /** As fontes de container, criadas só quando a varredura acontece; guardam o que foi tocado (a origem). */
-    private ContainerSource placed;
+    /** A fonte de baús e barris, criada só quando a varredura acontece; guarda o que foi tocado (a origem). */
     private ContainerSource storage;
 
     private BenchPool(ServerPlayer player) {
         this.player = player;
-        this.shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
-        // Baús entram sempre que a função está ligada: o liga/desliga da função é o consentimento (decisão do Eliel).
-        Supplier<NearbyContainers.Found> nearby = memo(() -> NearbyContainers.find(player, true));
+        // Só baús e barris (decisão do Eliel): shulkers, no inventário ou colocadas, nunca servem às bancadas. E vale o
+        // ajuste "Usar baús como fonte": com ele em Não, a bancada não enxerga armazenamento nenhum.
+        Supplier<NearbyContainers.Found> nearby = memo(() -> NearbyContainers.find(player, PlayerPrefsStore.includeChests(player)));
         this.source = new PrioritizedItemSource(List.of(
-                shulkers,
-                new LazyItemSource(() -> placed = new ContainerSource(guard(player, nearby.get().shulkers()))),
                 new LazyItemSource(() -> storage = new ContainerSource(guard(player, nearby.get().storage())))));
     }
 
@@ -69,29 +66,21 @@ public final class BenchPool {
     /** De onde saiu o que esta operação já tirou (posições, nunca objetos: o baú pode sumir até a devolução). */
     public Origin origin() {
         Set<BlockPos> positions = new HashSet<>();
-        if (placed != null) {
-            positions.addAll(placed.touchedPositions());
-        }
         if (storage != null) {
             positions.addAll(storage.touchedPositions());
         }
-        return new Origin(shulkers.touched(), McCompat.dimensionOf(player), positions);
+        return new Origin(false, McCompat.dimensionOf(player), positions);
     }
 
     /**
-     * Para onde devolver o que veio de {@code origin}: as shulkers do inventário e os containers que <b>ainda</b> estão
-     * dentro do alcance, liberados e sem outro jogador olhando. O que ninguém aceitar volta como "sobra" de {@code give}.
+     * Para onde devolver o que veio de {@code origin}: os baús e barris que <b>ainda</b> estão dentro do alcance, liberados e sem outro jogador olhando. O que ninguém aceitar volta como "sobra" de {@code give}.
      */
     public static ItemSource returnTarget(ServerPlayer player, Origin origin) {
         List<ItemSource> targets = new ArrayList<>();
-        if (origin.inventoryShulkers()) {
-            targets.add(new PlayerShulkerSource(player.getInventory().getNonEquipmentItems()));
-        }
         if (!origin.positions().isEmpty() && origin.dimension().equals(McCompat.dimensionOf(player))) {
+            // Devolver vale mesmo que o ajuste "usar baús" tenha sido desligado no meio: o item volta a quem o emprestou.
             NearbyContainers.Found found = NearbyContainers.find(player, true);
-            List<ContainerSource.Entry> candidates = new ArrayList<>(found.shulkers());
-            candidates.addAll(found.storage());
-            targets.add(ContainerSource.returningTo(guard(player, candidates), origin.positions()));
+            targets.add(ContainerSource.returningTo(guard(player, found.storage()), origin.positions()));
         }
         return new PrioritizedItemSource(targets);
     }

@@ -363,8 +363,8 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   ficam registradas como "de fora" com o motivo); e um teste prova que fornalha/suporte de poções/estações com item
   dentro **nunca** são tocadas por reabastecer, N, W nem craftar.
 - **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 16"):** decisões do Eliel (2026-10-03): **todas as estações**; o livro
-  de receitas acende + aviso na barra; mochila primeiro e baú só se faltar; a função usa baús mesmo com "incluir baús"
-  desligado (o liga/desliga + cadeado da função, nova `Feature.BENCH`, é o consentimento). Duas peças sobre as mesmas
+  de receitas acende + aviso na barra; mochila primeiro e baú só se faltar; (revisto em 2026-10-03: só baús e barris, nunca shulkers, e vale "usar baús como fonte").
+  A função tem liga/desliga + cadeado (nova `Feature.BENCH`). Duas peças sobre as mesmas
   fontes e o mesmo raio do jogador (`PlayerPrefsStore.radius`, o Item 15 só sobe o teto):
   1. **Livro de receitas** (bancada, fornalha, defumador, alto-forno): um mixin em `ServerPlaceRecipe.placeRecipe` traz do
      armazenamento **só o que falta na mochila**, o jogo monta a receita sem mudar, e a sobra volta à origem. Com shift

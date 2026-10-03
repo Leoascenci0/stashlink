@@ -103,7 +103,7 @@ public class BenchGameTests {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
         ServerPlayer p = lab.player(4, 2, 4);
-        Lab.prefs(p, 8, false);                           // "incluir baús" desligado: a bancada não depende disso
+        Lab.prefs(p, 8, true);
         Lab.fill(chest, 0, PLANKS, 2);
         CraftingMenu menu = table(lab, p, 1);
         check(h, menu.stillValid(p), "a bancada devia estar válida: pos=" + p.blockPosition() + " bloco=" + lab.level.getBlockState(p.blockPosition().below()));
@@ -182,9 +182,9 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
-    /** Baús e barris: teto 16 (mesmo com raio pedido 50). Shulkers colocadas: padrão 32. */
+    /** Baús e barris: teto 16 (mesmo com raio pedido 50). Shulkers nunca entram na bancada, perto ou longe. */
     @GameTest
-    public void chestsReach16AndShulkersReach32(GameTestHelper h) {
+    public void chestsReach16AndShulkersAreNeverBenchStorage(GameTestHelper h) {
         Lab lab = new Lab(h);
         Lab.fill(lab.chest(24, 2, 4), 0, Items.AMETHYST_SHARD, 5);                      // a 20 blocos: além dos 16 dos baús
         Lab.fill(lab.block(Blocks.SHULKER_BOX, 34, 2, 4), 0, Items.CLAY_BALL, 5); // a 30 blocos: dentro dos 32 das shulkers
@@ -198,9 +198,9 @@ public class BenchGameTests {
         for (BenchPoolSync.Entry e : seen) {
             items.add(e.item().getItem());
         }
-        check(h, items.contains(Items.QUARTZ) && items.contains(Items.CLAY_BALL)
+        check(h, items.contains(Items.QUARTZ) && !items.contains(Items.CLAY_BALL)
                 && !items.contains(Items.AMETHYST_SHARD) && !items.contains(Items.BRICK),
-                "devia ver o baú a 6 e a shulker a 30, e nem o baú a 20 nem a shulker a 40: " + items);
+                "devia ver só o baú a 6 (nem o baú a 20, nem shulker nenhuma): " + items);
         clean(lab, h);
     }
 
@@ -441,6 +441,48 @@ public class BenchGameTests {
         place(b, mb, "stick", false);                        // agora B consegue
         check(h, grid(mb, Items.MANGROVE_PLANKS) == 2 && Lab.count(chest, Items.MANGROVE_PLANKS) == 0,
                 "B pega os itens devolvidos");
+        clean(lab, h);
+    }
+
+    /** "Usar baús como fonte: Não" vale também para a bancada. */
+    @GameTest
+    public void chestsOffBlocksTheBench(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.MANGROVE_PLANKS, 4);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, false);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 0 && Lab.count(chest, Items.MANGROVE_PLANKS) == 4,
+                "com 'usar baús' em Não, a bancada não pode usar o baú");
+        check(h, BenchSync.snapshot(p).stream().noneMatch(e -> e.item().is(Items.MANGROVE_PLANKS)), "nem listar no painel");
+        Lab.prefs(p, 8, true);
+        place(p, menu, "stick", false);
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 2, "ligado, volta a funcionar");
+        clean(lab, h);
+    }
+
+    /** Shulker, no inventário ou colocada, nunca é armazenamento da bancada (só baús e barris). */
+    @GameTest
+    public void shulkersNeverServeTheBench(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container placedBox = lab.block(Blocks.SHULKER_BOX, 2, 2, 2);
+        Lab.fill(placedBox, 0, Items.MANGROVE_PLANKS, 8);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        ItemStack carriedBox = new ItemStack(Items.SHULKER_BOX);
+        io.github.leoascenci0.stashlink.storage.ShulkerStorage.write(carriedBox,
+                List.of(new ItemStack(Items.MANGROVE_PLANKS, 8)));
+        p.getInventory().setItem(20, carriedBox);
+        CraftingMenu menu = table(lab, p, 1);
+
+        place(p, menu, "stick", false);
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 0 && Lab.count(placedBox, Items.MANGROVE_PLANKS) == 8,
+                "a shulker colocada não serve à bancada");
+        check(h, io.github.leoascenci0.stashlink.storage.ShulkerStorage.count(p.getInventory().getItem(20),
+                s -> s.is(Items.MANGROVE_PLANKS)) == 8, "a shulker do inventário também não");
+        check(h, BenchSync.snapshot(p).stream().noneMatch(e -> e.item().is(Items.MANGROVE_PLANKS)), "e nada no painel");
         clean(lab, h);
     }
 
