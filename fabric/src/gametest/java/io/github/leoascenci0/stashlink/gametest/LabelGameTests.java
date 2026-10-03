@@ -134,8 +134,8 @@ public class LabelGameTests {
         check(h, list.size() == 1, "um holograma, achei " + list.size() + " count=" + HologramService.count() + " all=" + lab.level.getEntitiesOfClass(Display.TextDisplay.class, new AABB(pos).inflate(50)).stream().map(e -> e.position() + "/" + e.entityTags() + "/removed=" + e.isRemoved()).toList() + " pos=" + pos);
         Display.TextDisplay holo = list.get(0);
         check(h, !holo.shouldBeSaved(), "holograma nunca vai para o disco");
-        check(h, Math.abs(holo.getX() - (pos.getX() + 0.5)) < 1e-6 && Math.abs(holo.getZ() - (pos.getZ() + 0.5 - 0.56)) < 1e-6 && holo.getY() > pos.getY() + 0.5 && holo.getY() < pos.getY() + 1.0,
-                "holograma na frente do baú (norte): " + holo.position());
+        check(h, Math.abs(holo.getX() - (pos.getX() + 0.5)) < 1e-6 && Math.abs(holo.getZ() - (pos.getZ() + 0.5)) < 1e-6 && holo.getY() > pos.getY() + 0.5 && holo.getY() < pos.getY() + 1.0,
+                "holograma no centro do baú: " + holo.position());
         String text = textOf(lab, holo);
         check(h, text.contains("Pedras") && text.contains("construção"), "texto no holograma: " + text);
         check(h, text.contains("cobblestone"), "o ícone entrou no texto: " + text);
@@ -274,24 +274,37 @@ public class LabelGameTests {
     }
 
     @GameTest
-    public void hologramStaysVisibleWhenAChestIsStackedAbove(GameTestHelper h) {
+    public void hologramBelongsToItsOwnChestFromAnySideAndStack(GameTestHelper h) {
         Lab lab = new Lab(h);
         lab.chest(2, 2, 2);
         lab.chest(2, 3, 2);                                                 // outro baú por cima
+        // dois baús virados para lados diferentes (um "de costas"): o texto não depende da frente
+        lab.level.setBlock(abs(lab, 6, 2, 2), Blocks.CHEST.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.ChestBlock.FACING, net.minecraft.core.Direction.SOUTH), 3);
+        lab.level.setBlock(abs(lab, 8, 2, 2), Blocks.CHEST.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.ChestBlock.FACING, net.minecraft.core.Direction.EAST), 3);
         ServerPlayer p = player(lab, 4, 2, 4);
         BlockPos low = abs(lab, 2, 2, 2);
-        check(h, set(p, low, "Embaixo", ""), "gravou");
+        BlockPos south = abs(lab, 6, 2, 2);
+        BlockPos east = abs(lab, 8, 2, 2);
+        check(h, set(p, low, "Embaixo", "") && set(p, south, "Sul", "") && set(p, east, "Leste", ""), "gravou nos três");
         sync(lab);
-        Display.TextDisplay holo = holos(lab, low).get(0);
-        BlockPos above = abs(lab, 2, 3, 2);
-        // o texto não fica dentro do bloco do baú de cima nem dentro do de baixo
-        BlockPos at = BlockPos.containing(holo.position());
-        check(h, !at.equals(above) && !at.equals(low), "o texto está fora dos dois blocos de baú: " + holo.position());
-        check(h, lab.level.getBlockState(at).isAir(), "e num bloco de ar, onde se enxerga: " + at);
+        for (BlockPos chest : List.of(low, south, east)) {
+            List<Display.TextDisplay> list = holos(lab, chest).stream()
+                    .filter(d -> BlockPos.containing(d.position()).equals(chest)).toList();
+            check(h, list.size() == 1, "um holograma em " + chest + ", achei " + list.size());
+            // dentro do próprio bloco do baú (não no de cima, não à frente): vale de qualquer lado
+            check(h, BlockPos.containing(list.get(0).position()).equals(chest),
+                    "o texto está no bloco do próprio baú: " + list.get(0).position() + " vs " + chest);
+        }
+        check(h, holos(lab, low).stream().anyMatch(d -> d.getY() < abs(lab, 2, 3, 2).getY()), "e abaixo do baú empilhado por cima");
         lab.cleanup();
+        lab.level.removeBlock(south, false);
+        lab.level.removeBlock(east, false);
         sync(lab);
         h.succeed();
     }
+
     // ---------------------------------------------------------------- validação
 
     @GameTest

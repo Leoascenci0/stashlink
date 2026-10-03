@@ -547,3 +547,10 @@ fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na i
   servidor **dedicado**; o servidor integrado do mundo único roda no processo do cliente e não carregaria esse mixin.
   O `ServerPlayerMixin` foi movido para a lista comum (`ServerPlayer` existe nos dois lados; não faz mal ao dedicado).
   Não foi confirmado com o log do Prism.
+
+- **Posição final do holograma (Eliel, depósito de baús virados para a parede, 2026-10-03).** "Na frente do bloco" falhava quando a
+  frente do baú aponta para longe de quem olha (estoques com baús de costas) e o texto ficava atrás deles. Como o holograma já
+  é `see_through`, agora ele fica no **centro do próprio bloco**, perto do topo (`Labels.hologramPos`, 0,75): visível de qualquer
+  lado e sempre dentro do bloco do seu baú (nunca no vizinho nem no de cima). Teste:
+  `hologramBelongsToItsOwnChestFromAnySideAndStack` (empilhado, virado ao sul e ao leste). Limite: em paredes grandes de baús
+  nomeados, todos os nomes até 32 blocos aparecem juntos (atravessam os blocos); se poluir, mostrar só o do baú mirado.
