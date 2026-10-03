@@ -594,3 +594,11 @@ voltar ao **baú de origem**. E dois jogadores querendo o mesmo item não podem 
 - Testes: `switchingRecipeReturnsLeftoversToTheChest`, `closingTheBenchReturnsUnusedItemsToTheChest`,
   `panelSwapReturnsTheCursorItemToItsChest`, `twoPlayersNeverShareTheSameItems` (GameTests 74 no total). Mutação: sem devolver ao
   trocar de receita, sem devolver ao fechar e sem registrar no caderno: pegos por 1, 2 e 3 testes.
+
+## Item 14 — rótulo da shulker na sobrevivência (Eliel, 2026-10-03)
+
+O rótulo da shulker se perdia ao quebrar em **sobrevivência**: o drop vem da tabela de loot (`blocks/<cor>_shulker_box`), cujo
+`copy_components` só inclui `custom_name`, `container`, `lock` e `container_loot`; o rótulo viaja em `CUSTOM_DATA`. Só o criativo, que
+copia todos os componentes do bloco, o preservava (e foi onde o Item 14 foi conferido). `ShulkerBoxBlockMixin` acrescenta o rótulo ao
+item solto no fim de `ShulkerBoxBlock.getDrops`. Teste do caso real: `shulkerKeepsTheLabelWhenBrokenInSurvival` (usa o drop de verdade,
+não `collectComponents`); sem o mixin ele falha.

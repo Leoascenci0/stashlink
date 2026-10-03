@@ -8,6 +8,7 @@
     "CompoundContainerAccessor",
     "EntityMixin",
     "ServerPlaceRecipeMixin",
+    "ShulkerBoxBlockMixin",
     "ServerPlayerMixin",
     "SlotMixin"
   ],

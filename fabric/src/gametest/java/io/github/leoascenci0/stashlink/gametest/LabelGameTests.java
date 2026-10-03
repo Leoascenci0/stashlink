@@ -201,6 +201,31 @@ public class LabelGameTests {
         h.succeed();
     }
 
+    /** O caso real do Eliel: quebrar a shulker em SOBREVIVÊNCIA (drop pela tabela de loot) e colocá-la de novo. */
+    @GameTest
+    public void shulkerKeepsTheLabelWhenBrokenInSurvival(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        lab.block(Blocks.SHULKER_BOX, 2, 2, 2);
+        ServerPlayer p = player(lab, 4, 2, 4);
+        BlockPos pos = abs(lab, 2, 2, 2);
+        check(h, set(p, pos, "Madeira", "tábuas"), "gravou");
+
+        BlockEntity old = be(lab, 2, 2, 2);
+        java.util.List<net.minecraft.world.item.ItemStack> drops =
+                net.minecraft.world.level.block.Block.getDrops(lab.level.getBlockState(pos), lab.level, pos, old);
+        check(h, drops.size() == 1 && drops.get(0).is(net.minecraft.world.item.Items.SHULKER_BOX), "dropou 1 shulker: " + drops);
+        lab.level.removeBlock(pos, false);
+
+        lab.block(Blocks.SHULKER_BOX, 7, 2, 2);
+        BlockEntity fresh = be(lab, 7, 2, 2);
+        fresh.applyComponents(drops.get(0).getComponents(), net.minecraft.core.component.DataComponentPatch.EMPTY);
+        check(h, Labels.get(fresh).name().equals("Madeira") && Labels.get(fresh).note().equals("tábuas"),
+                "o rótulo devia voltar depois de quebrar em sobrevivência: " + Labels.get(fresh));
+        lab.cleanup();
+        sync(lab);
+        h.succeed();
+    }
+
     @GameTest
     public void enderChestKeepsTheLabelByPosition(GameTestHelper h) {
         Lab lab = new Lab(h);
