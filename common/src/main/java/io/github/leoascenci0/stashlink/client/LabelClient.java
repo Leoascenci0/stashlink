@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.SetLabelRequest;
@@ -31,7 +32,8 @@ public final class LabelClient {
 
     /** Há como rotular: o servidor tem o mod. */
     public static boolean available() {
-        return serverHasMod.getAsBoolean();
+        // Desligado por mim ou trancado no servidor: nada de lápis no baú.
+        return serverHasMod.getAsBoolean() && ClientFeatures.enabled(Feature.LABEL);
     }
 
     /** O container para onde a mira aponta agora (a tela do baú acabou de abrir por clique nele), se der para rotular. */
@@ -87,6 +89,9 @@ public final class LabelClient {
                 continue;
             }
             BlockPos looked = ClientCompat.lookedAtBlock(mc);
+            if (serverHasMod.getAsBoolean() && !ClientFeatures.allow(mc, Feature.LABEL)) {
+                continue;
+            }
             if (!serverHasMod.getAsBoolean()) {
                 say(mc, "stashlink.label.no_server_mod", "This server does not have StashLink: labels are unavailable");
             } else if (looked == null) {

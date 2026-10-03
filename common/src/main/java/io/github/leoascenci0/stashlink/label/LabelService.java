@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink.label;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.SetLabelRequest;
@@ -26,6 +28,9 @@ public final class LabelService {
 
     public static void handleEdit(ServerPlayer player, LabelEditRequest request) {
         try {
+            if (!FeatureGate.allow(player, Feature.LABEL)) {
+                return;
+            }
             BlockEntity be = target(player, request.pos());
             if (be != null) {
                 Label label = Labels.get(be);
@@ -46,6 +51,9 @@ public final class LabelService {
 
     /** Valida e grava. Devolve se gravou (para os testes). */
     public static boolean apply(ServerPlayer player, BlockPos pos, String rawName, String rawNote) {
+        if (!FeatureGate.allow(player, Feature.LABEL)) {
+            return false;
+        }
         BlockEntity be = target(player, pos);
         if (be == null) {
             return false;

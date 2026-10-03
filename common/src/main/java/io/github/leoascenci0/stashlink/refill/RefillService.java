@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink.refill;
 
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
 import net.minecraft.server.MinecraftServer;
@@ -93,6 +95,10 @@ public final class RefillService {
     }
 
     private static void refillHand(ServerPlayer player, InteractionHand hand, ItemStack lastSeen) {
+        // Automático: se está trancado pelo servidor ou desligado pelo jogador, fica quieto (sem avisos a cada item).
+        if (!FeatureGate.allowSilently(player, Feature.REFILL)) {
+            return;
+        }
         ItemSource sources = PlayerSources.of(player);
         ItemStack refill = RefillLogic.refill(lastSeen, sources);
         if (refill.isEmpty()) {

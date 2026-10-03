@@ -4,9 +4,12 @@ import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
+import io.github.leoascenci0.stashlink.config.ClientPolicy;
+import io.github.leoascenci0.stashlink.network.FeaturePolicySync;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
+import io.github.leoascenci0.stashlink.network.SetFeatureLockRequest;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
@@ -26,7 +29,18 @@ public class StashLinkFabricClient implements ClientModInitializer {
                 ClientPlayNetworking.send(request);
             }
         });
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> ClientPrefs.sync());
+        // Ao entrar: esquece os cadeados do servidor anterior; o servidor responde às preferências com os novos.
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> {
+            ClientPolicy.reset();
+            ClientPrefs.sync();
+        });
+        ClientPlayNetworking.registerGlobalReceiver(FeaturePolicySync.TYPE,
+                (payload, context) -> ClientPolicy.apply(payload.lockedMask(), payload.canEdit()));
+        ClientFeatures.setLockSender(request -> {
+            if (ClientPlayNetworking.canSend(SetFeatureLockRequest.TYPE)) {
+                ClientPlayNetworking.send(request);
+            }
+        });
 
         // Modo cliente: "o servidor conhece o nosso pacote?" no Fabric é canSend. Só consultado com conexão aberta.
         ClientMode.setServerHasModCheck(() -> ClientPlayNetworking.canSend(QuickStackRequest.TYPE));

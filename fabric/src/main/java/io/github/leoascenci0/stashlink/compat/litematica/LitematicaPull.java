@@ -1,5 +1,7 @@
 package io.github.leoascenci0.stashlink.compat.litematica;
 
+import io.github.leoascenci0.stashlink.client.ClientFeatures;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.pull.PullRequestThrottle;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -27,6 +29,10 @@ public final class LitematicaPull {
     public static boolean onPickBlock(ItemStack wanted, Minecraft mc) {
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null || wanted.isEmpty() || player.isCreative() || player.isSpectator()) {
+            return false;
+        }
+        // Função desligada por mim ou trancada no servidor: o Litematica faz o que faria sem o StashLink.
+        if (!ClientFeatures.enabled(Feature.PULL)) {
             return false;
         }
         // Já tem o item em algum lugar: o Litematica resolve sozinho (troca de slot).

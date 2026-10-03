@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink.label;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.compat.mc.LabelCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -74,6 +76,9 @@ public final class HologramService {
         }
         trackEnderChests(server);
 
+        // Função trancada pelo servidor: nenhum holograma aparece (os rótulos ficam gravados nos blocos e voltam
+        // quando o cadeado abre).
+        boolean shown = !StashLinkConfig.isFeatureLocked(Feature.LABEL);
         Map<Key, Desired> desired = new HashMap<>();
         synchronized (TRACKED) {
         for (Iterator<BlockEntity> it = TRACKED.iterator(); it.hasNext(); ) {
@@ -89,7 +94,7 @@ public final class HologramService {
             Label label = Labels.get(be);
             if (label.isEmpty()) {
                 it.remove();
-            } else if (Labels.isAnchor(be)) {
+            } else if (shown && Labels.isAnchor(be)) {
                 desired.put(new Key(level.dimension().identifier().toString(), be.getBlockPos().asLong()),
                         new Desired(level, Labels.hologramPos(be), label));
             }

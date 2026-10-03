@@ -38,6 +38,14 @@ public final class PlayerPrefsStore {
         return c == PlayerPrefs.UNSET ? StashLinkConfig.includeChests : c == 1;
     }
 
+    /**
+     * A função está valendo para este jogador? Só se o servidor não a trancou (cadeado) <b>e</b> o jogador não a
+     * desligou para si. O servidor decide aqui; o cliente só repete a conta para não mandar pedido à toa.
+     */
+    public static boolean featureEnabled(ServerPlayer player, Feature feature) {
+        return !StashLinkConfig.isFeatureLocked(feature) && (of(player).disabledFeatures() & feature.bit()) == 0;
+    }
+
     /** Slot travado pelo servidor (para todos) ou pelo próprio jogador. */
     public static boolean isSlotLocked(ServerPlayer player, int inventorySlot) {
         return StashLinkConfig.isSlotLocked(inventorySlot) || of(player).lockedSlots().contains(inventorySlot);

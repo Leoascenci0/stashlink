@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
@@ -33,6 +34,9 @@ public final class ClientPrefs {
     /** Modo cliente: em servidor sem o mod, o cliente faz o trabalho sozinho. Ligado por padrão. */
     public static boolean clientModeEnabled = true;
 
+    /** Funções que ESTE jogador desligou para si ({@link Feature#bit()}). Tudo ligado por padrão. */
+    public static int disabledFeatures = 0;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Consumer<PlayerPrefsRequest> sender;
 
@@ -45,7 +49,16 @@ public final class ClientPrefs {
     }
 
     public static PlayerPrefs toPrefs() {
-        return new PlayerPrefs(radius, chests, List.copyOf(lockedSlots)).sanitized();
+        return new PlayerPrefs(radius, chests, List.copyOf(lockedSlots), disabledFeatures).sanitized();
+    }
+
+    /** O jogador deixou esta função ligada na tela de config? (Cadeado do servidor é outra conta: ClientFeatures.) */
+    public static boolean isFeatureOn(Feature feature) {
+        return (disabledFeatures & feature.bit()) == 0;
+    }
+
+    public static void setFeatureOn(Feature feature, boolean on) {
+        disabledFeatures = on ? disabledFeatures & ~feature.bit() : disabledFeatures | feature.bit();
     }
 
     /** Manda as preferências ao servidor atual (não faz nada se o loader ainda não registrou o envio). */
@@ -61,6 +74,8 @@ public final class ClientPrefs {
         int[] lockedSlots = new int[0];
         // Valor inicial true: arquivo antigo sem o campo continua com o modo cliente ligado.
         boolean clientModeEnabled = true;
+        // Máscara de funções desligadas; arquivo antigo sem o campo = tudo ligado.
+        int disabledFeatures = 0;
     }
 
     private static Path path() {
@@ -89,6 +104,7 @@ public final class ClientPrefs {
             }
             lockedSlots = slots;
             clientModeEnabled = d.clientModeEnabled;
+            disabledFeatures = d.disabledFeatures & Feature.ALL_MASK;
         } catch (IOException | JsonSyntaxException e) {
             Constants.LOG.warn("Preferências {} ilegíveis, usando padrões: {}", file, e.toString());
         }
@@ -102,6 +118,7 @@ public final class ClientPrefs {
             d.chests = chests;
             d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
             d.clientModeEnabled = clientModeEnabled;
+            d.disabledFeatures = disabledFeatures;
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(d) + System.lineSeparator(), StandardCharsets.UTF_8);
         } catch (IOException e) {

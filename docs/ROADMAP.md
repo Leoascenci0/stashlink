@@ -406,6 +406,28 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
   confirmado em jogo com Litematica.
 
+### Item 18.1 — Funções com liga/desliga e cadeado, como o seletor de dificuldade ✅
+- **Branch:** `feat/funcoes-liga-trava`
+- Pedido do Eliel (2026-10-03): **toda função do mod** tem um botão liga/desliga na tela de config, igual ao seletor de
+  dificuldade do jogo, com um **cadeado** ao lado. Trancada (cadeado fechado), a função **não funciona naquele
+  servidor**, para quem quer usar o mod mas acha alguma função "roubada" e fecha por dentro do jogo.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 18.1"):** enum `Feature` (reabastecer a mão, N, W, Litematica,
+  Alt + clique). Dois níveis: o **liga/desliga é pessoal** (`stashlink-client.json`, vai ao servidor junto das
+  preferências) e o **cadeado é do servidor** (`lockedFeatures` em `stashlink.json`). Só vale se **não** estiver
+  trancada **e** o jogador não a desligou. O servidor confere em cada serviço (`FeatureGate`); o cliente repete a conta
+  só para não mandar pedido à toa e avisar o motivo na barra de ação. Quem tranca: o dono do mundo ou um operador,
+  pela tela (pacote conferido no servidor) ou por `/stashlink feature <nome> lock|unlock`; a mudança é gravada e avisada
+  a todos. Botão de função trancada fica desligado, como a dificuldade travada. Sem o mod no servidor (modo cliente)
+  não há cadeado: vale só o liga/desliga. Função de slot reservado trancada: as reservas ficam guardadas no baú mas
+  deixam de valer (e voltam quando o cadeado abre).
+- **Regra daqui para frente:** toda função nova (Itens 14-17, 19...) entra no enum `Feature`, ganha linha na tela
+  (idioma `stashlink.feature.<id>` e `.tip`) e passa por `FeatureGate` no servidor.
+- **Testes:** 8 unitários (`FeatureTest`) e 7 GameTests (`FeatureGameTests`, 54 no total): cada função respeita o
+  cadeado e o desligar pessoal; só o dono/operador tranca; reserva existente deixa de valer trancada. A tela **não foi
+  vista em jogo** ainda.
+- **Pronto quando:** cada função tem liga/desliga + cadeado na tela, trancada não funciona no servidor, e confirmado em
+  jogo (tela, cadeado por operador num servidor com 2 jogadores, comando).
+
 ### Item 19 — Release 1.0 (publicação) ⬜
 - **Branch:** `chore/publicar-1.0`
 - Último item do plano: só entra depois dos Itens 13–18. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).

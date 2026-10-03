@@ -204,6 +204,10 @@ const ITEMS = [
    do:["O servidor lembra qual slot da hotbar é do mod: ao pedir outro bloco, o novo ocupa o mesmo slot e o anterior volta ao armazenamento de onde veio (shulker no inventário ou container no raio)","Origem cheia, fora do raio, quebrada ou aberta por outro jogador: vai para a mochila; mochila cheia também: o item fica onde estava. Nunca no chão, nunca perdido","Só mexe no que o mod pôs: slot trocado pelo jogador ou travado nunca é tocado. 8 unitários + 8 GameTests (22 no total), mutação pega. Ainda não testado em jogo"],
    ok:"Construir 30+ blocos de tipos diferentes mantém a hotbar limpa e nada duplica nem some; confirmado em jogo."}
 ,
+  {n:"18.1", phase:"Antes do 1.0", t:"Funções com liga/desliga e cadeado (como a dificuldade)", b:"feat/funcoes-liga-trava", f:["F6"], s:"done",
+   do:["Cada função (reabastecer, N, W, Litematica, Alt + clique, nome do baú) tem botão liga/desliga e um cadeado na tela de config, igual ao seletor de dificuldade","Liga/desliga é pessoal; o cadeado é do servidor: trancada, a função não funciona ali. Dono ou operador tranca pela tela ou por /stashlink feature; o servidor confere tudo","8 unitários + 7 GameTests (54 no total). Tela ainda não vista em jogo"],
+   ok:"Função trancada não funciona no servidor e o botão fica desligado; confirmado em jogo."}
+,
   {n:19, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
    do:["Só depois dos Itens 13–18","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–18 e os limites conhecidos"],
    ok:"Versão 1.0 publicada e baixável para cada loader."}

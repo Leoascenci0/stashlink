@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink.slotlock;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.platform.Services;
@@ -33,6 +35,9 @@ public final class SlotLockService {
     }
 
     private static void process(ServerPlayer player, LockSlotRequest request) {
+        if (!FeatureGate.allow(player, Feature.SLOT_LOCK)) {
+            return;
+        }
         AbstractContainerMenu menu = player.containerMenu;
         if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu
                 || menu.containerId != request.containerId() || !LootAllService.isSupportedMenu(menu)

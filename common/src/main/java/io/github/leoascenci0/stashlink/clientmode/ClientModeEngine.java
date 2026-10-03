@@ -1,7 +1,9 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.client.ClientFeatures;
 import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.refill.HandWatcher;
@@ -93,7 +95,7 @@ public final class ClientModeEngine {
             return;
         }
         learnFromOpenMenu(mc, player);
-        if (!exhausted.isEmpty()) {
+        if (!exhausted.isEmpty() && ClientFeatures.enabled(Feature.REFILL)) {
             startRefill(mc, exhausted);
         }
     }

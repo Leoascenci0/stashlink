@@ -1,12 +1,17 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.ClientPolicy;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.LockIconButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -18,6 +23,11 @@ import java.util.TreeSet;
  * Tela de configuração (Mod Menu no Fabric, botão "Config" da lista de mods no NeoForge). Usa só widgets do
  * jogo, então é a mesma nos dois loaders e não exige Cloth Config.
  *
+ * <p>Duas abas. <b>Funções</b>: cada função do mod tem um botão liga/desliga (a sua escolha) e um cadeado ao lado,
+ * igual ao seletor de dificuldade do jogo; trancada, a função não funciona naquele servidor e o botão fica
+ * desligado. O cadeado é do servidor (dono do mundo ou operador, conferido pelo servidor); o liga/desliga é
+ * pessoal. <b>Ajustes</b>: raio, baús e slots travados.
+ *
  * <p>Em mundo local edita a config do jogo (que roda a lógica). Num servidor/Realms o cliente não alcança a
  * config do servidor, então a tela edita as <b>preferências pessoais</b> ({@link ClientPrefs}), que o servidor
  * recebe e limita. Assim funciona mesmo sem comandos nem acesso a arquivos.
@@ -25,9 +35,21 @@ import java.util.TreeSet;
 public class StashLinkConfigScreen extends Screen {
     private static final int WIDTH = 200;
     private static final int ROW = 24;
+    /** Linha de função: botão + 4 px + cadeado de 20 px = WIDTH, igual ao seletor de dificuldade do jogo. */
+    private static final int LOCK_SIZE = 20;
+    private static final int FEATURE_ROW = 22;
+
+    private static final int PAGE_FEATURES = 0;
+    private static final int PAGE_SETTINGS = 1;
 
     private final Screen parent;
     private final boolean local;
+    /** Sem mundo aberto (tela de mods no menu inicial): não há servidor, os cadeados editam o arquivo local. */
+    private final boolean noWorld;
+    private int page = PAGE_FEATURES;
+    /** Última versão da política do servidor vista: se mudar (resposta do servidor), a tela se redesenha. */
+    private int seenPolicyVersion;
+    private boolean requestedPolicy;
     /** Posições (y) calculadas em init(), usadas ao desenhar os textos. */
     private boolean clientModeActive;
     private int infoY;
@@ -37,13 +59,138 @@ public class StashLinkConfigScreen extends Screen {
         super(Component.translatableWithFallback("stashlink.config.title", "StashLink settings"));
         this.parent = parent;
         // Sem servidor local mas com mundo aberto = conectado a servidor remoto.
-        this.local = minecraft == null || minecraft.level == null || minecraft.getSingleplayerServer() != null;
+        Minecraft mc = Minecraft.getInstance();
+        this.noWorld = mc.level == null;
+        this.local = noWorld || mc.getSingleplayerServer() != null;
     }
 
     @Override
     protected void init() {
+        seenPolicyVersion = ClientPolicy.version();
+        if (!noWorld && !requestedPolicy) {
+            // Pergunta ao servidor a política atual (cadeados e se posso mexer neles); a resposta redesenha a tela.
+            requestedPolicy = true;
+            ClientPrefs.sync();
+        }
         int x = this.width / 2 - WIDTH / 2;
-        int y = this.height / 6 + 24;
+        int top = this.height / 6;
+
+        // Abas: as funções (liga/desliga + cadeado) e os ajustes finos (raio, baús, slots).
+        int tabW = (WIDTH - 4) / 2;
+        Button features = addRenderableWidget(Button.builder(
+                Component.translatableWithFallback("stashlink.config.tab_features", "Features"),
+                b -> switchPage(PAGE_FEATURES)).bounds(x, top + 20, tabW, 20).build());
+        features.active = page != PAGE_FEATURES;
+        Button settings = addRenderableWidget(Button.builder(
+                Component.translatableWithFallback("stashlink.config.tab_settings", "Settings"),
+                b -> switchPage(PAGE_SETTINGS)).bounds(x + tabW + 4, top + 20, tabW, 20).build());
+        settings.active = page != PAGE_SETTINGS;
+
+        int y = top + 48;
+        if (page == PAGE_FEATURES) {
+            y = initFeatures(x, y);
+        } else {
+            y = initSettings(x, y);
+        }
+        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
+                .bounds(x, y + 8, WIDTH, 20).build());
+    }
+
+    private void switchPage(int newPage) {
+        page = newPage;
+        rebuildWidgets();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (seenPolicyVersion != ClientPolicy.version()) {
+            rebuildWidgets();
+        }
+    }
+
+    // ------------------------------------------------------------------ aba "Funções"
+
+    /** Uma linha por função: botão liga/desliga (pessoal) + cadeado (do servidor), como a dificuldade do jogo. */
+    private int initFeatures(int x, int y) {
+        for (Feature feature : Feature.values()) {
+            boolean locked = isLocked(feature);
+
+            Button toggle = Button.builder(featureLabel(feature, locked), b -> {
+                ClientPrefs.setFeatureOn(feature, !ClientPrefs.isFeatureOn(feature));
+                b.setMessage(featureLabel(feature, false));
+            }).bounds(x, y, WIDTH - LOCK_SIZE - 4, 20).build();
+            Component tip = featureTip(feature);
+            toggle.setTooltip(Tooltip.create(locked ? tip.copy().append("\n").append(
+                    Component.translatableWithFallback("stashlink.feature.locked_here",
+                            "This feature is locked on this server")) : tip));
+            // Trancada: o botão fica desligado, como a dificuldade do jogo quando está travada.
+            toggle.active = !locked;
+            addRenderableWidget(toggle);
+
+            LockIconButton lock = new LockIconButton(x + WIDTH - LOCK_SIZE, y, b -> toggleLock(feature));
+            lock.setLocked(locked);
+            lock.active = canEditLocks();
+            lock.setTooltip(Tooltip.create(lockTip(locked)));
+            addRenderableWidget(lock);
+            y += FEATURE_ROW;
+        }
+        return y;
+    }
+
+    private boolean isLocked(Feature feature) {
+        return noWorld ? StashLinkConfig.isFeatureLocked(feature) : ClientFeatures.lockedByServer(feature);
+    }
+
+    /** Sem mundo: o arquivo local. Com o mod no servidor: só dono/operador (o servidor confere de novo). */
+    private boolean canEditLocks() {
+        return noWorld || (ClientMode.serverHasMod() && ClientPolicy.canEdit());
+    }
+
+    private void toggleLock(Feature feature) {
+        boolean wanted = !isLocked(feature);
+        if (noWorld) {
+            StashLinkConfig.setFeatureLocked(feature, wanted);
+            rebuildWidgets();
+        } else {
+            // O servidor decide; a resposta (política nova) redesenha a tela.
+            ClientFeatures.requestLock(feature, wanted);
+        }
+    }
+
+    private Component featureLabel(Feature feature, boolean locked) {
+        Component state = locked
+                ? Component.translatableWithFallback("stashlink.feature.state_locked", "Locked")
+                : (ClientPrefs.isFeatureOn(feature) ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
+        return Component.empty().append(featureName(feature)).append(": ").append(state);
+    }
+
+    private static Component featureName(Feature feature) {
+        return Component.translatable("stashlink.feature." + feature.id());
+    }
+
+    private static Component featureTip(Feature feature) {
+        return Component.translatable("stashlink.feature." + feature.id() + ".tip");
+    }
+
+    private Component lockTip(boolean locked) {
+        if (!canEditLocks()) {
+            return ClientMode.serverHasMod()
+                    ? Component.translatableWithFallback("stashlink.feature.lock_ops_only",
+                            "Only the server owner or an operator can lock features")
+                    : Component.translatableWithFallback("stashlink.feature.lock_needs_mod",
+                            "Locking needs StashLink on the server");
+        }
+        return locked
+                ? Component.translatableWithFallback("stashlink.feature.unlock_tip",
+                        "Locked: this feature does not work here. Click to unlock")
+                : Component.translatableWithFallback("stashlink.feature.lock_tip",
+                        "Click to lock: this feature will stop working for everyone here");
+    }
+
+    // ------------------------------------------------------------------ aba "Ajustes"
+
+    private int initSettings(int x, int y) {
         // No modo cliente o servidor não conhece o mod: raio e "usar baús" do servidor não se aplicam.
         clientModeActive = !local && ClientMode.active();
 
@@ -91,9 +238,7 @@ public class StashLinkConfigScreen extends Screen {
             }
         });
 
-        y += ROW + 12;
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-                .bounds(x, y, WIDTH, 20).build());
+        return y + ROW;
     }
 
     @Override
@@ -106,15 +251,17 @@ public class StashLinkConfigScreen extends Screen {
             graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.remote",
                     "On a server: these are your personal settings (the server may limit them)"), cx, top + 8, 0xFFFFFF55);
         }
-        if (clientModeActive) {
-            graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.client_mode_active",
-                    "Client mode active: the server does not have StashLink, the mod acts only on your client"),
-                    cx, infoY, 0xFF55FF55);
+        if (page == PAGE_SETTINGS) {
+            if (clientModeActive) {
+                graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.client_mode_active",
+                        "Client mode active: the server does not have StashLink, the mod acts only on your client"),
+                        cx, infoY, 0xFF55FF55);
+            }
+            // Rótulo do campo de slots (fica 11 px acima do EditBox; a posição depende de quais widgets aparecem).
+            graphics.text(this.font, Component.translatableWithFallback("stashlink.config.locked_slots_hint",
+                    "Locked slots (0-35, comma-separated; 0-8 = hotbar)"),
+                    cx - WIDTH / 2, slotsLabelY, 0xFFAAAAAA);
         }
-        // Rótulo do campo de slots (fica 11 px acima do EditBox; a posição depende de quais widgets aparecem).
-        graphics.text(this.font, Component.translatableWithFallback("stashlink.config.locked_slots_hint",
-                "Locked slots (0-35, comma-separated; 0-8 = hotbar)"),
-                cx - WIDTH / 2, slotsLabelY, 0xFFAAAAAA);
     }
 
     @Override
@@ -127,10 +274,11 @@ public class StashLinkConfigScreen extends Screen {
     /** Gravar ao sair (e não a cada clique) evita reescrever o arquivo dezenas de vezes ao arrastar o slider. */
     @Override
     public void removed() {
+        ClientPrefs.save();
         if (local) {
             StashLinkConfig.save();
-        } else {
-            ClientPrefs.save();
+        }
+        if (!noWorld) {
             ClientPrefs.sync();
         }
     }

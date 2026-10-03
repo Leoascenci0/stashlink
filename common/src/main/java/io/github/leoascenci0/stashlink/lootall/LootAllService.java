@@ -3,6 +3,8 @@ package io.github.leoascenci0.stashlink.lootall;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -49,6 +51,9 @@ public final class LootAllService {
         AbstractContainerMenu menu = player.containerMenu;
         if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu || !isSupportedMenu(menu)
                 || !menu.stillValid(player)) {
+            return;
+        }
+        if (!FeatureGate.allow(player, Feature.LOOT_ALL)) {
             return;
         }
         long now = McCompat.gameTime(player);

@@ -3,6 +3,8 @@ package io.github.leoascenci0.stashlink.pull;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
@@ -55,6 +57,9 @@ public final class PullItemService {
         // mexendo no inventário e mudar slots por baixo dele causaria confusão.
         if (!player.isAlive() || player.isCreative() || player.isSpectator()
                 || player.containerMenu != player.inventoryMenu) {
+            return;
+        }
+        if (!FeatureGate.allow(player, Feature.PULL)) {
             return;
         }
         long now = McCompat.gameTime(player);

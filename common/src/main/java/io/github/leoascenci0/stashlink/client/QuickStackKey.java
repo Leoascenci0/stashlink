@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
@@ -23,7 +24,9 @@ public final class QuickStackKey {
     public static void poll(Minecraft mc, Runnable send) {
         while (KEY.consumeClick()) {
             if (mc.player != null && mc.level != null && !ClientCompat.hasScreenOpen(mc) && !mc.player.isSpectator()) {
-                send.run();
+                if (ClientFeatures.allow(mc, Feature.QUICK_STACK)) {
+                    send.run();
+                }
             }
         }
     }

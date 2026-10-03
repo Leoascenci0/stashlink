@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -44,7 +45,9 @@ public final class LootAllKey {
         long now = mc.level.getGameTime();
         if (lastSendTick == Long.MIN_VALUE || now < lastSendTick || now - lastSendTick >= MIN_TICKS_BETWEEN_SENDS) {
             lastSendTick = now;
-            send.run();
+            if (ClientFeatures.allow(mc, Feature.LOOT_ALL)) {
+                send.run();
+            }
         }
         return true;
     }
