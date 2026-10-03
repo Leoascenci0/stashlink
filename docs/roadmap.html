@@ -131,7 +131,8 @@ const FEATURES = [
   {id:"F8", name:"Nome do armazenamento", d:"Nome com emojis e resumo do conteúdo, visível sem abrir."},
   {id:"F9", name:"Raio 128 com conduíte", d:"Um conduíte perto do estoque libera raio de até 128 blocos."},
   {id:"F10", name:"Bancada com armazenamento", d:"Craftar usando os baús próximos como inventário."},
-  {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."}
+  {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."},
+  {id:"F12", name:"Botão do meio puxa o item", d:"Mirando um bloco, traz o item do baú no raio para a hotbar."}
 ];
 // status: "todo" | "wip" | "done"
 const ITEMS = [
@@ -181,7 +182,7 @@ const ITEMS = [
    do:["GameTest do Fabric com servidor real e jogadores em sobrevivência: 14 cenários passam (2 jogadores no mesmo baú, fuzz de 3000 ações com soma de itens conferida, 289 containers)","Carpet e Upgraded Iron Chests testados juntos; desempenho com 289 containers: média abaixo de 1 ms por operação; achado e corrigido: tecla W ignorava slots travados por jogador","Não testado: Sophisticated (só NeoForge), Realms/anticheat e Easy Place com Litematica/Tweakeroo em jogo (eles carregam junto sem erro de Mixin; roteiro no ROADMAP)"],
    ok:"Sem dupe, sem crash e sem queda de TPS nos cenários testados."},
   {n:12, phase:"Polimento", t:"Preparar o release (workflow, changelog, README)", b:"chore/release-1.0", f:[], s:"done",
-   do:["Workflow release.yml: tag v* gera release em rascunho com um jar por loader","CHANGELOG.md e README com instalação e testes","A publicação em si foi movida para o Item 19 (último), pois ainda há itens a implementar"],
+   do:["Workflow release.yml: tag v* gera release em rascunho com um jar por loader","CHANGELOG.md e README com instalação e testes","A publicação em si foi movida para o Item 20 (último), pois ainda há itens a implementar"],
    ok:"Workflow, changelog e README prontos para o release."},
   {n:13, phase:"Antes do 1.0", t:"Slot de baú travado com um item (prévia)", b:"feat/slot-travado-item", f:["F7"], s:"done",
    do:["Alt + clique num slot de baú reserva o slot para aquele item: só ele entra (clique, shift-clique, troca por número, N), e a prévia aparece no slot vazio","A memória fica no próprio bloco (sobrevive a reiniciar e some com o baú quebrado); a prévia nunca é item de verdade: sem dupe por clique, shift-clique, funil ou tecla W; cliente sem o mod vê o slot vazio","N prefere o slot reservado (até num baú vazio); W mantém a reserva; tudo validado no servidor; 14 GameTests novos (36 no total) com fuzz de 2 jogadores, mutação pega. Cliente gráfico ainda não testado em jogo"],
@@ -204,8 +205,12 @@ const ITEMS = [
    do:["O servidor lembra qual slot da hotbar é do mod: ao pedir outro bloco, o novo ocupa o mesmo slot e o anterior volta ao armazenamento de onde veio (shulker no inventário ou container no raio)","Origem cheia, fora do raio, quebrada ou aberta por outro jogador: vai para a mochila; mochila cheia também: o item fica onde estava. Nunca no chão, nunca perdido","Só mexe no que o mod pôs: slot trocado pelo jogador ou travado nunca é tocado. 8 unitários + 8 GameTests (22 no total), mutação pega. Ainda não testado em jogo"],
    ok:"Construir 30+ blocos de tipos diferentes mantém a hotbar limpa e nada duplica nem some; confirmado em jogo."}
 ,
-  {n:19, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
-   do:["Só depois dos Itens 13–18","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–18 e os limites conhecidos"],
+  {n:19, phase:"Antes do 1.0", t:"Botão do meio puxa o item do armazenamento", b:"feat/pick-block-armazenamento", f:["F12"], s:"todo",
+   do:["Mirar um bloco e clicar com o botão do meio: se o item está num container dentro do raio, vai para a hotbar","Precisa de um slot livre na hotbar; sem slot livre não faz nada e nunca troca item do jogador","Reaproveita o pedido do Litematica (PullItemService); validado no servidor, sem dupe"],
+   ok:"Item chega à hotbar vindo de um baú no raio; hotbar cheia ou fora do raio não puxa; testes com 2 jogadores."}
+,
+  {n:20, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
+   do:["Só depois dos Itens 13–19","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–19 e os limites conhecidos"],
    ok:"Versão 1.0 publicada e baixável para cada loader."}
 ];
 const RISKS = [

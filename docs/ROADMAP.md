@@ -234,10 +234,10 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ concluído
 
 ### Item 12 — Preparar o release (workflow, changelog, README) ✅
 - **Branch:** `chore/release-1.0`
-- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 19** (último), porque ainda há itens a implementar antes (13–18), decisão do Eliel em 2026-10-03.
+- Workflow de release, changelog e README. A publicação em si foi movida para o **Item 19** (último), porque ainda há itens a implementar antes (13–19), decisão do Eliel em 2026-10-03.
 - **Feito até aqui:** workflow `release.yml` (tag `v*` → release em rascunho com um jar por loader), `CHANGELOG.md` e README com instalação/testes. Teste em jogo com o mod instalado num servidor próprio: ok (2026-10-03). Modo cliente (servidor sem o mod) e Easy Place com Litematica continuam sem teste em jogo.
 
-## Itens a implementar antes do release (Itens 13–18)
+## Itens a implementar antes do release (Itens 13–19)
 
 Pedidas pelo Eliel em 2026-10-03, para fazer em outros chats, um item por vez. Cada item começa com uma investigação
 curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/ARCHITECTURE.md`.
@@ -402,10 +402,25 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   estava, nada duplica nem some (testes no harness `:fabric:runGameTest`, incluindo origem cheia e 2 jogadores) e
   confirmado em jogo com Litematica.
 
-### Item 19 — Release 1.0 (publicação) ⬜
+### Item 19 — Botão do meio do mouse puxa o item do armazenamento para a hotbar ⬜
+- **Branch:** `feat/pick-block-armazenamento`
+- Ideia (Eliel, 2026-10-03): ao clicar com o **botão do meio (scroll) do mouse mirando um bloco**, se o item daquele
+  bloco estiver guardado em algum container **dentro do raio do jogador**, ele **vai para a hotbar**. Exige **um slot
+  livre na hotbar**; sem slot livre não faz nada (avisa, e nunca sobrescreve nem troca item que o jogador tem).
+- A decidir na investigação: reaproveitar o pedido que o Litematica já usa (`PullItemService`/`PullLogic`, pacote ao
+  servidor) em vez de criar outro caminho; como o jogo base trata o pick block em sobrevivência (só pega do
+  inventário) e como não brigar com ele (se o item já está na hotbar, o jogo base seleciona; só puxamos quando não
+  está); se vale também para o item em shulker no inventário; Litematica ligado (pick block da preview continua
+  sendo dele); mirar em baú ou bloco que dá outro item (usa o que o jogo base escolheria). Server-side e validado
+  (distância, claim, baú não aberto por outro), sem dupe; modo cliente (sem o mod no servidor) a decidir.
+- **Pronto quando:** mirar um bloco, apertar o botão do meio e o item chega à hotbar vindo de um baú no raio; com a
+  hotbar cheia nada acontece e nada some; fora do raio não puxa; testes no harness `:fabric:runGameTest`, incluindo 2
+  jogadores.
+
+### Item 20 — Release 1.0 (publicação) ⬜
 - **Branch:** `chore/publicar-1.0`
-- Último item do plano: só entra depois dos Itens 13–18. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
-- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–18 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
+- Último item do plano: só entra depois dos Itens 13–19. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–19 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Como usar este roadmap
