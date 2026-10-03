@@ -1,6 +1,10 @@
 package io.github.leoascenci0.stashlink;
 
 
+import io.github.leoascenci0.stashlink.bench.BenchPullService;
+import io.github.leoascenci0.stashlink.bench.BenchSync;
+import io.github.leoascenci0.stashlink.network.BenchPoolSync;
+import io.github.leoascenci0.stashlink.network.BenchPullRequest;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.config.FeaturePolicyService;
 import io.github.leoascenci0.stashlink.network.FeaturePolicySync;
@@ -52,6 +56,8 @@ public class StashLinkNeoForge {
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> RefillService.tick(event.getServer()));
         // Slots travados (Item 13): manda ao cliente com o mod o que está reservado no container aberto.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> SlotLockSync.tick(event.getServer()));
+        // Bancadas com armazenamento (Item 16): manda ao cliente com o mod o que há por perto.
+        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> BenchSync.tick(event.getServer()));
         // Rótulos de baú (Item 14): mantém os hologramas.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> HologramService.tick(event.getServer()));
 
@@ -71,6 +77,11 @@ public class StashLinkNeoForge {
                     (payload, context) -> SlotLockService.handle((ServerPlayer) context.player(), payload));
             registrar.playToClient(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC,
                     (payload, context) -> io.github.leoascenci0.stashlink.client.SlotLockClient.apply(payload));
+            // Bancadas com armazenamento (Item 16): o cliente pede um item ao cursor; a lista de itens desce ao cliente.
+            registrar.playToServer(BenchPullRequest.TYPE, BenchPullRequest.STREAM_CODEC,
+                    (payload, context) -> BenchPullService.handle((ServerPlayer) context.player(), payload));
+            registrar.playToClient(BenchPoolSync.TYPE, BenchPoolSync.STREAM_CODEC,
+                    (payload, context) -> io.github.leoascenci0.stashlink.client.BenchClient.apply(payload));
             // Rótulos de baú (Item 14): pedir o editor, receber o texto atual, gravar.
             registrar.playToServer(LabelEditRequest.TYPE, LabelEditRequest.STREAM_CODEC,
                     (payload, context) -> LabelService.handleEdit((ServerPlayer) context.player(), payload));

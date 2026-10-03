@@ -103,14 +103,16 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 
 | Mixin | Alvo no Minecraft | Onde olhar se mudar |
 |---|---|---|
-| `ServerPlayerMixin` | `ServerPlayer.tick` (reabastecer sem mão vazia visível) | Item 4 |
+| `ServerPlayerMixin` | `ServerPlayer.tick` (reabastecer sem mão vazia visível). Está na lista **comum** do arquivo de mixins: a lista `"server"` não vale no servidor integrado | Item 4 |
+| `ServerPlaceRecipeMixin` | `ServerPlaceRecipe.placeRecipe(CraftingMenuAccess, int, int, List, List, Inventory, RecipeHolder, boolean, boolean)` (o livro de receitas traz do armazenamento antes e devolve a sobra depois) | Item 16; confira o descritor completo com `javap -p` |
+| `RecipeBookComponentMixin` (cliente) | `tick()`, o privado `updateStackedContents()` e a chamada interna `selectMatchingRecipes()`; campos `menu`, `stackedContents`, `timesInventoryChanged` | Item 16 |
 | `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
 | `BaseContainerBlockEntityMixin` (rótulo) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo no item, via `CUSTOM_DATA`) | Item 14; `LabelCompat.writeToItem/readFromItem` |
 | `EntityMixin` | `Entity.shouldBeSaved`, `Entity.broadcastToPlayer(ServerPlayer)` (alcance de 32 blocos do holograma) e `Entity.entityTags()` | Item 14 |
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `ScreenInvoker` (cliente) | `Screen.addRenderableWidget` (protegido; `@Shadow` de método herdado não funciona) | Item 14 |
-| `AbstractContainerScreenMixin` (cliente) | `init()`, `extractLabels(GuiGraphicsExtractor,int,int)`, `removed()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)` | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
+| `AbstractContainerScreenMixin` (cliente) | `init()`, `extractLabels(GuiGraphicsExtractor,int,int)`, `removed()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)`, mais `extractRenderState(GuiGraphicsExtractor,int,int,float)` e `mouseScrolled(double,double,double,double)` (painel das estações, Item 16) | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
 | `InventoryUtilsMixin` (Litematica) | `InventoryUtils.schematicWorldPickBlock` | Item 7 |
 
 Os GameTests do Item 13 (`LockGameTests`) pegam quebra do `SlotMixin`, da memória no bloco e do baú duplo; o desenho

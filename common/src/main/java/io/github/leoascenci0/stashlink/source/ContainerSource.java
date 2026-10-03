@@ -96,6 +96,26 @@ public final class ContainerSource implements ItemSource {
     }
 
     @Override
+    public void forEachStack(java.util.function.Consumer<ItemStack> sink) {
+        for (Node node : nodes) {
+            Container c = node.container;
+            boolean any = false;
+            for (int slot = 0; slot < c.getContainerSize() && !any; slot++) {
+                any = !c.getItem(slot).isEmpty();
+            }
+            if (!any || !node.allowed()) {
+                continue;
+            }
+            for (int slot = 0; slot < c.getContainerSize(); slot++) {
+                ItemStack stack = c.getItem(slot);
+                if (!stack.isEmpty()) {
+                    sink.accept(stack);
+                }
+            }
+        }
+    }
+
+    @Override
     public int available(ItemStack item) {
         ItemStack model = item.copyWithCount(1);
         int total = 0;

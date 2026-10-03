@@ -35,6 +35,11 @@ public final class LazyItemSource implements ItemSource {
     }
 
     @Override
+    public void forEachStack(java.util.function.Consumer<ItemStack> sink) {
+        get().forEachStack(sink);
+    }
+
+    @Override
     public ItemStack give(ItemStack stack) {
         // Se nunca foi usada, nada saiu dela: não há o que devolver e não vale montar a varredura só por isso.
         return delegate == null ? stack : delegate.give(stack);

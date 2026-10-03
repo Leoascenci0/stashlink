@@ -7,14 +7,14 @@
     "BaseContainerBlockEntityMixin",
     "CompoundContainerAccessor",
     "EntityMixin",
+    "ServerPlaceRecipeMixin",
+    "ServerPlayerMixin",
     "SlotMixin"
   ],
   "client": [
     "ScreenInvoker",
-    "AbstractContainerScreenMixin"
-  ],
-  "server": [
-    "ServerPlayerMixin"
+    "AbstractContainerScreenMixin",
+    "RecipeBookComponentMixin"
   ],
   "injectors": {
     "defaultRequire": 1

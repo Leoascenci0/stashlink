@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.network.BenchPullRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
@@ -60,6 +61,13 @@ public class StashLinkNeoForgeClient {
             return mc.getConnection() != null && mc.getConnection().hasChannel(LockSlotRequest.TYPE);
         });
         SlotLockClient.setSender(ClientPacketDistributor::sendToServer);
+
+        // Bancadas com armazenamento (Item 16): o painel pede um item ao cursor (só se o servidor conhece o pacote).
+        BenchClient.setServerHasMod(() -> {
+            Minecraft mc = Minecraft.getInstance();
+            return mc.getConnection() != null && mc.getConnection().hasChannel(BenchPullRequest.TYPE);
+        });
+        BenchClient.setSender(ClientPacketDistributor::sendToServer);
 
         // Rótulos de baú (Item 14): tecla J pede o editor ao servidor (só se ele conhece o pacote).
         LabelClient.setServerHasMod(() -> {

@@ -49,9 +49,14 @@ public final class NearbyContainers {
 
     /** Para o reabastecimento: baús e barris só entram se a config ({@code includeChests}) mandar. */
     public static Found find(ServerPlayer player) {
+        return find(player, PlayerPrefsStore.includeChests(player));
+    }
+
+    /** Igual a {@link #find(ServerPlayer)}, mas quem chama decide se baús e barris entram (a bancada, Item 16). */
+    public static Found find(ServerPlayer player, boolean chests) {
         List<Hit> shulkers = new ArrayList<>();
         List<Hit> storage = new ArrayList<>();
-        collect(player, PlayerPrefsStore.includeChests(player), shulkers, storage);
+        collect(player, chests, shulkers, storage);
         return new Found(entries(player, shulkers), entries(player, storage));
     }
 

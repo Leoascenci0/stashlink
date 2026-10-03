@@ -5,7 +5,7 @@
   "name": "StashLink GameTests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["io.github.leoascenci0.stashlink.gametest.StashLinkGameTests", "io.github.leoascenci0.stashlink.gametest.SwapGameTests", "io.github.leoascenci0.stashlink.gametest.LockGameTests", "io.github.leoascenci0.stashlink.gametest.LabelGameTests", "io.github.leoascenci0.stashlink.gametest.FeatureGameTests"]
+    "fabric-gametest": ["io.github.leoascenci0.stashlink.gametest.StashLinkGameTests", "io.github.leoascenci0.stashlink.gametest.SwapGameTests", "io.github.leoascenci0.stashlink.gametest.LockGameTests", "io.github.leoascenci0.stashlink.gametest.LabelGameTests", "io.github.leoascenci0.stashlink.gametest.FeatureGameTests", "io.github.leoascenci0.stashlink.gametest.BenchGameTests"]
   },
   "depends": { "stashlink": "*" }
 }

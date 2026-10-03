@@ -25,7 +25,9 @@ public enum Feature {
     /** Alt + clique: reservar um slot de baú para um item. */
     SLOT_LOCK("slot_lock"),
     /** Tecla J / lápis no baú: nome e resumo do armazenamento, com holograma. */
-    LABEL("label");
+    LABEL("label"),
+    /** Bancadas e estações usam o armazenamento por perto como se fosse a mochila (Item 16). */
+    BENCH("bench");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

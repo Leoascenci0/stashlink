@@ -1,5 +1,9 @@
 package io.github.leoascenci0.stashlink;
 
+import io.github.leoascenci0.stashlink.bench.BenchPullService;
+import io.github.leoascenci0.stashlink.bench.BenchSync;
+import io.github.leoascenci0.stashlink.network.BenchPoolSync;
+import io.github.leoascenci0.stashlink.network.BenchPullRequest;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.config.FeaturePolicyService;
 import io.github.leoascenci0.stashlink.network.FeaturePolicySync;
@@ -69,6 +73,13 @@ public class StashLinkFabric implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(LockSlotRequest.TYPE,
                 (payload, context) -> SlotLockService.handle(context.player(), payload));
         PayloadTypeRegistry.clientboundPlay().register(SlotLocksSync.TYPE, SlotLocksSync.STREAM_CODEC);
+
+        // Bancadas com armazenamento (Item 16): o servidor manda o que há por perto; o cliente pede um item ao cursor.
+        ServerTickEvents.END_SERVER_TICK.register(BenchSync::tick);
+        PayloadTypeRegistry.clientboundPlay().register(BenchPoolSync.TYPE, BenchPoolSync.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(BenchPullRequest.TYPE, BenchPullRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(BenchPullRequest.TYPE,
+                (payload, context) -> BenchPullService.handle(context.player(), payload));
 
         // Rótulos de baú (Item 14): hologramas por tick; editar = pedido -> editor no cliente -> pedido de gravar.
         ServerTickEvents.END_SERVER_TICK.register(HologramService::tick);

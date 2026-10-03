@@ -81,6 +81,21 @@ final class Lab {
         return c;
     }
 
+    /** Coloca um bloco comum na posição absoluta {@code pos} e o remove no fim do teste. */
+    BlockPos bareAt(Block block, BlockPos pos) {
+        level.setBlock(pos, block.defaultBlockState(), 3);
+        placed.add(pos);
+        return pos;
+    }
+
+    /** Coloca um bloco comum (sem container), por exemplo uma bancada, e o remove no fim do teste. */
+    BlockPos bare(Block block, int x, int y, int z) {
+        BlockPos pos = helper.absolutePos(new BlockPos(x, y, z));
+        level.setBlock(pos, block.defaultBlockState(), 3);
+        placed.add(pos);
+        return pos;
+    }
+
     Container chest(int x, int y, int z) {
         return block(Blocks.CHEST, x, y, z);
     }
