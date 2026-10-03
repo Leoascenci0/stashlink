@@ -49,13 +49,18 @@ final class Lab {
      * não reabastece nem puxa item para criativo, então não serve para testar essas partes.
      */
     ServerPlayer player(double x, double y, double z) {
+        return player(x, y, z, GameType.SURVIVAL);
+    }
+
+    /** Igual a {@link #player(double, double, double)}, num modo de jogo à escolha (ex.: criativo). */
+    ServerPlayer player(double x, double y, double z, GameType mode) {
         MinecraftServer server = level.getServer();
         GameProfile profile = new GameProfile(UUID.randomUUID(), "survival-mock");
         CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
         ServerPlayer p = new ServerPlayer(server, level, cookie.gameProfile(), cookie.clientInformation()) {
             @Override
             public GameType gameMode() {
-                return GameType.SURVIVAL;
+                return mode;
             }
         };
         Connection connection = new Connection(PacketFlow.SERVERBOUND);

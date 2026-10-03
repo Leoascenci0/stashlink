@@ -50,7 +50,7 @@ public final class BenchRecipe {
                               boolean creative) {
         pending = null;
         try {
-            if (!creative && inventory.player instanceof ServerPlayer player) {
+            if (inventory.player instanceof ServerPlayer player) {
                 run(player, inventory, inputSlots, holder, useMax);
             }
         } catch (RuntimeException e) {
@@ -62,7 +62,7 @@ public final class BenchRecipe {
     private static void run(ServerPlayer player, Inventory inventory, List<Slot> inputSlots, RecipeHolder<?> holder,
                             boolean useMax) {
         AbstractContainerMenu open = player.containerMenu;
-        if (!player.isAlive() || player.isSpectator() || player.isCreative() || !BenchCompat.hasRecipeBook(open)
+        if (!player.isAlive() || player.isSpectator() || !BenchCompat.hasRecipeBook(open)
                 || !open.stillValid(player) || !FeatureGate.allowSilently(player, Feature.BENCH)) {
             return;
         }

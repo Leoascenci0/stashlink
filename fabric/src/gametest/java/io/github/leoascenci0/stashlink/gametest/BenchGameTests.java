@@ -301,6 +301,24 @@ public class BenchGameTests {
         });
     }
 
+    /** Mundo criativo (o do Eliel): a bancada com armazenamento também vale; só o espectador fica de fora. */
+    @GameTest
+    public void worksInCreativeToo(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 1, COBBLE, 5);                  // sobra algo no baú para a lista do painel
+        Lab.fill(chest, 0, PLANKS, 2);
+        ServerPlayer p = lab.player(4, 2, 4, net.minecraft.world.level.GameType.CREATIVE);
+        Lab.prefs(p, 8, true);
+        check(h, p.isCreative(), "o jogador devia estar em criativo");
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, grid(menu, PLANKS) == 2 && Lab.count(chest, PLANKS) == 0,
+                "em criativo o livro também devia trazer do baú: grade=" + grid(menu, PLANKS));
+        check(h, !BenchSync.snapshot(p).isEmpty(), "a lista do painel devia existir em criativo");
+        clean(lab, h);
+    }
+
     @GameTest
     public void panelRejectsWrongMenuIdLockedAndNonStation(GameTestHelper h) {
         Lab lab = new Lab(h);

@@ -502,7 +502,7 @@ consentimento).
   mochila (`BenchCompat.missingIngredients`, repete a conta do jogo com o armazenamento somado) e traz **só isso** do
   armazenamento para a mochila; o jogo roda **sem mudar**; **depois**, o que sobrou do que foi trazido volta à origem
   (`ContainerSource.give` só devolve ao que foi tocado). Sem lugar na mochila, volta tudo ao container antes de o jogo
-  olhar. Criativo, espectador, função trancada/desligada e menu que não é estação: o mod não faz nada.
+  olhar. Espectador, função trancada/desligada e menu que não é estação: o mod não faz nada. Criativo funciona (o livro continua pedindo ingredientes da mochila).
 - `bench/BenchPullService` + `BenchPullRequest`: painel. O cliente pede "este item" (um stack, ou um com o botão direito);
   o servidor confere (estação aberta com o mesmo `containerId`, função ligada, cursor livre ou do mesmo item, no máximo 1
   pedido por tick) e **põe no cursor**, tirando do container no mesmo passo. Depois é item de verdade na mão: colocar no

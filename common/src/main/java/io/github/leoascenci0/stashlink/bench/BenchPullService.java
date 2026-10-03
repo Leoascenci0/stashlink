@@ -40,7 +40,7 @@ public final class BenchPullService {
 
     private static void process(ServerPlayer player, BenchPullRequest request) {
         AbstractContainerMenu menu = player.containerMenu;
-        if (!player.isAlive() || player.isSpectator() || player.isCreative() || menu == player.inventoryMenu
+        if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu
                 || menu.containerId != request.containerId() || !BenchCompat.isStation(menu)
                 || !menu.stillValid(player) || request.item().isEmpty()) {
             return;

@@ -65,7 +65,7 @@ public final class BenchSync {
 
     private static void tickPlayer(ServerPlayer player) {
         AbstractContainerMenu menu = player.containerMenu;
-        if (menu == player.inventoryMenu || !BenchCompat.isStation(menu) || player.isCreative()
+        if (menu == player.inventoryMenu || !BenchCompat.isStation(menu)
                 || player.isSpectator() || !FeatureGate.allowSilently(player, Feature.BENCH)) {
             STATES.remove(player);
             return;
