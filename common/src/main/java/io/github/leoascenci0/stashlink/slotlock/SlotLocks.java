@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink.slotlock;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.github.leoascenci0.stashlink.config.ClientPolicy;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.mixin.CompoundContainerAccessor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.Container;
@@ -69,6 +71,11 @@ public final class SlotLocks {
 
     /** O item reservado para o slot, ou {@code null}. */
     public static Item lockedItem(Container c, int slot) {
+        // Função trancada pelo servidor: as reservas ficam guardadas no bloco, mas deixam de valer (e voltam
+        // a valer se o cadeado for aberto).
+        if (ClientPolicy.locked(Feature.SLOT_LOCK)) {
+            return null;
+        }
         Located at = locate(c, slot);
         if (at != null) {
             return at.holder().stashlink$locks().get(at.local());

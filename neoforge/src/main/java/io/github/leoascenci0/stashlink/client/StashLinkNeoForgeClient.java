@@ -35,7 +35,18 @@ public class StashLinkNeoForgeClient {
                 ClientPacketDistributor.sendToServer(request);
             }
         });
-        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> ClientPrefs.sync());
+        // Ao entrar: esquece os cadeados do servidor anterior; o servidor responde às preferências com os novos.
+        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> {
+            io.github.leoascenci0.stashlink.config.ClientPolicy.reset();
+            ClientPrefs.sync();
+        });
+        ClientFeatures.setLockSender(request -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.getConnection() != null
+                    && mc.getConnection().hasChannel(io.github.leoascenci0.stashlink.network.SetFeatureLockRequest.TYPE)) {
+                ClientPacketDistributor.sendToServer(request);
+            }
+        });
 
         // Modo cliente: "o servidor conhece o nosso pacote?" no NeoForge é hasChannel (só com conexão aberta).
         ClientMode.setServerHasModCheck(() -> {

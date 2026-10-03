@@ -441,3 +441,24 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Texto cortado de lado.** Vista de um ângulo, a quina do baú (ou do baú empilhado) escondia metade do texto, porque ele é
   um objeto no mundo e respeita a profundidade. O holograma agora usa `see_through` (sem teste de profundidade): nunca é
   cortado, ao custo de também aparecer **através de paredes** dentro dos 32 blocos.
+## Item 18.1 — Liga/desliga e cadeado por função
+
+- **Dois níveis, como a dificuldade do jogo.** O botão liga/desliga é **pessoal** (`ClientPrefs.disabledFeatures`, máscara de
+  bits em `stashlink-client.json`; vai ao servidor dentro de `PlayerPrefs`). O cadeado é do **servidor**
+  (`StashLinkConfig.lockedFeatures`, nomes em `stashlink.json`). A função vale se `!trancada && !desligada pelo jogador`.
+  Trancada é "não funciona neste servidor"; o botão do jogador fica desligado (como a dificuldade travada).
+- **Quem decide é o servidor.** Cada serviço pergunta a `FeatureGate` antes de agir (`allow` avisa na barra de ação se foi
+  o cadeado; `allowSilently` é para o reabastecimento, que roda sozinho). O cliente repete a conta (`ClientFeatures`)
+  só para não mandar pedido à toa e dizer o motivo. Nunca confiar no cliente.
+- **Política no cliente.** `FeaturePolicySync` (servidor -> cliente com o mod: máscara de trancadas + "você pode mexer?")
+  é a resposta a cada `PlayerPrefsRequest` (entrar no servidor, abrir ou fechar a tela) e é difundida a todos quando
+  alguém tranca. `ClientPolicy` guarda isso; fica em `config/` sem nada do cliente do jogo, então o código comum (por
+  exemplo `SlotLocks`) pode consultá-la num servidor dedicado, onde ela nunca é preenchida e vale o arquivo.
+- **Cadeado.** `SetFeatureLockRequest` (cliente -> servidor) só é atendido para o dono do mundo ou operador
+  (`McCompat.canManageServer`); outro jogador recebe aviso e a política de volta. `/stashlink feature [nome lock|unlock]`
+  faz o mesmo pelo console. Sem mundo aberto (tela de mods no menu) a tela edita o arquivo local.
+- **Sem o mod no servidor (modo cliente)** não há autoridade: o cadeado fica inativo (dica na tela) e vale só o liga/desliga.
+- **Slot reservado trancado:** `SlotLocks.lockedItem` devolve nada, então a prévia, a regra do `mayPlace` e a preferência da
+  N somem juntas; as reservas continuam gravadas no baú e voltam quando o cadeado abre.
+- **Tela:** duas abas (Funções / Ajustes) para caber em janelas baixas; cadeado é o `LockIconButton` do próprio jogo.
+- **Testes:** `FeatureTest` (8, unitários) e `FeatureGameTests` (6, no total 42 GameTests).

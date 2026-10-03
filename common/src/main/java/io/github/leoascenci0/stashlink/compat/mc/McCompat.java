@@ -50,6 +50,12 @@ public final class McCompat {
         return player.level().getServer().getPlayerList().getPlayers();
     }
 
+    /** Dono do mundo (single player / LAN) ou operador: quem pode trancar funções do mod para todos. */
+    public static boolean canManageServer(ServerPlayer player) {
+        var server = player.level().getServer();
+        return server.isSingleplayerOwner(player.nameAndId()) || server.getPlayerList().isOp(player.nameAndId());
+    }
+
     /** Quantas vezes o jogador soltou itens (tecla Q). Estatística "drop" do vanilla. */
     public static int dropCount(ServerPlayer player) {
         return player.getStats().getValue(Stats.CUSTOM.get(Stats.DROP));

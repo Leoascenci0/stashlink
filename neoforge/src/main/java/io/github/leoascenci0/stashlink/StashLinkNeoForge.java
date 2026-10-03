@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink;
 
 
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.config.FeaturePolicyService;
+import io.github.leoascenci0.stashlink.network.FeaturePolicySync;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
@@ -16,6 +18,7 @@ import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockSync;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
+import io.github.leoascenci0.stashlink.network.SetFeatureLockRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
@@ -78,6 +81,12 @@ public class StashLinkNeoForge {
             // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
             registrar.playToServer(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC,
                     (payload, context) -> PlayerPrefsService.handle((ServerPlayer) context.player(), payload));
+            // Cadeados das funções: o cliente pede (só dono/operador é atendido) e o servidor avisa todos.
+            registrar.playToServer(SetFeatureLockRequest.TYPE, SetFeatureLockRequest.STREAM_CODEC,
+                    (payload, context) -> FeaturePolicyService.handle((ServerPlayer) context.player(), payload));
+            registrar.playToClient(FeaturePolicySync.TYPE, FeaturePolicySync.STREAM_CODEC,
+                    (payload, context) -> io.github.leoascenci0.stashlink.config.ClientPolicy
+                            .apply(payload.lockedMask(), payload.canEdit()));
         });
     }
 }

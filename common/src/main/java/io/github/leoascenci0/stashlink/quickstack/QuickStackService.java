@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink.quickstack;
 
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ContainerInsert;
@@ -45,6 +47,9 @@ public final class QuickStackService {
     private static void process(ServerPlayer player) {
         // Espectador não mexe em itens; com outro menu aberto o jogador já está mexendo no inventário.
         if (!player.isAlive() || player.isSpectator() || player.containerMenu != player.inventoryMenu) {
+            return;
+        }
+        if (!FeatureGate.allow(player, Feature.QUICK_STACK)) {
             return;
         }
         long now = McCompat.gameTime(player);

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -45,6 +46,12 @@ public final class StashLinkConfig {
      */
     public static Set<Integer> lockedSlots = new TreeSet<>();
 
+    /**
+     * Funções trancadas (cadeado) pelo dono do servidor: não funcionam para ninguém aqui, mesmo que o jogador
+     * as tenha ligadas. Padrão: nenhuma trancada.
+     */
+    public static Set<Feature> lockedFeatures = EnumSet.noneOf(Feature.class);
+
     /** Tempo mínimo entre duas execuções da tecla N do mesmo jogador (impede spam de pacotes). */
     public static final int QUICK_STACK_COOLDOWN_TICKS = 10;
 
@@ -59,6 +66,23 @@ public final class StashLinkConfig {
     /** Vale {@code true} se a tecla N deve deixar este slot do inventário em paz. */
     public static boolean isSlotLocked(int inventorySlot) {
         return lockedSlots.contains(inventorySlot);
+    }
+
+    /** A função está trancada pelo servidor? */
+    public static boolean isFeatureLocked(Feature feature) {
+        return lockedFeatures.contains(feature);
+    }
+
+    /** Tranca/destranca uma função (o chamador cuida de gravar e de avisar os jogadores). */
+    public static void setFeatureLocked(Feature feature, boolean locked) {
+        Set<Feature> copy = EnumSet.noneOf(Feature.class);
+        copy.addAll(lockedFeatures);
+        if (locked) {
+            copy.add(feature);
+        } else {
+            copy.remove(feature);
+        }
+        lockedFeatures = copy;
     }
 
     /** Teto real do raio: o do servidor, mas nunca acima do teto do código. */
@@ -92,6 +116,7 @@ public final class StashLinkConfig {
         int maxRadius = HARD_MAX_RADIUS;
         boolean includeChests = false;
         int[] lockedSlots = new int[0];
+        String[] lockedFeatures = new String[0];
     }
 
     /** Texto JSON com os valores atuais. */
@@ -101,6 +126,7 @@ public final class StashLinkConfig {
         d.maxRadius = maxRadius;
         d.includeChests = includeChests;
         d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
+        d.lockedFeatures = lockedFeatures.stream().map(Feature::id).toArray(String[]::new);
         return GSON.toJson(d);
     }
 
@@ -125,6 +151,14 @@ public final class StashLinkConfig {
             }
         }
         lockedSlots = slots;
+        Set<Feature> features = EnumSet.noneOf(Feature.class);
+        if (d.lockedFeatures != null) {
+            for (String id : d.lockedFeatures) {
+                // Nome desconhecido (erro de digitação, função de versão futura): ignora, nunca rejeita o arquivo.
+                Feature.byId(id).ifPresent(features::add);
+            }
+        }
+        lockedFeatures = features;
     }
 
     /** Caminho do arquivo no loader atual. */

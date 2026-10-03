@@ -11,6 +11,7 @@ Atualizar versão do Minecraft: seguir `docs/UPDATING.md`; API frágil do MC só
 - PR com squash merge. Ao concluir, marcar ✅ no `docs/ROADMAP.md` no mesmo PR.
 - **Roadmap sempre em dia:** ao concluir/mesclar qualquer item (ou mudar versão/decisão relevante), atualizar no mesmo PR `docs/ROADMAP.md` (✅) **e** `docs/roadmap.html` (`s:"done"`), e republicar o artifact "StashLink Roadmap" (https://claude.ai/artifact/DoHRdusXQJgZcMcqhqs1sr) a partir de `docs/roadmap.html`. Nunca deixar o roadmap atrás do código.
 - Lógica em `common/`; código de loader só como "cola".
+- **Toda função nova** entra no enum `config/Feature` e ganha liga/desliga + cadeado na tela de config (`stashlink.feature.<id>` e `.tip` nos dois idiomas) e passa por `FeatureGate` no servidor.
 - Toda mudança de item/inventário é **server-side** e validada (distância, permissão). Cliente só pede.
 - Explicar decisões técnicas em linguagem simples (Eliel é engenheiro civil aprendendo programação).
 

@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
@@ -52,6 +53,10 @@ public final class SlotLockClient {
      */
     public static boolean onAltClick(Minecraft mc, AbstractContainerScreen<?> screen, Slot slot) {
         AbstractContainerMenu menu = screen.getMenu();
+        // Desligada por mim ou trancada no servidor: o Alt + clique volta a ser um clique comum.
+        if (!ClientFeatures.enabled(Feature.SLOT_LOCK)) {
+            return false;
+        }
         if (slot == null || mc.player == null || mc.player.isSpectator() || !LootAllService.isSupportedMenu(menu)
                 || slot.container == mc.player.getInventory() || !serverHasMod.getAsBoolean()) {
             return false;
@@ -90,6 +95,10 @@ public final class SlotLockClient {
 
     /** Desenha a prévia (item fantasma no slot vazio) e um pontinho de "reservado". */
     public static void drawGhost(GuiGraphicsExtractor graphics, Slot slot) {
+        // Desligada por mim: nada de prévia nem pontinho (a regra do servidor continua valendo).
+        if (!ClientPrefs.isFeatureOn(Feature.SLOT_LOCK)) {
+            return;
+        }
         Item locked = SlotLocks.lockedItem(slot.container, slot.getContainerSlot());
         if (locked == null) {
             return;

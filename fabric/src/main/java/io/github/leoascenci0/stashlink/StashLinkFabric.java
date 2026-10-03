@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink;
 
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.config.FeaturePolicyService;
+import io.github.leoascenci0.stashlink.network.FeaturePolicySync;
 import io.github.leoascenci0.stashlink.network.LootAllRequest;
 import io.github.leoascenci0.stashlink.network.PlayerPrefsRequest;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
@@ -15,6 +17,7 @@ import io.github.leoascenci0.stashlink.slotlock.SlotLockService;
 import io.github.leoascenci0.stashlink.slotlock.SlotLockSync;
 import io.github.leoascenci0.stashlink.network.PullItemRequest;
 import io.github.leoascenci0.stashlink.network.QuickStackRequest;
+import io.github.leoascenci0.stashlink.network.SetFeatureLockRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
@@ -81,5 +84,11 @@ public class StashLinkFabric implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(PlayerPrefsRequest.TYPE,
                 (payload, context) -> PlayerPrefsService.handle(context.player(), payload));
+
+        // Cadeados das funções: o cliente pede (só dono/operador é atendido) e o servidor avisa todos da política.
+        PayloadTypeRegistry.serverboundPlay().register(SetFeatureLockRequest.TYPE, SetFeatureLockRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SetFeatureLockRequest.TYPE,
+                (payload, context) -> FeaturePolicyService.handle(context.player(), payload));
+        PayloadTypeRegistry.clientboundPlay().register(FeaturePolicySync.TYPE, FeaturePolicySync.STREAM_CODEC);
     }
 }

@@ -10,6 +10,7 @@ Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
 - **N** guarda seus itens em baús próximos que já tenham aquele item.
 - **W** dentro de um baú puxa tudo o que couber no inventário.
 - **Alt + clique** num slot de baú o reserva para aquele item: só ele entra, **N** prefere esse slot e o slot vazio mostra uma prévia (só com o mod no servidor e no cliente; vale em baú duplo, barril e shulker colocada).
+- Cada função tem **liga/desliga e um cadeado** na tela de config (tecla **K**), como o seletor de dificuldade do jogo: o botão é seu; o cadeado, do dono do servidor ou de um operador, impede a função de funcionar naquele servidor (ou `/stashlink feature <nome> lock|unlock`).
 
 ## Dois modos de funcionar
 
