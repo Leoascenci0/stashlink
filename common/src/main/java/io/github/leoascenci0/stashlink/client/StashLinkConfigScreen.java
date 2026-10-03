@@ -368,10 +368,10 @@ public class StashLinkConfigScreen extends Screen {
 
         RadiusSlider(int x, int y, boolean local, boolean shulker, boolean serverLocked) {
             super(x, y, WIDTH - LOCK_SIZE - 4, 20, Component.empty(),
-                    toSlider(cap(local, shulker), initial(local, shulker)));
+                    toSlider(cap(local, shulker), initial(local, shulker, serverLocked)));
             this.local = local;
             this.shulker = shulker;
-            this.serverLocked = serverLocked && !local;
+            this.serverLocked = serverLocked;
             this.active = !this.serverLocked;
             updateMessage();
         }
@@ -384,7 +384,10 @@ public class StashLinkConfigScreen extends Screen {
         }
 
         /** Num servidor, sem preferência ainda, mostra o padrão do código; a preferência só vira "escolhida" ao mexer. */
-        private static int initial(boolean local, boolean shulker) {
+        private static int initial(boolean local, boolean shulker, boolean locked) {
+            if (locked && local) {   // trancado no meu mundo: mostra o valor que está valendo (o do servidor)
+                return shulker ? StashLinkConfig.shulkerRadius : StashLinkConfig.sourceRadius;
+            }
             if (shulker) {
                 return ClientPrefs.shulkerRadius == PlayerPrefs.UNSET ? StashLinkConfig.shulkerRadius
                         : ClientPrefs.shulkerRadius;
@@ -405,10 +408,12 @@ public class StashLinkConfigScreen extends Screen {
             Component name = Component.translatableWithFallback(
                     shulker ? "stashlink.config.shulker_radius.name" : "stashlink.config.radius.name",
                     shulker ? "Shulkers" : "Chests and workbenches");
-            Component value = serverLocked
-                    ? Component.translatableWithFallback("stashlink.feature.state_locked", "Locked")
+            Component locked = Component.translatableWithFallback("stashlink.feature.state_locked", "Locked");
+            // Num servidor o valor trancado é desconhecido (só "Trancada"); no meu mundo mostro o valor e a palavra.
+            Component value = serverLocked && !local ? locked
                     : Component.translatableWithFallback("stashlink.config.blocks", "%s blocks", radius());
-            setMessage(Component.empty().append(name).append(": ").append(value));
+            Component text = Component.empty().append(name).append(": ").append(value);
+            setMessage(serverLocked && local ? text.copy().append(" (").append(locked).append(")") : text);
         }
 
         @Override
