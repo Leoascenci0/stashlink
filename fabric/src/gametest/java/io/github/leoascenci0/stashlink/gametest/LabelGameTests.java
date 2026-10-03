@@ -134,8 +134,8 @@ public class LabelGameTests {
         check(h, list.size() == 1, "um holograma, achei " + list.size() + " count=" + HologramService.count() + " all=" + lab.level.getEntitiesOfClass(Display.TextDisplay.class, new AABB(pos).inflate(50)).stream().map(e -> e.position() + "/" + e.entityTags() + "/removed=" + e.isRemoved()).toList() + " pos=" + pos);
         Display.TextDisplay holo = list.get(0);
         check(h, !holo.shouldBeSaved(), "holograma nunca vai para o disco");
-        check(h, Math.abs(holo.getX() - (pos.getX() + 0.5)) < 1e-6 && holo.getY() > pos.getY() + 1.0 && holo.getY() < pos.getY() + 2.0,
-                "holograma em cima do baú: " + holo.position());
+        check(h, Math.abs(holo.getX() - (pos.getX() + 0.5)) < 1e-6 && Math.abs(holo.getZ() - (pos.getZ() + 0.5 - 0.56)) < 1e-6 && holo.getY() > pos.getY() + 0.5 && holo.getY() < pos.getY() + 1.0,
+                "holograma na frente do baú (norte): " + holo.position());
         String text = textOf(lab, holo);
         check(h, text.contains("Pedras") && text.contains("construção"), "texto no holograma: " + text);
         check(h, text.contains("cobblestone"), "o ícone entrou no texto: " + text);
@@ -268,6 +268,26 @@ public class LabelGameTests {
         check(h, !holo.broadcastToPlayer(far), "a 40 blocos não vê");
         far.setPos(lab.helper.absoluteVec(new Vec3(4, 2, 4)).add(0, 0, 25));      // 25 blocos
         check(h, holo.broadcastToPlayer(far), "a 25 blocos vê");
+        lab.cleanup();
+        sync(lab);
+        h.succeed();
+    }
+
+    @GameTest
+    public void hologramStaysVisibleWhenAChestIsStackedAbove(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        lab.chest(2, 2, 2);
+        lab.chest(2, 3, 2);                                                 // outro baú por cima
+        ServerPlayer p = player(lab, 4, 2, 4);
+        BlockPos low = abs(lab, 2, 2, 2);
+        check(h, set(p, low, "Embaixo", ""), "gravou");
+        sync(lab);
+        Display.TextDisplay holo = holos(lab, low).get(0);
+        BlockPos above = abs(lab, 2, 3, 2);
+        // o texto não fica dentro do bloco do baú de cima nem dentro do de baixo
+        BlockPos at = BlockPos.containing(holo.position());
+        check(h, !at.equals(above) && !at.equals(low), "o texto está fora dos dois blocos de baú: " + holo.position());
+        check(h, lab.level.getBlockState(at).isAir(), "e num bloco de ar, onde se enxerga: " + at);
         lab.cleanup();
         sync(lab);
         h.succeed();

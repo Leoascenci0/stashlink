@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.label;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
@@ -8,6 +9,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.Vec3;
 
@@ -82,7 +84,23 @@ public final class Labels {
         return other == null || be.getBlockPos().asLong() < other.asLong();
     }
 
-    /** Onde o texto flutua: acima do bloco (ou do meio do baú duplo). */
+    /** Quanto o texto fica à frente da face do bloco, e a que altura (em blocos). */
+    private static final double FRONT_OFFSET = 0.56;
+    private static final double FRONT_HEIGHT = 0.8;
+    private static final double ABOVE_HEIGHT = 1.15;
+
+    /** Para onde a "frente" do bloco aponta na horizontal, ou {@code null} (barril/shulker virados para cima ou para baixo). */
+    private static Direction front(BlockState state) {
+        Direction face = state.getOptionalValue(BlockStateProperties.FACING)
+                .orElseGet(() -> state.getOptionalValue(BlockStateProperties.HORIZONTAL_FACING).orElse(null));
+        return face != null && face.getAxis().isHorizontal() ? face : null;
+    }
+
+    /**
+     * Onde o texto flutua: <b>na frente</b> do bloco (onde se abre o baú), perto da face, e não em cima. Em cima o
+     * texto ficaria longe do baú e sumiria dentro de qualquer baú empilhado por cima. Barril/shulker virados para
+     * cima ficam com o texto logo acima. Baú duplo: no meio das duas metades.
+     */
     public static Vec3 hologramPos(BlockEntity be) {
         BlockPos pos = be.getBlockPos();
         BlockPos other = partner(be);
@@ -92,7 +110,12 @@ public final class Labels {
             x = (x + other.getX() + 0.5) / 2;
             z = (z + other.getZ() + 0.5) / 2;
         }
-        return new Vec3(x, pos.getY() + 1.35, z);
+        Direction front = front(be.getBlockState());
+        if (front == null) {
+            return new Vec3(x, pos.getY() + ABOVE_HEIGHT, z);
+        }
+        return new Vec3(x + front.getStepX() * FRONT_OFFSET, pos.getY() + FRONT_HEIGHT,
+                z + front.getStepZ() * FRONT_OFFSET);
     }
 
     /** Atalho para os testes e o serviço: o bloco em {@code pos} (carregado) como block entity. */

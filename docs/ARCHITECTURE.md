@@ -432,3 +432,9 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Polimento final da interface.** Com o campo fechado, o nome é desenhado como texto comum ao lado do título (mesma
   cor, sem fundo; `AbstractContainerScreenMixin.extractLabels`) e o botão mostra ✎; clicar abre o campo e o botão vira ✔;
   clicar no ✔ (ou Enter) grava e fecha o campo; fechar a tela também grava. Alvo de mixin novo: `extractLabels` (UPDATING).
+- **Posição do holograma (ajuste após teste em jogo).** Em cima do baú o texto ficava longe e **sumia dentro de um baú
+  empilhado por cima**. Agora ele flutua **na frente do bloco** (a face por onde se abre; `Labels.hologramPos`, lê o
+  `FACING` do estado): 0,56 bloco à frente e 0,8 de altura, então cada baú de uma coluna ou fileira tem o seu texto à
+  vista. Barril/shulker virados para cima/baixo, que não têm frente horizontal, ficam com o texto logo acima (1,15).
+  Baú duplo: no meio das duas metades, também à frente. Teste: `hologramStaysVisibleWhenAChestIsStackedAbove`.
+  Limite: se houver um bloco colado na frente do baú, o texto fica atrás dele.
