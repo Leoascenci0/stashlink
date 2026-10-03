@@ -275,6 +275,8 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Branch:** `feat/raio-128-conduite`
 - Ideia: hoje o teto do raio é 64 (`HARD_MAX_RADIUS`). Passa a ser possível **chegar a 128 blocos**, desde que haja um
   **conduíte ativo instalado perto do estoque**. Sem conduíte, continua o teto de 64.
+- Confirmado pelo Eliel: é o **conduit** do Minecraft, o bloco que se instala debaixo d'água. Ele só fica **ativo** dentro da
+  água, cercado pela estrutura de prismarina (mínimo 16 blocos), então o estoque precisa de um conduíte montado de verdade.
 - A decidir na investigação: o que é "perto" (distância do conduíte ao container ou ao jogador) e se o conduíte
   precisa estar ativo (com a estrutura de prismarina completa) ou basta existir; se o raio maior vale por container
   (só os que estão perto de um conduíte) ou para o jogador inteiro. Tudo no servidor, com o teto configurável
