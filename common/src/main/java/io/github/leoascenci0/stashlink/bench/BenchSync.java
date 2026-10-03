@@ -64,6 +64,7 @@ public final class BenchSync {
     }
 
     private static void tickPlayer(ServerPlayer player) {
+        BenchLedger.tick(player);   // devolve à origem o que não foi usado ao fechar a estação
         AbstractContainerMenu menu = player.containerMenu;
         if (menu == player.inventoryMenu || !BenchCompat.isStation(menu)
                 || player.isSpectator() || !FeatureGate.allowSilently(player, Feature.BENCH)) {

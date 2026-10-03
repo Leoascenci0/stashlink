@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.gametest;
 
+import io.github.leoascenci0.stashlink.bench.BenchLedger;
 import io.github.leoascenci0.stashlink.bench.BenchPullService;
 import io.github.leoascenci0.stashlink.bench.BenchSync;
 import io.github.leoascenci0.stashlink.config.Feature;
@@ -346,6 +347,100 @@ public class BenchGameTests {
                 });
             });
         });
+    }
+
+    /** Trocou de receita: o que sobrou na grade volta ao baú de origem, nunca para a mochila. */
+    @GameTest
+    public void switchingRecipeReturnsLeftoversToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.MANGROVE_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+
+        place(p, menu, "stick", false);                      // 2 tábuas vão para a grade
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 2 && Lab.count(chest, Items.MANGROVE_PLANKS) == 3, "1a receita");
+        place(p, menu, "mangrove_slab", false);              // outra receita: as 2 voltam ao baú e saem 3
+        check(h, Lab.carried(p, Items.MANGROVE_PLANKS) == 0, "nada podia ir parar na mochila: " + Lab.carried(p, Items.MANGROVE_PLANKS));
+        check(h, grid(menu, Items.MANGROVE_PLANKS) == 3 && Lab.count(chest, Items.MANGROVE_PLANKS) == 2,
+                "a grade devia ter 3 e o baú 2: grade=" + grid(menu, Items.MANGROVE_PLANKS)
+                        + " baú=" + Lab.count(chest, Items.MANGROVE_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Fechou a bancada sem craftar: o que veio do baú volta para o baú. */
+    @GameTest
+    public void closingTheBenchReturnsUnusedItemsToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.MANGROVE_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 3, "saíram 2 tábuas");
+
+        menu.removed(p);                                     // o jogo devolve a grade à mochila...
+        p.containerMenu = p.inventoryMenu;
+        BenchLedger.tick(p);                                 // ...e o mod devolve de lá ao baú
+        check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 5 && Lab.carried(p, Items.MANGROVE_PLANKS) == 0,
+                "tudo devia estar de volta no baú: baú=" + Lab.count(chest, Items.MANGROVE_PLANKS)
+                        + " mochila=" + Lab.carried(p, Items.MANGROVE_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Pegou outro item no painel: o anterior (do cursor) volta ao baú de origem. */
+    @GameTest
+    public void panelSwapReturnsTheCursorItemToItsChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.AMETHYST_BLOCK, 64);
+        Lab.fill(chest, 1, Items.LAPIS_BLOCK, 64);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+
+        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.AMETHYST_BLOCK), false));
+        check(h, menu.getCarried().is(Items.AMETHYST_BLOCK) && Lab.count(chest, Items.AMETHYST_BLOCK) == 0, "pegou ametista");
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.LAPIS_BLOCK), false));
+            check(h, menu.getCarried().is(Items.LAPIS_BLOCK) && menu.getCarried().getCount() == 64, "cursor com cobre");
+            check(h, Lab.count(chest, Items.AMETHYST_BLOCK) == 64 && Lab.carried(p, Items.AMETHYST_BLOCK) == 0,
+                    "a ametista devia ter voltado ao baú, não à mochila: baú=" + Lab.count(chest, Items.AMETHYST_BLOCK)
+                            + " mochila=" + Lab.carried(p, Items.AMETHYST_BLOCK));
+            clean(lab, h);
+        });
+    }
+
+    /** Dois jogadores, os mesmos 2 itens: quem clicou primeiro fica com eles; o outro só os vê quando forem devolvidos. */
+    @GameTest
+    public void twoPlayersNeverShareTheSameItems(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.MANGROVE_PLANKS, 2);
+        ServerPlayer a = lab.player(4, 2, 4);
+        ServerPlayer b = lab.player(6, 2, 4);
+        Lab.prefs(a, 8, true);
+        Lab.prefs(b, 8, true);
+        CraftingMenu ma = table(lab, a, 1);
+        CraftingMenu mb = table(lab, b, 2);
+
+        place(a, ma, "stick", false);
+        place(b, mb, "stick", false);                        // B chega depois: já não há o que prometer
+        check(h, grid(ma, Items.MANGROVE_PLANKS) == 2 && grid(mb, Items.MANGROVE_PLANKS) == 0
+                && Lab.count(chest, Items.MANGROVE_PLANKS) == 0, "o primeiro a clicar fica com os 2 itens");
+        check(h, Lab.carried(a, Items.MANGROVE_PLANKS) + Lab.carried(b, Items.MANGROVE_PLANKS) == 0, "nada solto nas mochilas");
+
+        ma.removed(a);                                       // A desiste: os itens voltam ao baú
+        a.containerMenu = a.inventoryMenu;
+        BenchLedger.tick(a);
+        check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 2, "devolvidos ao baú");
+        place(b, mb, "stick", false);                        // agora B consegue
+        check(h, grid(mb, Items.MANGROVE_PLANKS) == 2 && Lab.count(chest, Items.MANGROVE_PLANKS) == 0,
+                "B pega os itens devolvidos");
+        clean(lab, h);
     }
 
     /** Mundo criativo (o do Eliel): a bancada com armazenamento também vale; só o espectador fica de fora. */

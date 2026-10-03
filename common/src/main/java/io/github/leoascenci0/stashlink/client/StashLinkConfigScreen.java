@@ -228,6 +228,7 @@ public class StashLinkConfigScreen extends Screen {
             Button chests = Button.builder(chestsLabel(chestsLocked), b -> {
                 if (local) {
                     StashLinkConfig.includeChests = !StashLinkConfig.includeChests;
+                    ClientPrefs.chests = StashLinkConfig.includeChests ? 1 : 0;   // a pessoal vale mais que o padrão
                 } else {
                     // Padrão do servidor -> sim -> não -> padrão do servidor.
                     ClientPrefs.chests = ClientPrefs.chests == PlayerPrefs.UNSET ? 1
@@ -385,10 +386,10 @@ public class StashLinkConfigScreen extends Screen {
         /** Num servidor, sem preferência ainda, mostra o padrão do código; a preferência só vira "escolhida" ao mexer. */
         private static int initial(boolean local, boolean shulker) {
             if (shulker) {
-                return local || ClientPrefs.shulkerRadius == PlayerPrefs.UNSET ? StashLinkConfig.shulkerRadius
+                return ClientPrefs.shulkerRadius == PlayerPrefs.UNSET ? StashLinkConfig.shulkerRadius
                         : ClientPrefs.shulkerRadius;
             }
-            return local || ClientPrefs.radius == PlayerPrefs.UNSET ? StashLinkConfig.sourceRadius : ClientPrefs.radius;
+            return ClientPrefs.radius == PlayerPrefs.UNSET ? StashLinkConfig.sourceRadius : ClientPrefs.radius;
         }
 
         private static double toSlider(int cap, int radius) {
@@ -412,15 +413,17 @@ public class StashLinkConfigScreen extends Screen {
 
         @Override
         protected void applyValue() {
+            // Em mundo próprio muda também a preferência pessoal: ela vale mais que o padrão do servidor, e se ficasse
+            // com um valor antigo o slider pareceria não fazer nada.
             if (shulker) {
                 if (local) {
                     StashLinkConfig.shulkerRadius = Math.min(radius(), StashLinkConfig.shulkerCap());
-                } else {
-                    ClientPrefs.shulkerRadius = radius();
                 }
-            } else if (local) {
-                StashLinkConfig.trySetRadius(radius());
+                ClientPrefs.shulkerRadius = radius();
             } else {
+                if (local) {
+                    StashLinkConfig.trySetRadius(radius());
+                }
                 ClientPrefs.radius = radius();
             }
         }

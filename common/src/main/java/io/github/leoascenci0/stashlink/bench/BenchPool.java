@@ -1,6 +1,9 @@
 package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
+import io.github.leoascenci0.stashlink.source.Origin;
+import net.minecraft.core.BlockPos;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.source.ContainerSource;
 import io.github.leoascenci0.stashlink.source.ItemSource;
@@ -14,6 +17,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,15 +40,21 @@ public final class BenchPool {
     }
 
     private final ItemSource source;
+    private final ServerPlayer player;
+    private final PlayerShulkerSource shulkers;
+    /** As fontes de container, criadas só quando a varredura acontece; guardam o que foi tocado (a origem). */
+    private ContainerSource placed;
+    private ContainerSource storage;
 
     private BenchPool(ServerPlayer player) {
-        PlayerShulkerSource shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
+        this.player = player;
+        this.shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
         // Baús entram sempre que a função está ligada: o liga/desliga da função é o consentimento (decisão do Eliel).
         Supplier<NearbyContainers.Found> nearby = memo(() -> NearbyContainers.find(player, true));
         this.source = new PrioritizedItemSource(List.of(
                 shulkers,
-                new LazyItemSource(() -> new ContainerSource(guard(player, nearby.get().shulkers()))),
-                new LazyItemSource(() -> new ContainerSource(guard(player, nearby.get().storage())))));
+                new LazyItemSource(() -> placed = new ContainerSource(guard(player, nearby.get().shulkers()))),
+                new LazyItemSource(() -> storage = new ContainerSource(guard(player, nearby.get().storage())))));
     }
 
     public static BenchPool of(ServerPlayer player) {
@@ -53,6 +64,36 @@ public final class BenchPool {
     /** Para tirar item (e devolver ao que foi tocado): o mesmo objeto serve a esta operação inteira. */
     public ItemSource source() {
         return source;
+    }
+
+    /** De onde saiu o que esta operação já tirou (posições, nunca objetos: o baú pode sumir até a devolução). */
+    public Origin origin() {
+        Set<BlockPos> positions = new HashSet<>();
+        if (placed != null) {
+            positions.addAll(placed.touchedPositions());
+        }
+        if (storage != null) {
+            positions.addAll(storage.touchedPositions());
+        }
+        return new Origin(shulkers.touched(), McCompat.dimensionOf(player), positions);
+    }
+
+    /**
+     * Para onde devolver o que veio de {@code origin}: as shulkers do inventário e os containers que <b>ainda</b> estão
+     * dentro do alcance, liberados e sem outro jogador olhando. O que ninguém aceitar volta como "sobra" de {@code give}.
+     */
+    public static ItemSource returnTarget(ServerPlayer player, Origin origin) {
+        List<ItemSource> targets = new ArrayList<>();
+        if (origin.inventoryShulkers()) {
+            targets.add(new PlayerShulkerSource(player.getInventory().getNonEquipmentItems()));
+        }
+        if (!origin.positions().isEmpty() && origin.dimension().equals(McCompat.dimensionOf(player))) {
+            NearbyContainers.Found found = NearbyContainers.find(player, true);
+            List<ContainerSource.Entry> candidates = new ArrayList<>(found.shulkers());
+            candidates.addAll(found.storage());
+            targets.add(ContainerSource.returningTo(guard(player, candidates), origin.positions()));
+        }
+        return new PrioritizedItemSource(targets);
     }
 
     /** Container aberto por outro jogador fica de fora (mesma regra da tecla N). */

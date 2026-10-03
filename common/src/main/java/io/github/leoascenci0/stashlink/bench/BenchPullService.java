@@ -57,6 +57,10 @@ public final class BenchPullService {
         LAST_REQUEST.put(player, now);
 
         ItemStack model = request.item().copyWithCount(1);
+        // Trocou de item no painel: o que está no cursor e veio do armazenamento volta ao baú de origem.
+        if (!menu.getCarried().isEmpty() && !ItemStack.isSameItemSameComponents(menu.getCarried(), model)) {
+            BenchLedger.returnCursor(player);
+        }
         ItemStack carried = menu.getCarried();
         // Cursor ocupado por outra coisa (ou já cheio): não troca nem mistura, só ignora.
         if (!carried.isEmpty() && (!ItemStack.isSameItemSameComponents(carried, model)
@@ -66,7 +70,8 @@ public final class BenchPullService {
         int room = carried.isEmpty() ? model.getMaxStackSize() : carried.getMaxStackSize() - carried.getCount();
         int wanted = request.one() ? Math.min(1, room) : room;
 
-        ItemSource source = BenchPool.of(player).source();
+        BenchPool pool = BenchPool.of(player);
+        ItemSource source = pool.source();
         List<ItemStack> taken = source.take(model, wanted);
         int total = ItemSource.sum(taken);
         if (total <= 0) {
@@ -76,6 +81,7 @@ public final class BenchPullService {
         // take() nunca passa de "wanted" e wanted cabe no cursor: a soma sempre cabe.
         menu.setCarried(model.copyWithCount(carried.getCount() + total));
         menu.broadcastChanges();
+        BenchLedger.record(player, Map.of(model.getItem(), total), pool.origin());
         BenchSync.markDirty(player);
     }
 }

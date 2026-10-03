@@ -66,6 +66,8 @@ public final class BenchRecipe {
                 || !open.stillValid(player) || !FeatureGate.allowSilently(player, Feature.BENCH)) {
             return;
         }
+        // Trocou de receita: o que o mod pôs na grade antes e sobrou volta ao baú de origem, não à mochila.
+        BenchLedger.returnFromGrid(player, inputSlots);
         BenchPool pool = BenchPool.of(player);
         Map<Item, Integer> missing = BenchCompat.missingIngredients(inventory, (RecipeBookMenu) open, inputSlots,
                 holder, useMax, pool.plainCounts());
@@ -109,9 +111,15 @@ public final class BenchRecipe {
         }
         try {
             int used = 0;
+            Map<Item, Integer> inStation = new LinkedHashMap<>();
             for (Map.Entry<Item, Integer> e : p.pulled().entrySet()) {
-                used += e.getValue() - settle(p.player(), p.pool(), e.getKey(), e.getValue());
+                int stayed = e.getValue() - settle(p.player(), p.pool(), e.getKey(), e.getValue());
+                used += stayed;
+                if (stayed > 0) {
+                    inStation.put(e.getKey(), stayed);
+                }
             }
+            BenchLedger.record(p.player(), inStation, p.pool().origin());
             if (used > 0) {
                 p.player().sendOverlayMessage(Component.translatableWithFallback("stashlink.bench.used",
                         "%s items taken from storage", used));
