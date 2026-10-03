@@ -338,7 +338,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** com conduíte perto o raio sobe até 128, sem ele fica em 64, e a medição com 289+ containers segue
   bem abaixo de 5 ms por operação.
 
-### Item 16 — Bancadas usam o armazenamento como inventário ⬜
+### Item 16 — Bancadas usam o armazenamento como inventário ✅
 - **Branch:** `feat/bancada-com-armazenamento`
 - Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
   sem carregar os materiais. **Raio inicial de 64 blocos**, podendo subir com o Item 15 (conduíte, até 128).
@@ -362,6 +362,49 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   (testes no harness com 2 jogadores) e respeita o raio; as outras estações listadas funcionam do mesmo jeito (ou
   ficam registradas como "de fora" com o motivo); e um teste prova que fornalha/suporte de poções/estações com item
   dentro **nunca** são tocadas por reabastecer, N, W nem craftar.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 16"):** decisões do Eliel (2026-10-03): **todas as estações**; o livro
+  de receitas acende + aviso na barra; mochila primeiro e baú só se faltar; a função usa baús mesmo com "incluir baús"
+  desligado (o liga/desliga + cadeado da função, nova `Feature.BENCH`, é o consentimento). Duas peças sobre as mesmas
+  fontes e o mesmo raio do jogador (`PlayerPrefsStore.radius`, o Item 15 só sobe o teto):
+  1. **Livro de receitas** (bancada, fornalha, defumador, alto-forno): um mixin em `ServerPlaceRecipe.placeRecipe` traz do
+     armazenamento **só o que falta na mochila**, o jogo monta a receita sem mudar, e a sobra volta à origem. Com shift
+     (máximo) também. O cliente com o mod soma o armazenamento na conta do livro (acende o que dá para fazer).
+  2. **Painel "Armazenamento"** ao lado de **todas** as estações (bancada, fornalha, defumador, alto-forno, cortador de
+     pedra, tear, cartografia, amolar, ferreiro, bigorna, encantamento, suporte de poções): grade com busca e rolagem; clique
+     leva um stack ao cursor, botão direito leva um. É item de verdade na mão (nada de fantasma).
+  **De fora, com motivo:** a grade 2x2 da mochila (não é bancada) e o Crafter (bloco automático, sem jogador). Funil,
+  dispenser e dropper continuam fora do armazenamento.
+- **Testes:** 13 GameTests novos (`BenchGameTests`, 67 no total): craftar só do baú; traz só o que falta; mochila basta =
+  baú intocado; raio e baú aberto por outro jogador; mochila cheia (nada some); shift monta o máximo e devolve a sobra;
+  fornalha; cadeado e liga/desliga; painel (stack, um, cursor cheio/ocupado); painel recusa menu errado/trancado/sem
+  estação; a lista só mostra baú/barril/shulker; **fornalha, defumador, alto-forno, suporte de poções, funil, dispenser,
+  dropper e crafter com item dentro nunca são tocados** por N, reabastecer, W, livro nem painel; fuzz com 2 jogadores
+  (600 ticks, soma de tábuas e pedra conferida depois de cada ação). **Mutação:** dupe injetado (devolve cópia sem tirar)
+  pego por 8 testes; perda injetada (descartar o que não coube) por 1; funil virando fonte por 2; ignorar baú aberto por
+  outro por 2; ignorar o raio por 6; ignorar o cadeado por 1; painel ignorando cursor ocupado por 2. Os testes acharam um
+  defeito real: `Inventory.add` descarta o que sobra quando o jogador tem materiais infinitos; o mod agora guarda na
+  mochila por conta própria (`StackListSink`).
+- **Também neste PR:** o `ServerPlayerMixin` saiu da lista `"server"` do arquivo de mixins para a lista comum (suspeita de
+  que no Fabric aquela lista só vale no servidor dedicado; **não confirmada** com o log do Prism, avisar o Eliel).
+- **Não testado em jogo ainda** (a tela, o painel e o livro acendendo são cliente; o `runClientGameTest` não roda aqui).
+  Roteiro para o Eliel (jar em `fabric/build/libs`, modo Sobrevivência, servidor com o mod ou mundo único):
+  1. Baú com 64 tábuas a poucos blocos (raio padrão 8), mochila vazia. Abra a **bancada**: aparece o painel
+     "Armazenamento" à direita com as tábuas, e o livro de receitas mostra graveto/baú **acesos** (não vermelhos).
+  2. Clique na receita do graveto: a grade enche, a barra mostra "N itens vindos do armazenamento". Pegue o resultado.
+     Clique na **mesma receita de novo** sem fechar: funciona de novo (é o que o cliente sem o mod bloquearia).
+  3. Shift + clique na receita: monta o máximo; shift + clique no resultado crafta vários. Some as tábuas antes e depois:
+     nada duplicou, nada sumiu.
+  4. Mochila **cheia**: o livro não puxa e o baú continua igual. Fora do raio ou com **outro jogador** olhando o baú: nada.
+  5. **Fornalha**: lenha no baú, livro de receitas → carvão; ou painel → pegue combustível/entrada e ponha no slot.
+     Teste também defumador e alto-forno.
+  6. **Painel nas outras estações**: cortador de pedra (pedregulho), tear, mesa de cartografia, pedra de amolar, mesa de
+     ferreiro, bigorna e encantamento (lápis), suporte de poções. Na bigorna procure uma ferramenta encantada no painel.
+     Clique no painel **nunca** solta o item do cursor; roda do mouse rola; digitar na busca filtra (E não fecha a tela).
+  7. **Estação com item dentro** (fornalha cozinhando, suporte de poções) perto: aperte N e W, feche e abra a bancada: o
+     conteúdo delas não muda.
+  8. Tela de config, aba Funções: "Bancadas com armazenamento" liga/desliga e cadeado (dono/operador). Desligada, a bancada
+     é a do jogo base e o painel some.
+  9. Servidor **sem** o mod: tudo como no jogo base (sem painel, sem armazenamento).
 
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ⬜
 - **Branch:** `feat/filtro-tecla-n`
