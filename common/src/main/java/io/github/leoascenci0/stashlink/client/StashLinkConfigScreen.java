@@ -79,7 +79,8 @@ public class StashLinkConfigScreen extends Screen {
         int top = this.height / 6;
 
         // Abas: as funções (liga/desliga + cadeado) e os ajustes finos (raio, baús, slots).
-        int tabW = (WIDTH - 8) / 3;
+        int tabW = 50;                              // Funções e Ajustes são curtas; "Itens bloqueados" ganha o resto
+        int lastW = WIDTH - 2 * (tabW + 4);
         Button features = addRenderableWidget(Button.builder(
                 Component.translatableWithFallback("stashlink.config.tab_features", "Features"),
                 b -> switchPage(PAGE_FEATURES)).bounds(x, top + 20, tabW, 20).build());
@@ -90,7 +91,7 @@ public class StashLinkConfigScreen extends Screen {
         settings.active = page != PAGE_SETTINGS;
         Button categories = addRenderableWidget(Button.builder(
                 Component.translatableWithFallback("stashlink.config.tab_categories", "Key N"),
-                b -> switchPage(PAGE_CATEGORIES)).bounds(x + 2 * (tabW + 4), top + 20, tabW, 20).build());
+                b -> switchPage(PAGE_CATEGORIES)).bounds(x + 2 * (tabW + 4), top + 20, lastW, 20).build());
         categories.active = page != PAGE_CATEGORIES;
 
         int y = top + 48;
