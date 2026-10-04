@@ -94,52 +94,13 @@ public final class BrewingCompat {
                 && stack.has(DataComponents.POTION_CONTENTS);
     }
 
+    /**
+     * TEMPORÁRIO: a API de receitas de poção mudou no 26.3 e ainda está sendo mapeada; até lá o mapa fica vazio (a aba
+     * Poções não lista nada e o resto do suporte funciona como antes).
+     */
     public static Graph graph(Level level) {
-        return CACHE.computeIfAbsent(level.potionBrewing(), key -> build(level));
+        return EMPTY;
     }
 
-    private static Graph build(Level level) {
-        var brewing = level.potionBrewing();
-        List<ItemStack> ingredients = new ArrayList<>();
-        for (Item item : BuiltInRegistries.ITEM) {
-            ItemStack stack = new ItemStack(item);
-            if (!stack.isEmpty() && brewing.isIngredient(stack)) {
-                ingredients.add(stack);
-            }
-        }
-        List<ItemStack> potions = new ArrayList<>();
-        List<Integer> roots = new ArrayList<>();
-        for (Item bottle : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION)) {
-            roots.add(potions.size());
-            potions.add(PotionContents.createItemStack(bottle, Potions.WATER));
-        }
-        List<BrewPlanner.Edge> edges = new ArrayList<>();
-        Graph graph = new Graph(potions, ingredients, edges, roots);
-        Deque<Integer> queue = new ArrayDeque<>(roots);
-        while (!queue.isEmpty()) {
-            int from = queue.poll();
-            ItemStack input = potions.get(from);
-            for (int i = 0; i < ingredients.size(); i++) {
-                ItemStack ingredient = ingredients.get(i);
-                if (!brewing.hasMix(input, ingredient)) {
-                    continue;
-                }
-                ItemStack out = brewing.mix(ingredient, input.copy());
-                if (out.isEmpty() || ItemStack.isSameItemSameComponents(out, input)) {
-                    continue;
-                }
-                int to = graph.potionOf(out);
-                if (to < 0) {
-                    if (potions.size() >= MAX_NODES) {
-                        continue;
-                    }
-                    to = potions.size();
-                    potions.add(out.copyWithCount(1));
-                    queue.add(to);
-                }
-                edges.add(new BrewPlanner.Edge(from, i, to));
-            }
-        }
-        return new Graph(List.copyOf(potions), List.copyOf(ingredients), List.copyOf(edges), List.copyOf(roots));
-    }
+    private static final Graph EMPTY = new Graph(List.of(), List.of(), List.of(), List.of());
 }

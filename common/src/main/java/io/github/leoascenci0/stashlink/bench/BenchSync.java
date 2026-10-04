@@ -184,7 +184,8 @@ public final class BenchSync {
         }
         // Suporte de poções: a aba de garrafas vira a lista de poções que dá para fazer (BenchBrewing); as outras
         // abas (ingredientes, combustível) continuam com os itens soltos.
-        if (BrewingCompat.isBrewing(menu) && FeatureGate.allowSilently(player, Feature.BENCH_BREWING)) {
+        if (BrewingCompat.isBrewing(menu) && FeatureGate.allowSilently(player, Feature.BENCH_BREWING)
+                && !BrewingCompat.graph(player.level()).edges().isEmpty()) {
             out.removeIf(entry -> entry.tab() == 0);
             out.addAll(BenchBrewing.list(player));
         }
