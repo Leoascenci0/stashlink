@@ -1708,6 +1708,108 @@ public class BenchGameTests {
         });
     }
 
+    private static ItemStack potion(net.minecraft.core.Holder<net.minecraft.world.item.alchemy.Potion> type) {
+        return net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, type);
+    }
+
+    private static BenchPoolSync.Entry entryOf(List<BenchPoolSync.Entry> list, ItemStack stack) {
+        for (BenchPoolSync.Entry e : list) {
+            if (e.isResult() && ItemStack.isSameItemSameComponents(e.item(), stack)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Suporte de poções: a aba Poções lista o que dá para fazer (rapidez sim, resistência ao fogo não: falta creme de
+     * magma); clicar em rapidez monta só o 1º passo (3 águas + verruga + pó de blaze, sem combustível), e depois do
+     * preparo o próximo clique põe o açúcar sobre as estranhas que ficaram no suporte. Nada some, nada duplica.
+     */
+    @GameTest
+    public void brewingListsPotionsAndSetsUpOneStepPerClick(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        ItemStack water = potion(net.minecraft.world.item.alchemy.Potions.WATER);
+        for (int i = 0; i < 3; i++) {
+            chest.setItem(i, water.copy());
+        }
+        Lab.fill(chest, 3, Items.NETHER_WART, 2);
+        Lab.fill(chest, 4, Items.SUGAR, 1);
+        Lab.fill(chest, 5, Items.BLAZE_POWDER, 1);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);
+        net.minecraft.world.inventory.BrewingStandMenu menu = new net.minecraft.world.inventory.BrewingStandMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        ItemStack swift = potion(net.minecraft.world.item.alchemy.Potions.SWIFTNESS);
+        ItemStack awkward = potion(net.minecraft.world.item.alchemy.Potions.AWKWARD);
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        BenchPoolSync.Entry swiftEntry = entryOf(list, swift);
+        BenchPoolSync.Entry fire = entryOf(list, potion(net.minecraft.world.item.alchemy.Potions.FIRE_RESISTANCE));
+        check(h, swiftEntry != null && !swiftEntry.missing() && swiftEntry.tab() == 0, "rapidez listada e possível");
+        check(h, fire != null && fire.missing(), "resistência ao fogo listada em vermelho (sem creme de magma)");
+        check(h, entryOf(list, awkward) != null && !entryOf(list, awkward).missing(), "estranha possível");
+
+        BenchPullService.handle(p, new BenchPullRequest(1, swift, false, swiftEntry.id()));
+        for (int i = 0; i < 3; i++) {
+            check(h, ItemStack.isSameItemSameComponents(menu.getSlot(i).getItem(), water), "garrafa de água no slot " + i);
+        }
+        check(h, menu.getSlot(3).getItem().is(Items.NETHER_WART) && menu.getSlot(3).getItem().getCount() == 1
+                && menu.getSlot(4).getItem().is(Items.BLAZE_POWDER), "1º passo: verruga e pó de blaze");
+        check(h, Lab.count(chest, Items.POTION) == 0 && Lab.count(chest, Items.NETHER_WART) == 1
+                && Lab.count(chest, Items.BLAZE_POWDER) == 0 && Lab.count(chest, Items.SUGAR) == 1,
+                "saiu do baú só o 1º passo (o açúcar fica)");
+
+        // O suporte terminou: 3 estranhas, ingrediente gasto.
+        for (int i = 0; i < 3; i++) {
+            menu.getSlot(i).set(awkward.copy());
+        }
+        menu.getSlot(3).set(ItemStack.EMPTY);
+        h.runAfterDelay(2, () -> {
+            BenchPoolSync.Entry again = entryOf(BenchSync.snapshot(p), swift);
+            BenchPullService.handle(p, new BenchPullRequest(1, swift, false, again.id()));
+            check(h, menu.getSlot(3).getItem().is(Items.SUGAR) && Lab.count(chest, Items.SUGAR) == 0,
+                    "2º passo: açúcar sobre as estranhas do suporte");
+            check(h, ItemStack.isSameItemSameComponents(menu.getSlot(0).getItem(), awkward)
+                    && Lab.count(chest, Items.NETHER_WART) == 1, "as estranhas ficaram; nenhuma verruga a mais");
+            // Outra poção num slot de garrafa: não mistura nem mexe.
+            menu.getSlot(3).set(ItemStack.EMPTY);
+            Lab.fill(chest, 4, Items.SUGAR, 1);
+            menu.getSlot(0).set(potion(net.minecraft.world.item.alchemy.Potions.MUNDANE));
+            h.runAfterDelay(2, () -> {
+                BenchPullService.handle(p, new BenchPullRequest(1, swift, false, again.id()));
+                check(h, menu.getSlot(3).getItem().isEmpty() && Lab.count(chest, Items.SUGAR) == 1,
+                        "poção diferente no suporte: nada muda");
+                for (int i = 0; i < 5; i++) {
+                    menu.getSlot(i).set(ItemStack.EMPTY);
+                }
+                p.containerMenu = p.inventoryMenu;
+                clean(lab, h);
+            });
+        });
+    }
+
+    /** Suporte de poções com a função trancada: sem lista de poções e o clique não mexe em nada. */
+    @GameTest
+    public void brewingLockedKeepsTheOldPanel(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        chest.setItem(0, potion(net.minecraft.world.item.alchemy.Potions.WATER));
+        Lab.fill(chest, 1, Items.NETHER_WART, 1);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);
+        net.minecraft.world.inventory.BrewingStandMenu menu = new net.minecraft.world.inventory.BrewingStandMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        ItemStack awkward = potion(net.minecraft.world.item.alchemy.Potions.AWKWARD);
+        int id = entryOf(BenchSync.snapshot(p), awkward).id();
+        StashLinkConfig.setFeatureLocked(Feature.BENCH_BREWING, true);
+        check(h, entryOf(BenchSync.snapshot(p), awkward) == null, "trancada: sem lista de poções");
+        BenchPullService.handle(p, new BenchPullRequest(1, awkward, false, id));
+        check(h, menu.getSlot(0).getItem().isEmpty() && Lab.count(chest, Items.NETHER_WART) == 1, "trancada: nada sai do baú");
+        p.containerMenu = p.inventoryMenu;
+        clean(lab, h);
+    }
+
     /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (armadura, ferramenta/etiqueta, arma, livro, material). */
     @GameTest
     public void anvilFilterAndTabShareOnePredicate(GameTestHelper h) {

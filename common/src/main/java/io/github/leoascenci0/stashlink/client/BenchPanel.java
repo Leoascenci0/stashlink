@@ -105,6 +105,8 @@ public final class BenchPanel {
     private final Screen screen;
     /** A estação é o tear (aba "Cores", banner pintado, corante escolhido). */
     private final boolean loom;
+    /** A estação é o suporte de poções (a aba Poções lista resultados: um clique monta o próximo passo). */
+    private final boolean brewing;
     private int x;
     private int y;
 
@@ -123,6 +125,7 @@ public final class BenchPanel {
         this.menu = menu;
         this.screen = screen;
         this.loom = BenchCompat.stationOf(menu) == BenchCompat.Station.LOOM;
+        this.brewing = BenchCompat.stationOf(menu) == BenchCompat.Station.BREWING;
         this.tabs = BenchTabs.of(menu);
         search = new EditBox(mc.font, 0, 0, SEARCH_W, SEARCH_H,
                 Component.translatable(BenchText.TITLE));
@@ -365,6 +368,8 @@ public final class BenchPanel {
             List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), iconOf(hovered)));
             if (hovered.isColorPick()) {
                 lines.add(BenchText.colorLine(hovered.missing()));
+            } else if (hovered.isResult() && brewing) {
+                lines.add(BenchText.potionLine(red(hovered)));
             } else if (hovered.isResult()) {
                 lines.add(BenchText.resultLine(red(hovered)));
             } else {

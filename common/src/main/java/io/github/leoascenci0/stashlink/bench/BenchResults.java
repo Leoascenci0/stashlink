@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.BrewingCompat;
 import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
@@ -82,7 +83,12 @@ public final class BenchResults {
      * outra receita. Sempre {@code >= 0} (os negativos têm significado próprio).
      */
     static int key(StationRecipes.Option option) {
-        return ItemStack.hashItemAndComponents(option.icon()) & Integer.MAX_VALUE;
+        return keyOf(option.icon());
+    }
+
+    /** A chave estável de um resultado pelo item que ele produz (também as poções do suporte). */
+    static int keyOf(ItemStack result) {
+        return ItemStack.hashItemAndComponents(result) & Integer.MAX_VALUE;
     }
 
     /** Aba de um item solto (ver {@link BenchCompat#slotTab}). */
@@ -106,6 +112,13 @@ public final class BenchResults {
 
     /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
     public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice, boolean one) {
+        if (BrewingCompat.isBrewing(menu)) {
+            // Suporte de poções: a "receita" é a poção escolhida; monta o próximo passo do caminho até ela.
+            if (FeatureGate.allow(player, Feature.BENCH_BREWING)) {
+                BenchBrewing.brew(player, menu, id, one);
+            }
+            return;
+        }
         // Uma varredura só por clique: o pool, a lista do que há e o que sai dos baús vêm todos da mesma passada.
         BenchPool pool = BenchPool.of(player);
         List<BenchPool.Stack> stored = pool.contents();

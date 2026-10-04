@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.BrewingCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
@@ -180,6 +181,12 @@ public final class BenchSync {
             }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,
                     BenchResults.slotTab(menu, stack.item()), -1));
+        }
+        // Suporte de poções: a aba de garrafas vira a lista de poções que dá para fazer (BenchBrewing); as outras
+        // abas (ingredientes, combustível) continuam com os itens soltos.
+        if (BrewingCompat.isBrewing(menu) && FeatureGate.allowSilently(player, Feature.BENCH_BREWING)) {
+            out.removeIf(entry -> entry.tab() == 0);
+            out.addAll(BenchBrewing.list(player));
         }
         // Ordem única (BenchOrder); o corte do teto é depois de ordenar.
         return BenchOrder.sortedAndCapped(out);

@@ -59,7 +59,9 @@ public enum Feature {
     /** Bigorna: com um item no 1º slot, a aba Livros mostra só os livros que servem nele (Item 16.3). */
     BENCH_BOOK_FILTER("bench_book_filter"),
     /** Sinalizador: os ícones de pagamento viram botões que puxam o minério do armazenamento (Item 16.3). */
-    BENCH_BEACON("bench_beacon");
+    BENCH_BEACON("bench_beacon"),
+    /** Suporte de poções: lista as poções possíveis e monta o próximo passo com um clique (Item 16.3). */
+    BENCH_BREWING("bench_brewing");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 
