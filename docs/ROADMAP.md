@@ -597,7 +597,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   (soma de itens conferida antes e depois, como no fuzz do Item 11, incluindo 2 jogadores); desfazer devolve tudo
   ao lugar; a busca acha e destaca o baú; sem queda de TPS com 289+ containers.
 
-### Item 21 — Shift + passar o mouse coleta os itens do baú ⬜
+### Item 21 — Shift + passar o mouse coleta os itens do baú ✅
 - **Branch:** `feat/shift-passar-coleta`
 - Pedido do Eliel (2026-10-03): dentro da tela de um baú, **segurar Shift e passar o mouse por cima dos itens já vai
   coletando**, sem precisar clicar item por item. (É o gesto "arrastar com Shift" de mods como o Mouse Tweaks.)
@@ -612,6 +612,9 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pronto quando:** Shift + passar o mouse coleta os itens por onde passou, e só esses; mochila cheia para sem perder
   item; nada duplica nem some (conferir a soma antes e depois, também com latência alta); slots de resultado nunca
   são disparados.
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 21"):** `Feature.HOVER_COLLECT` (liga/desliga + cadeado), mixin novo
+  `HoverCollectScreenMixin` + `HoverCollectClient` (cliente) + `HoverCollectPass` (regra de "um clique por passagem",
+  testada). Só clique normal de inventário; só em baú/barril/shulker/ender chest; nunca em slot de resultado.
 
 ### Item 15 — Raio de até 32 blocos com conduíte (conduit) perto do estoque ⬜
 - **Branch:** `feat/raio-32-conduite`

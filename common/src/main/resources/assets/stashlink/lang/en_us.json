@@ -118,5 +118,7 @@
   "stashlink.command.feature.list": "Locked features: %s",
   "stashlink.command.feature.locked": "Feature %s locked",
   "stashlink.command.feature.unlocked": "Feature %s unlocked",
-  "stashlink.command.feature.unknown": "Unknown feature: %s"
+  "stashlink.command.feature.unknown": "Unknown feature: %s",
+  "stashlink.feature.hover_collect": "Shift + left click + hover collects",
+  "stashlink.feature.hover_collect.tip": "Hold Shift and the left mouse button and move the mouse over items: each one you pass is moved (like a shift-click), chest to backpack or backpack to chest."
 }

@@ -118,5 +118,7 @@
   "stashlink.command.feature.list": "Funções trancadas: %s",
   "stashlink.command.feature.locked": "Função %s trancada",
   "stashlink.command.feature.unlocked": "Função %s destrancada",
-  "stashlink.command.feature.unknown": "Função desconhecida: %s"
+  "stashlink.command.feature.unknown": "Função desconhecida: %s",
+  "stashlink.feature.hover_collect": "Shift + clique esquerdo + passar o mouse coleta",
+  "stashlink.feature.hover_collect.tip": "Segure Shift e o botão esquerdo e passe o mouse sobre os itens: cada um por onde passar é movido (como um shift-clique), do baú para a mochila ou da mochila para o baú."
 }

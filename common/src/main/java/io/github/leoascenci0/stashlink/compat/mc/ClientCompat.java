@@ -151,6 +151,19 @@ public final class ClientCompat {
         mc.gameMode.handleContainerInput(menu.containerId, click.slot(), click.button(), input, mc.player);
     }
 
+    /** O jogador está com Shift (esquerdo ou direito) pressionado agora? */
+    public static boolean isShiftDown(Minecraft mc) {
+        return mc.hasShiftDown();
+    }
+
+    /**
+     * O evento é do botão esquerdo? Em 26.3 o esquerdo é 1 (não 0). {@code MouseHandler.isLeftPressed} não serve: só
+     * é atualizado quando não há tela aberta.
+     */
+    public static boolean isLeftButton(net.minecraft.client.input.MouseButtonEvent event) {
+        return event.button() == 1;
+    }
+
     /** Fecha o container aberto (manda o pacote de fechar e volta ao menu do inventário). */
     public static void closeContainer(Minecraft mc) {
         if (mc.player != null) {

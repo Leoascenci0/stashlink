@@ -47,7 +47,9 @@ public enum Feature {
     /** Categoria da N: comida. */
     CAT_FOOD("cat_food", false, true),
     /** Categoria da N: poções. */
-    CAT_POTIONS("cat_potions", false, true);
+    CAT_POTIONS("cat_potions", false, true),
+    /** Shift + passar o mouse coleta (ou guarda) o item do slot, sem clicar (Item 21). */
+    HOVER_COLLECT("hover_collect");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 
