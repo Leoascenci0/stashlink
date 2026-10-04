@@ -752,3 +752,13 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Receita no pedido:** `recipeId` dos resultados é agora uma chave estável (`BenchResults.key`, hash do item+componentes do ícone), não o índice da lista. Chave que não existe mais → não monta nada e reenvia a lista.
 - **Fechar no mesmo tick de craftar:** `AbstractContainerMenuMixin` chama `BenchLedger.beforeClose` no início de `removed`, com os slots ainda cheios, para refazer a conta antes de assentar.
 - **Salto do ingrediente fantasma (cliente):** só roda com `BenchClient.activeFor(menu)` (função ligada, sem cadeado, mod no servidor). Prova: mixin de cliente, sem GameTest; roteiro manual no relatório da onda.
+
+## Item 16.3, onda 3 — achados baixos da revisão das bancadas (2026-10-04)
+
+- **Pedido repetido (8):** não havia falha real; ficou o teste de regressão (mesmo tick, ticks seguintes, slot cheio, cursor) e a conta de devolução ao fechar. Remover a trava de "1 pedido por tick" faz o teste falhar.
+- **Cursor preso (9):** se o baú de origem enche, `BenchLedger.returnCursor` manda o que não coube para a mochila (nunca some, nunca duplica) em vez de deixar o cursor travado no item antigo.
+- **Anti-flood do livro (10):** `BenchFlood` (4 pedidos por tick, 30 por segundo, por jogador) antes de varrer os baús em `BenchRecipe`. Acima do limite o jogo segue só com a mochila.
+- **Pedido inválido (11):** `BenchResults.validRequestId`: só receita (`>= 0`), `PLACE` e `CURSOR`; `COLOR_PICK` e outros negativos são ignorados.
+- **Desempenho (12):** um clique de receita varre os baús 1 vez (eram 3; `BenchPool.scanCount` prova); o painel acha a cor do tear num mapa montado por lista, não por varredura a cada frame.
+- **API frágil (13):** classes de menu de estação, `DyeColor` e itens de corante só em `compat/mc` (`BenchCompat.Station`, `slotTab`, `placementOrder`; `StationRecipes.dyePicks/applyChoice`). `CompatBoundaryTest` varre `bench/` e `client/Bench*` e falha se algo vazar.
+- **Cliente entre servidores (14):** `BenchClient.reset()` ao entrar e ao sair (Fabric JOIN/DISCONNECT, NeoForge LoggingIn/LoggingOut).

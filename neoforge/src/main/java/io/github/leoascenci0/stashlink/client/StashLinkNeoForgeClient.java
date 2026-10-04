@@ -39,8 +39,11 @@ public class StashLinkNeoForgeClient {
         // Ao entrar: esquece os cadeados do servidor anterior; o servidor responde às preferências com os novos.
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> {
             io.github.leoascenci0.stashlink.config.ClientPolicy.reset();
+            BenchClient.reset();
             ClientPrefs.sync();
         });
+        // Ao sair: a lista de armazenamento do servidor anterior não pode sobrar para o próximo.
+        NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> BenchClient.reset());
         ClientFeatures.setLockSender(request -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.getConnection() != null

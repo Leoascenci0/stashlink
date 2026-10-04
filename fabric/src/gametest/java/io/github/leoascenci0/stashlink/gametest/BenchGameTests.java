@@ -988,11 +988,12 @@ public class BenchGameTests {
     // ---- Item 16.3, onda 3 (achados baixos) ----
 
     /** Item 8: clicar de novo na mesma receita não puxa mais nada, e o que foi emprestado volta inteiro ao fechar. */
-    @GameTest(maxTicks = 60)
+    @GameTest(maxTicks = 80)
     public void repeatedClickOnTheSameRecipeNeverStacksOrDuplicates(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(8, 2, 4);
         Lab.fill(chest, 0, Items.DEEPSLATE, 10);
+        Lab.fill(chest, 1, Items.TUFF_BRICKS, 10);
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 8, true);
         StonecutterMenu menu = stonecutter(lab, p, 5);
@@ -1013,13 +1014,20 @@ public class BenchGameTests {
                 BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.DEEPSLATE), true, BenchResults.PLACE));
                 check(h, menu.getSlot(0).getItem().getCount() == 10 && Lab.count(chest, Items.DEEPSLATE) == 0,
                         "slot cheio: pedido repetido não passa do máximo nem duplica");
-                menu.removed(p);
-                p.containerMenu = p.inventoryMenu;
-                BenchSync.tick(lab.level.getServer());
-                check(h, Lab.count(chest, Items.DEEPSLATE) == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
+                h.runAfterDelay(2, () -> {
+                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF_BRICKS), true));
+                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF_BRICKS), true));
+                    check(h, menu.getCarried().getCount() == 1, "dois pedidos no mesmo tick: só um é atendido: " + menu.getCarried());
+                    menu.removed(p);
+                    p.containerMenu = p.inventoryMenu;
+                    BenchSync.tick(lab.level.getServer());
+                    check(h, Lab.count(chest, Items.TUFF_BRICKS) == 10 && Lab.carried(p, Items.TUFF_BRICKS) == 0,
+                            "o item do cursor também volta ao baú: " + Lab.count(chest, Items.TUFF_BRICKS));
+                    check(h, Lab.count(chest, Items.DEEPSLATE) == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
                         "ao fechar volta tudo, sem sobra nem falta: baú=" + Lab.count(chest, Items.DEEPSLATE)
                                 + " mochila=" + Lab.carried(p, Items.DEEPSLATE));
-                clean(lab, h);
+                    clean(lab, h);
+                });
             });
         });
     }

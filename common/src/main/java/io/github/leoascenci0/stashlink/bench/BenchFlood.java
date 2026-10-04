@@ -16,7 +16,8 @@ final class BenchFlood {
     private static final class Window {
         long tick = Long.MIN_VALUE;
         int inTick;
-        long windowStart = Long.MIN_VALUE;
+        boolean started;
+        long windowStart;
         int inWindow;
     }
 
@@ -39,7 +40,8 @@ final class BenchFlood {
             w.tick = now;
             w.inTick = 0;
         }
-        if (now - w.windowStart >= windowTicks || now < w.windowStart) {
+        if (!w.started || now - w.windowStart >= windowTicks || now < w.windowStart) {
+            w.started = true;
             w.windowStart = now;
             w.inWindow = 0;
         }
