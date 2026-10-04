@@ -42,7 +42,7 @@ public final class BenchPullService {
         AbstractContainerMenu menu = player.containerMenu;
         if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu
                 || menu.containerId != request.containerId() || !BenchCompat.isStation(menu)
-                || !menu.stillValid(player) || request.item().isEmpty()) {
+                || !menu.stillValid(player) || request.item().isEmpty() || !BenchResults.validRequestId(request.recipeId())) {
             return;
         }
         if (!FeatureGate.allow(player, Feature.BENCH)) {

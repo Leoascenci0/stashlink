@@ -34,6 +34,8 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -60,6 +62,13 @@ public class StashLinkNeoForge {
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> SlotLockSync.tick(event.getServer()));
         // Bancadas com armazenamento (Item 16): manda ao cliente com o mod o que há por perto.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> BenchSync.tick(event.getServer()));
+        // Sair com a estação aberta (ou parar o servidor) devolve o emprestado ao baú antes do save do jogador.
+        NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent event) -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                BenchSync.release(player);
+            }
+        });
+        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> BenchSync.releaseAll(event.getServer()));
         // Organizar o armazenamento (Item 20): apaga os contornos de destaque vencidos.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> io.github.leoascenci0.stashlink.organize.OrganizeHighlight.tick(event.getServer()));
         // Rótulos de baú (Item 14): mantém os hologramas.

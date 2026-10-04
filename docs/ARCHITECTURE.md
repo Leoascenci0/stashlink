@@ -745,3 +745,21 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Cliente.** `ContainerScreenOrganizeMixin` (botões Organizar e Sistema ao lado do baú; Sistema fecha o baú de verdade antes), `OrganizeScreen` (abas Buscar / Organizar tudo), tecla O. Tudo é só vitrine; o servidor revalida.
 - **Testes.** `OrganizeLogicTest` (12) e `OrganizeGameTests` (24: 2 jogadores, baú duplo, fornalha, filtros, prévia velha, fuzz de 400 ações com soma conferida). Mutação: duplicar, aplicar sem conferir e prévia sem restaurar foram pegos. O fuzz achou um bug (plano esvaziava slot reservado com item diferente da reserva), corrigido.
 - **Limites.** Baú do End e containers de mods que não são baú/barril/shulker não entram. Só Fabric foi exercitado em jogo.
+
+## Item 16.3, onda 2 — achados médios da revisão das bancadas (2026-10-04)
+
+- **Fornalha/suporte de poções:** o que fica nos slots do bloco é do jogador (`BenchCompat.keepsItemsInBlock`); só o cursor ainda é "emprestado". Antes, ao fechar, itens próprios do mesmo tipo iam para o baú.
+- **Receita no pedido:** `recipeId` dos resultados é agora uma chave estável (`BenchResults.key`, hash do item+componentes do ícone), não o índice da lista. Chave que não existe mais → não monta nada e reenvia a lista.
+- **Fechar no mesmo tick de craftar:** `AbstractContainerMenuMixin` chama `BenchLedger.beforeClose` no início de `removed`, com os slots ainda cheios, para refazer a conta antes de assentar.
+- **Salto do ingrediente fantasma (cliente):** só roda com `BenchClient.activeFor(menu)` (função ligada, sem cadeado, mod no servidor). Prova: mixin de cliente, sem GameTest; roteiro manual no relatório da onda.
+
+## Item 16.3, onda 3 — achados baixos da revisão das bancadas (2026-10-04)
+
+- **Pedido repetido (8):** não havia falha real; ficou o teste de regressão (mesmo tick, ticks seguintes, slot cheio, cursor) e a conta de devolução ao fechar. Remover a trava de "1 pedido por tick" faz o teste falhar.
+- **Cursor preso (9):** se o baú de origem enche, `BenchLedger.returnCursor` manda o que não coube para a mochila (nunca some, nunca duplica) em vez de deixar o cursor travado no item antigo.
+- **Anti-flood do livro (10):** `BenchFlood` (4 pedidos por tick, 30 por segundo, por jogador) antes de varrer os baús em `BenchRecipe`. Acima do limite o jogo segue só com a mochila.
+- **Pedido inválido (11):** `BenchResults.validRequestId`: só receita (`>= 0`), `PLACE` e `CURSOR`; `COLOR_PICK` e outros negativos são ignorados.
+- **Desempenho (12):** um clique de receita varre os baús 1 vez (eram 3; `BenchPool.scanCount` prova); o painel acha a cor do tear num mapa montado por lista, não por varredura a cada frame.
+- **API frágil (13):** classes de menu de estação, `DyeColor` e itens de corante só em `compat/mc` (`BenchCompat.Station`, `slotTab`, `placementOrder`; `StationRecipes.dyePicks/applyChoice`). `CompatBoundaryTest` varre `bench/` e `client/Bench*` e falha se algo vazar.
+- **Cliente entre servidores (14):** `BenchClient.reset()` ao entrar e ao sair (Fabric JOIN/DISCONNECT, NeoForge LoggingIn/LoggingOut).
+- **Fechar com a mochila cheia (achado do teste do Eliel):** o jogo devolve a grade com "pôr na mochila" e, sem espaço, dropa no chão. `BenchLedger.beforeClose` agora devolve ao baú, antes do jogo esvaziar a grade, o que ainda é emprestado nos slots da estação (menos fornalha/poções, que ficam no bloco) e no cursor. O slot de resultado nunca conta (`mayPlace`).

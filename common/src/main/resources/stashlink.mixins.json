@@ -4,6 +4,7 @@
   "package": "io.github.leoascenci0.stashlink.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AbstractContainerMenuMixin",
     "BaseContainerBlockEntityMixin",
     "CompoundContainerAccessor",
     "EntityMixin",

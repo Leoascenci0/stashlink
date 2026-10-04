@@ -1,9 +1,12 @@
 package io.github.leoascenci0.stashlink.compat.mc;
 
+import io.netty.buffer.Unpooled;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.StackedItemContents;
@@ -52,11 +55,90 @@ public final class BenchCompat {
      * automático, sem jogador no meio).
      */
     public static boolean isStation(AbstractContainerMenu menu) {
-        return menu instanceof CraftingMenu || menu instanceof AbstractFurnaceMenu
-                || menu instanceof StonecutterMenu || menu instanceof LoomMenu
-                || menu instanceof CartographyTableMenu || menu instanceof GrindstoneMenu
-                || menu instanceof SmithingMenu || menu instanceof AnvilMenu
-                || menu instanceof EnchantmentMenu || menu instanceof BrewingStandMenu;
+        return stationOf(menu) != Station.OTHER;
+    }
+
+    /** Os tipos de estação que o mod conhece; o resto do mod pergunta por aqui e nunca usa as classes de menu do jogo. */
+    public enum Station {
+        CRAFTING, FURNACE, STONECUTTER, LOOM, CARTOGRAPHY, GRINDSTONE, SMITHING, ANVIL, ENCHANTING, BREWING, OTHER
+    }
+
+    public static Station stationOf(AbstractContainerMenu menu) {
+        if (menu instanceof CraftingMenu) {
+            return Station.CRAFTING;
+        } else if (menu instanceof AbstractFurnaceMenu) {
+            return Station.FURNACE;
+        } else if (menu instanceof StonecutterMenu) {
+            return Station.STONECUTTER;
+        } else if (menu instanceof LoomMenu) {
+            return Station.LOOM;
+        } else if (menu instanceof CartographyTableMenu) {
+            return Station.CARTOGRAPHY;
+        } else if (menu instanceof GrindstoneMenu) {
+            return Station.GRINDSTONE;
+        } else if (menu instanceof SmithingMenu) {
+            return Station.SMITHING;
+        } else if (menu instanceof AnvilMenu) {
+            return Station.ANVIL;
+        } else if (menu instanceof EnchantmentMenu) {
+            return Station.ENCHANTING;
+        } else if (menu instanceof BrewingStandMenu) {
+            return Station.BREWING;
+        }
+        return Station.OTHER;
+    }
+
+    /**
+     * Aba de um item solto no painel: na mesa de ferraria, qual slot o aceita (enfeite, equipamento ou minério); no
+     * encantamento, equipamento, livros ou lápis-lazúli; no suporte de poções, garrafas, ingrediente ou combustível;
+     * na bigorna, livros, equipamento ou material de conserto; nas outras, 0.
+     */
+    public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
+        switch (stationOf(menu)) {
+            case SMITHING -> {
+                for (int i = 0; i < 3; i++) {
+                    if (menu.getSlot(i).mayPlace(stack)) {
+                        return i;
+                    }
+                }
+            }
+            case ENCHANTING -> {
+                // O slot 1 só aceita o lápis.
+                if (menu.getSlot(1).mayPlace(stack)) {
+                    return 2;
+                }
+                return stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK) ? 1 : 0;
+            }
+            case BREWING -> {
+                // Do combustível para as garrafas: o pó de blaze serve nos dois, e aqui conta como combustível.
+                for (int i = 4; i >= 0; i--) {
+                    if (menu.getSlot(i).mayPlace(stack)) {
+                        return i < 3 ? 0 : i - 2;
+                    }
+                }
+            }
+            case ANVIL -> {
+                if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) {
+                    return 0;
+                }
+                return stack.isDamageableItem() || stack.isEnchanted() || stack.is(Items.NAME_TAG) ? 1 : 2;
+            }
+            default -> {
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Em que ordem testar os slots ao pôr um item solto: no encantamento o slot do item aceita qualquer coisa, então
+     * o do lápis-lazúli tem que ser testado primeiro.
+     */
+    public static List<Slot> placementOrder(AbstractContainerMenu menu) {
+        List<Slot> order = new ArrayList<>(menu.slots);
+        if (stationOf(menu) == Station.ENCHANTING) {
+            java.util.Collections.reverse(order.subList(0, 2));
+        }
+        return order;
     }
 
     /** Estação que tem livro de receitas (o jogo coloca os ingredientes sozinho). */
@@ -149,9 +231,12 @@ public final class BenchCompat {
      * jogo faz sozinho) ou se nem com o armazenamento dá. Repete a conta de {@code ServerPlaceRecipe}: com
      * {@code useMax} (shift-clique) monta o máximo, senão uma receita.
      */
-    public static Map<Item, Integer> missingIngredients(Inventory inventory, RecipeBookMenu menu,
+    public static Map<Item, Integer> missingIngredients(Inventory inventory, AbstractContainerMenu openMenu,
                                                          List<Slot> inputSlots, RecipeHolder<?> holder,
                                                          boolean useMax, Map<Item, Integer> pool) {
+        if (!(openMenu instanceof RecipeBookMenu menu)) {
+            return Map.of();
+        }
         Recipe<?> recipe = holder.value();
         StackedItemContents have = new StackedItemContents();
         inventory.fillStackedContents(have);
@@ -213,5 +298,32 @@ public final class BenchCompat {
             }
         }
         return total;
+    }
+
+    /** Bytes que o item ocupa num pacote. Sem componentes extras é um valor fixo pequeno (não precisa codificar). */
+    public static int packetSize(Player player, ItemStack stack) {
+        if (stack.getComponentsPatch().isEmpty()) {
+            return 16;
+        }
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.registryAccess());
+        try {
+            ItemStack.STREAM_CODEC.encode(buf, stack);
+            return buf.readableBytes();
+        } finally {
+            buf.release();
+        }
+    }
+
+    /**
+     * Estações em que o que está nos slots <b>fica no bloco</b> ao fechar (fornalhas e suporte de poções): o item
+     * emprestado que ficou lá vira do jogador e não volta ao baú; só o cursor ainda é "emprestado".
+     */
+    public static boolean keepsItemsInBlock(AbstractContainerMenu menu) {
+        return menu instanceof AbstractFurnaceMenu || menu instanceof BrewingStandMenu;
+    }
+
+    /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */
+    public static void closeMenu(ServerPlayer player) {
+        player.doCloseContainer();
     }
 }

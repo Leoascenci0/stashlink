@@ -8,7 +8,9 @@ import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -20,6 +22,8 @@ import java.util.function.Consumer;
 public final class BenchClient {
     private static int poolContainerId = -1;
     private static List<BenchPoolSync.Entry> pool = List.of();
+    /** As cores do tear por id, montadas a cada lista nova (o painel pergunta isto a cada frame). */
+    private static Map<Integer, BenchPoolSync.Entry> colorPicks = Map.of();
     /** Sobe a cada lista nova: o livro de receitas e o painel se recalculam quando mudou. */
     private static int version;
 
@@ -42,7 +46,32 @@ public final class BenchClient {
     public static void apply(BenchPoolSync payload) {
         poolContainerId = payload.containerId();
         pool = List.copyOf(payload.entries());
+        Map<Integer, BenchPoolSync.Entry> picks = new HashMap<>();
+        for (BenchPoolSync.Entry entry : pool) {
+            if (entry.isColorPick()) {
+                picks.putIfAbsent(entry.color(), entry);
+            }
+        }
+        colorPicks = picks;
         version++;
+    }
+
+    /** Saiu do servidor (ou entrou em outro): esquece a lista e a estação da conexão anterior. */
+    public static void reset() {
+        poolContainerId = -1;
+        pool = List.of();
+        colorPicks = Map.of();
+        version++;
+    }
+
+    /** A entrada da cor {@code color} do tear na lista do servidor, ou {@code null}. */
+    public static BenchPoolSync.Entry colorPick(int color) {
+        return colorPicks.get(color);
+    }
+
+    /** Id da estação a que a lista pertence (-1 se nenhuma); para testes. */
+    public static int poolContainerId() {
+        return poolContainerId;
     }
 
     public static int version() {

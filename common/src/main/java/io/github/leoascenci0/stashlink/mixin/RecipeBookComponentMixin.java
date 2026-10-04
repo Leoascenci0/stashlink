@@ -89,7 +89,9 @@ public abstract class RecipeBookComponentMixin {
     private void stashlink$jumpToMissingIngredientRecipe(@Nullable Slot slot, CallbackInfo ci) {
         ItemStack wanted = stashlink$missingIngredient;
         stashlink$missingIngredient = ItemStack.EMPTY;
-        if (wanted.isEmpty() || minecraft.player.getInventory().countItem(wanted.getItem()) > 0
+        // Só com a função ligada, sem cadeado do servidor e com o mod no servidor: senão o "armazenamento" que vimos
+        // é uma lista velha/vazia e o salto levaria a uma receita que o servidor nem ajuda a montar.
+        if (wanted.isEmpty() || !BenchClient.activeFor(menu) || minecraft.player.getInventory().countItem(wanted.getItem()) > 0
                 || BenchClient.poolHas(wanted)) {
             return;
         }

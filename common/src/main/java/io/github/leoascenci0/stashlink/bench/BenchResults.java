@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.bench;
 
+import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
 import io.github.leoascenci0.stashlink.source.ItemSource;
@@ -22,6 +23,14 @@ public final class BenchResults {
     /** {@code recipeId} do pedido: "ponha este item no slot da estação que o aceita" (em vez do cursor). */
     public static final int PLACE = -2;
 
+    /** {@code recipeId} do pedido comum do painel: "ponha um stack deste item no meu cursor". */
+    public static final int CURSOR = -1;
+
+    /** Só estes {@code recipeId} chegam do cliente de verdade ({@code >= 0} é uma receita); o resto é ignorado. */
+    public static boolean validRequestId(int recipeId) {
+        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR;
+    }
+
     private BenchResults() {
     }
 
@@ -31,69 +40,52 @@ public final class BenchResults {
 
     /** Os resultados conhecidos: os possíveis primeiro, depois os que faltam material (vermelho). */
     public static List<BenchPoolSync.Entry> list(ServerPlayer player) {
-        List<ItemStack> have = available(player);
+        List<ItemStack> have = available(player, BenchPool.of(player).contents());
         List<StationRecipes.Option> options = StationRecipes.options(player, player.containerMenu, have);
         List<BenchPoolSync.Entry> ok = new ArrayList<>();
         List<BenchPoolSync.Entry> missing = new ArrayList<>();
         List<BenchPoolSync.Entry> colors = new ArrayList<>();
-        if (player.containerMenu instanceof net.minecraft.world.inventory.LoomMenu) {
-            // Aba "Cores": uma entrada por cor de corante conhecida (vermelha se não há corante dela agora).
-            for (net.minecraft.world.item.DyeColor color : StationRecipes.knownDyeColors(player, have)) {
-                ItemStack dye = new ItemStack(net.minecraft.world.item.Items.DYE.pick(color));
-                boolean has = have.stream().anyMatch(s -> s.is(dye.getItem()));
-                colors.add(new BenchPoolSync.Entry(dye, 0, BenchPoolSync.Entry.COLOR_PICK, !has, 0, color.getId()));
-            }
+        // Aba "Cores" (tear): uma entrada por cor de corante conhecida (vermelha se não há corante dela agora).
+        for (StationRecipes.DyePick pick : StationRecipes.dyePicks(player, player.containerMenu, have)) {
+            colors.add(new BenchPoolSync.Entry(pick.dye(), 0, BenchPoolSync.Entry.COLOR_PICK, !pick.has(), 0, pick.color()));
         }
+        java.util.Set<Integer> seenOk = new java.util.HashSet<>();
+        java.util.Set<Integer> seenMissing = new java.util.HashSet<>();
         for (int i = 0; i < options.size() && ok.size() + missing.size() < BenchPoolSync.MAX_ENTRIES; i++) {
             StationRecipes.Option option = options.get(i);
             boolean can = option.needs().stream().allMatch(need -> have.stream().anyMatch(need));
-            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, i, !can, option.tab(), -1));
+            int key = key(option);
+            // O mesmo resultado pode sair de mais de uma pedra (ex.: ardósia abissal talhada). Uma entrada só: a possível
+            // vence a que falta material, e entre iguais fica a primeira.
+            if (can ? !seenOk.add(key) : !seenMissing.add(key)) {
+                continue;
+            }
+            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, key, !can, option.tab(), -1));
         }
+        missing.removeIf(entry -> seenOk.contains(entry.id()));
         colors.addAll(ok);
         colors.addAll(missing);
         return colors;
     }
 
-    /** Aba de um item solto: na mesa de ferraria, qual slot o aceita (enfeite, equipamento ou minério); nas outras, 0. */
-    public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
-        if (menu instanceof net.minecraft.world.inventory.SmithingMenu) {
-            for (int i = 0; i < 3; i++) {
-                if (menu.getSlot(i).mayPlace(stack)) {
-                    return i;
-                }
-            }
-        }
-        if (menu instanceof net.minecraft.world.inventory.EnchantmentMenu) {
-            // Encantamento: equipamento, livros ou lápis-lazúli (o slot 1 só aceita o lápis).
-            if (menu.getSlot(1).mayPlace(stack)) {
-                return 2;
-            }
-            return stack.is(net.minecraft.world.item.Items.BOOK) || stack.is(net.minecraft.world.item.Items.ENCHANTED_BOOK) ? 1 : 0;
-        }
-        if (menu instanceof net.minecraft.world.inventory.BrewingStandMenu) {
-            // Suporte de poções: garrafas (slots 0-2), ingrediente (3) ou combustível (4).
-            // Do combustível para as garrafas: o pó de blaze serve nos dois, e aqui conta como combustível.
-            for (int i = 4; i >= 0; i--) {
-                if (menu.getSlot(i).mayPlace(stack)) {
-                    return i < 3 ? 0 : i - 2;
-                }
-            }
-            return 0;
-        }
-        if (menu instanceof net.minecraft.world.inventory.AnvilMenu) {
-            // Bigorna: livros, equipamento (ferramenta, armadura, arma... o que tem durabilidade ou encantamento) e o resto (material de conserto).
-            if (stack.is(net.minecraft.world.item.Items.ENCHANTED_BOOK) || stack.is(net.minecraft.world.item.Items.BOOK)) {
-                return 0;
-            }
-            return stack.isDamageableItem() || stack.isEnchanted() || stack.is(net.minecraft.world.item.Items.NAME_TAG) ? 1 : 2;
-        }
-        return 0;
+    /**
+     * Identidade estável de uma receita no pedido: o que ela produz (item + componentes), não a posição na lista. A
+     * lista é refeita a cada clique e o snapshot do cliente chega a 5 s atrasado, então um índice podia apontar para
+     * outra receita. Sempre {@code >= 0} (os negativos têm significado próprio).
+     */
+    static int key(StationRecipes.Option option) {
+        return ItemStack.hashItemAndComponents(option.icon()) & Integer.MAX_VALUE;
     }
 
-    /** O que o jogador tem à mão para esta estação: armazenamento do raio e mochila. */
-    private static List<ItemStack> available(ServerPlayer player) {
+    /** Aba de um item solto (ver {@link BenchCompat#slotTab}). */
+    public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
+        return BenchCompat.slotTab(menu, stack);
+    }
+
+    /** O que o jogador tem à mão para esta estação: o armazenamento já varrido ({@code stored}) e a mochila. */
+    private static List<ItemStack> available(ServerPlayer player, List<BenchPool.Stack> stored) {
         List<ItemStack> have = new ArrayList<>();
-        for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
+        for (BenchPool.Stack stack : stored) {
             have.add(stack.item());
         }
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
@@ -104,20 +96,34 @@ public final class BenchResults {
         return have;
     }
 
-    /** Monta a receita {@code id}: põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
+    /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
     public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice) {
-        List<StationRecipes.Option> options = StationRecipes.options(player, menu, available(player));
-        if (id < 0 || id >= options.size()) {
+        // Uma varredura só por clique: o pool, a lista do que há e o que sai dos baús vêm todos da mesma passada.
+        BenchPool pool = BenchPool.of(player);
+        List<BenchPool.Stack> stored = pool.contents();
+        List<ItemStack> have = available(player, stored);
+        List<StationRecipes.Option> options = StationRecipes.options(player, menu, have);
+        StationRecipes.Option option = null;
+        for (StationRecipes.Option candidate : options) {
+            if (key(candidate) != id) {
+                continue;
+            }
+            // Mesmo resultado de várias pedras: usa a que tem material agora (a lista mostra uma só entrada por resultado).
+            boolean can = candidate.needs().stream().allMatch(need -> have.stream().anyMatch(need));
+            if (option == null || can) {
+                option = candidate;
+            }
+            if (can) {
+                break;
+            }
+        }
+        if (option == null) {
+            BenchSync.markDirty(player);   // a lista mudou desde o snapshot do cliente: manda a nova e não monta nada
             return;
         }
-        StationRecipes.Option option = options.get(id);
         List<java.util.function.Predicate<ItemStack>> needs = new ArrayList<>(option.needs());
-        if (menu instanceof net.minecraft.world.inventory.LoomMenu && StationRecipes.isDye(choice)) {
-            needs.set(1, s -> s.is(choice.getItem()));   // o corante da cor que o jogador escolheu no painel
-        }
-        BenchPool pool = BenchPool.of(player);
+        StationRecipes.applyChoice(menu, needs, choice);   // tear: o corante da cor escolhida no painel
         // Primeiro confere que dá para montar tudo: nunca deixa a estação pela metade.
-        List<ItemStack> have = available(player);
         for (int i = 0; i < option.slots().length; i++) {
             Slot slot = menu.getSlot(option.slots()[i]);
             if (slot.hasItem() ? !needs.get(i).test(slot.getItem()) : have.stream().noneMatch(needs.get(i))) {
@@ -130,7 +136,7 @@ public final class BenchResults {
             if (slot.hasItem()) {
                 continue;   // já tem um item que serve (talvez de uma receita anterior)
             }
-            if (!fillSlot(player, pool, slot, needs.get(i))) {
+            if (!fillSlot(player, pool, stored, slot, needs.get(i))) {
                 BenchSync.markDirty(player);
                 return;
             }
@@ -141,8 +147,9 @@ public final class BenchResults {
     }
 
     /** Põe em {@code slot} um item que satisfaz {@code need}: do armazenamento, ou da mochila se não houver lá. */
-    private static boolean fillSlot(ServerPlayer player, BenchPool pool, Slot slot, java.util.function.Predicate<ItemStack> need) {
-        for (BenchPool.Stack stack : pool.contents()) {
+    private static boolean fillSlot(ServerPlayer player, BenchPool pool, List<BenchPool.Stack> stored, Slot slot,
+                                    java.util.function.Predicate<ItemStack> need) {
+        for (BenchPool.Stack stack : stored) {
             ItemStack model = stack.item();
             if (need.test(model) && slot.mayPlace(model)) {
                 int want = Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model));
@@ -177,12 +184,7 @@ public final class BenchResults {
     public static void place(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested, boolean one) {
         ItemStack model = requested.copyWithCount(1);
         BenchPool pool = BenchPool.of(player);
-        List<Slot> order = new ArrayList<>(menu.slots);
-        if (menu instanceof net.minecraft.world.inventory.EnchantmentMenu) {
-            // O slot do item do encantamento aceita qualquer coisa: o lápis-lazúli tem que testar o slot dele primeiro.
-            java.util.Collections.reverse(order.subList(0, 2));
-        }
-        for (Slot slot : order) {
+        for (Slot slot : BenchCompat.placementOrder(menu)) {
             if (slot.container == player.getInventory() || !slot.mayPlace(model)) {
                 continue;
             }

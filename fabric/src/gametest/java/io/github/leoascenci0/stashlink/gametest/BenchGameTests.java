@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.gametest;
 
 import io.github.leoascenci0.stashlink.bench.BenchPullService;
+import io.github.leoascenci0.stashlink.bench.BenchResults;
 import io.github.leoascenci0.stashlink.bench.BenchSync;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
@@ -65,6 +66,14 @@ public class BenchGameTests {
     private static RecipeHolder<?> recipe(ServerLevel level, String path) {
         return level.recipeAccess().byKey(ResourceKey.create(Registries.RECIPE, Identifier.withDefaultNamespace(path)))
                 .orElseThrow(() -> new IllegalStateException("receita não achada: " + path));
+    }
+
+    /** Cortador de pedra de verdade (bloco no mundo): ao fechar, o jogo devolve a entrada à mochila. */
+    private static StonecutterMenu stonecutter(Lab lab, ServerPlayer p, int id) {
+        StonecutterMenu menu = new StonecutterMenu(id, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.STONECUTTER, p.blockPosition().below())));
+        p.containerMenu = menu;
+        return menu;
     }
 
     /** Bancada de verdade (bloco no mundo), para o menu poder devolver a grade ao fechar e ficar válido por perto. */
@@ -359,6 +368,59 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Relato do Eliel: a ardósia abissal talhada aparecia duas vezes no cortador (sai de mais de uma pedra). */
+    @GameTest
+    public void stonecutterListsEachResultOnlyOnce(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.COBBLED_DEEPSLATE, 10);
+        Lab.fill(chest, 1, Items.POLISHED_DEEPSLATE, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        for (Item item : new Item[]{Items.COBBLED_DEEPSLATE, Items.POLISHED_DEEPSLATE, Items.CHISELED_DEEPSLATE}) {
+            p.getStats().setValue(p, net.minecraft.stats.Stats.ITEM_PICKED_UP.get(item), 1);
+        }
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        for (int i = 0; i < list.size(); i++) {
+            for (int j = i + 1; j < list.size(); j++) {
+                check(h, !net.minecraft.world.item.ItemStack.isSameItemSameComponents(list.get(i).item(), list.get(j).item()),
+                        "resultado repetido na lista: " + list.get(i).item());
+            }
+        }
+        BenchPoolSync.Entry chiseled = list.stream().filter(e -> e.item().is(Items.CHISELED_DEEPSLATE)).findFirst().orElse(null);
+        check(h, chiseled != null && !chiseled.missing(), "a ardósia talhada aparece, e é possível");
+        BenchPullService.handle(p, new BenchPullRequest(5, chiseled.item(), false, chiseled.id()));
+        check(h, !menu.getSlot(0).getItem().isEmpty() && !menu.getSlot(1).getItem().isEmpty(),
+                "o clique monta a receita mesmo com duas pedras de origem");
+        clean(lab, h);
+    }
+
+    /** Defumador só aceita comida e alto-forno só minério/metal, mas os dois queimam combustível como a fornalha. */
+    @GameTest
+    public void smokerAndBlastFurnacePanelsListFoodOreAndFuel(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.COAL, 4);
+        Lab.fill(chest, 1, Items.RAW_IRON, 4);
+        Lab.fill(chest, 2, Items.PORKCHOP, 4);
+        Lab.fill(chest, 3, Items.COBBLESTONE, 4);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+
+        p.containerMenu = new net.minecraft.world.inventory.SmokerMenu(2, p.getInventory());
+        List<Item> smoker = items(BenchSync.snapshot(p));
+        check(h, smoker.contains(Items.PORKCHOP) && smoker.contains(Items.COAL) && !smoker.contains(Items.RAW_IRON)
+                && !smoker.contains(Items.COBBLESTONE), "defumador: comida e combustível: " + smoker);
+
+        p.containerMenu = new net.minecraft.world.inventory.BlastFurnaceMenu(3, p.getInventory());
+        List<Item> blast = items(BenchSync.snapshot(p));
+        check(h, blast.contains(Items.RAW_IRON) && blast.contains(Items.COAL) && !blast.contains(Items.PORKCHOP)
+                && !blast.contains(Items.COBBLESTONE), "alto-forno: minério e combustível: " + blast);
+        clean(lab, h);
+    }
+
     private static List<Item> items(List<BenchPoolSync.Entry> entries) {
         List<Item> out = new ArrayList<>();
         for (BenchPoolSync.Entry e : entries) {
@@ -551,6 +613,90 @@ public class BenchGameTests {
         check(h, Lab.count(chest, Items.MANGROVE_PLANKS) == 5 && Lab.carried(p, Items.MANGROVE_PLANKS) == 0,
                 "tudo devia estar de volta no baú: baú=" + Lab.count(chest, Items.MANGROVE_PLANKS)
                         + " mochila=" + Lab.carried(p, Items.MANGROVE_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Desconectar (ou parar o servidor) com a bancada aberta: o emprestado volta ao baú ANTES de o jogador ser salvo. */
+    @GameTest
+    public void disconnectWithBorrowedItemsReturnsThemToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.WARPED_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.WARPED_PLANKS) == 3, "saíram 2 tábuas do baú");
+
+        BenchSync.release(p);                                // o ponto que o logout e a parada do servidor chamam
+        check(h, p.containerMenu == p.inventoryMenu, "a estação devia ter sido fechada");
+        check(h, Lab.count(chest, Items.WARPED_PLANKS) == 5 && Lab.carried(p, Items.WARPED_PLANKS) == 0,
+                "tudo devia estar de volta no baú antes do save: baú=" + Lab.count(chest, Items.WARPED_PLANKS)
+                        + " jogador=" + Lab.carried(p, Items.WARPED_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Caminho real: o Esc fecha a bancada e, antes de o servidor rodar um tick (jogo pausado), o jogador sai do mundo. */
+    @GameTest
+    public void disconnectRightAfterClosingTheBenchStillReturnsTheItems(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.CRIMSON_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 3, "saíram 2 tábuas do baú");
+
+        p.doCloseContainer();                                // o pacote de fechar do cliente: o emprestado já volta ao baú na hora
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 5 && Lab.carried(p, Items.CRIMSON_PLANKS) == 0,
+                "ao fechar, as 2 tábuas já estão no baú: baú=" + Lab.count(chest, Items.CRIMSON_PLANKS));
+        System.gc();
+        BenchSync.release(p);                                // logout, sem nenhum tick entre os dois
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 5 && Lab.carried(p, Items.CRIMSON_PLANKS) == 0,
+                "tudo devia estar de volta no baú: baú=" + Lab.count(chest, Items.CRIMSON_PLANKS)
+                        + " jogador=" + Lab.carried(p, Items.CRIMSON_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Muitas shulkers cheias e diferentes: o pacote da lista nunca passa do limite do protocolo (1 MiB), senão derruba o cliente. */
+    @GameTest
+    public void hugeSnapshotStaysUnderThePacketLimit(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        for (int c = 0; c < 4; c++) {          // 4 baús x 27 shulkers: ~1,4 MB se fosse tudo no pacote
+        Container chest = lab.chest(2, 2, 2 + c);
+        for (int i = 0; i < 27; i++) {
+            List<ItemStack> mid = new ArrayList<>();
+            for (int j = 0; j < 27; j++) {
+                List<ItemStack> inner = new ArrayList<>();
+                for (int k = 0; k < 27; k++) {
+                    ItemStack named = new ItemStack(Items.STONE_BUTTON);
+                    named.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                            net.minecraft.network.chat.Component.literal("n" + c + "_" + i + "_" + j + "_" + k));
+                    inner.add(named);
+                }
+                ItemStack box = new ItemStack(Items.SHULKER_BOX);
+                box.set(net.minecraft.core.component.DataComponents.CONTAINER,
+                        net.minecraft.world.item.component.ItemContainerContents.fromItems(inner));
+                mid.add(box);
+            }
+            ItemStack top = new ItemStack(Items.SHULKER_BOX);
+            top.set(net.minecraft.core.component.DataComponents.CONTAINER,
+                    net.minecraft.world.item.component.ItemContainerContents.fromItems(mid));
+            chest.setItem(i, top);
+        }
+        }
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        net.minecraft.network.RegistryFriendlyByteBuf buf =
+                new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), p.registryAccess());
+        BenchPoolSync.STREAM_CODEC.encode(buf, new BenchPoolSync(menu.containerId, list));
+        int size = buf.readableBytes();
+        check(h, !list.isEmpty(), "a lista não pode vir vazia");
+        check(h, size < 1_000_000, "o pacote passou do limite do protocolo: " + size + " bytes");
         clean(lab, h);
     }
 
@@ -782,6 +928,291 @@ public class BenchGameTests {
             check(h, sameContents(before.get(i), contents(stations.get(i))),
                     "a estação #" + i + " foi tocada: antes=" + before.get(i) + " depois=" + contents(stations.get(i)));
         }
+        clean(lab, h);
+    }
+
+    /**
+     * Fornalha: o emprestado que ficou no bloco é do jogador. Ao fechar, as lenhas PRÓPRIAS da mochila não podem ir
+     * para o baú (troca de dono); o que ainda estava no cursor ao fechar continua voltando ao baú.
+     */
+    @GameTest
+    public void furnaceKeepsBorrowedItemAndNeverTakesTheOwnersOwn(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.JUNGLE_LOG, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.getInventory().add(new ItemStack(Items.JUNGLE_LOG, 20));
+        FurnaceMenu furnace = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = furnace;
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.JUNGLE_LOG), false, -2));   // painel: pôr na entrada
+        check(h, furnace.getSlot(0).getItem().is(Items.JUNGLE_LOG) && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "a lenha emprestada foi para a entrada: " + furnace.getSlot(0).getItem());
+        furnace.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.JUNGLE_LOG) == 20 && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "as 20 lenhas próprias ficam com o jogador e o baú não ganha nada: mochila=" + Lab.carried(p, Items.JUNGLE_LOG)
+                        + " baú=" + Lab.count(chest, Items.JUNGLE_LOG));
+        check(h, furnace.getSlot(0).getItem().getCount() == 5, "o emprestado ficou na fornalha");
+        clean(lab, h);
+    }
+
+    /** Fornalha, item ainda no cursor ao fechar: esse nunca foi para o bloco, então volta ao baú. */
+    @GameTest
+    public void furnaceCursorItemStillReturnsToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.ACACIA_LOG, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.getInventory().add(new ItemStack(Items.ACACIA_LOG, 20));
+        FurnaceMenu furnace = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = furnace;
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.ACACIA_LOG), false));   // painel: pega no cursor
+        check(h, furnace.getCarried().is(Items.ACACIA_LOG), "a lenha foi para o cursor");
+        furnace.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.ACACIA_LOG) == 20 && Lab.count(chest, Items.ACACIA_LOG) == 5,
+                "o cursor volta ao baú e as 20 próprias ficam: mochila=" + Lab.carried(p, Items.ACACIA_LOG)
+                        + " baú=" + Lab.count(chest, Items.ACACIA_LOG));
+        clean(lab, h);
+    }
+
+    /** O snapshot do cliente pode estar velho: o pedido carrega a identidade da receita, não a posição na lista. */
+    @GameTest
+    public void staleRecipeListNeverBuildsTheWrongRecipe(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, TUFF, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+
+        List<BenchPoolSync.Entry> stale = BenchSync.snapshot(p);                    // o que o cliente tem
+        BenchPoolSync.Entry wanted = stale.stream().filter(e -> e.isResult() && !e.missing())
+                .reduce((a, b) -> b).orElseThrow();                                 // o último possível
+        Lab.fill(chest, 1, Items.BLACKSTONE, 10);                                   // a lista muda antes do clique
+        Lab.fill(chest, 2, Items.GRANITE, 10);
+        Lab.fill(chest, 3, Items.ANDESITE, 10);
+
+        BenchPullService.handle(p, new BenchPullRequest(5, wanted.item(), false, wanted.id()));
+        check(h, menu.getSlot(0).getItem().is(TUFF), "a entrada é a da receita pedida, não a de outra: " + menu.getSlot(0).getItem());
+        check(h, menu.getSlot(1).getItem().is(wanted.item().getItem()),
+                "o resultado é o pedido: " + menu.getSlot(1).getItem() + " esperado " + wanted.item());
+
+        // Receita que sumiu da lista (ninguém tem mais material nem conhece): não monta nada.
+        menu.removed(p);
+        p.containerMenu = new StonecutterMenu(6, p.getInventory());
+        chest.clearContent();
+        BenchPullService.handle(p, new BenchPullRequest(6, wanted.item(), false, wanted.id()));
+        check(h, p.containerMenu.getSlot(0).getItem().isEmpty(), "receita que sumiu não monta nada");
+        clean(lab, h);
+    }
+
+    /** Craftar e fechar no mesmo tick: o caderno refaz a conta antes de assentar e nunca leva item próprio ao baú. */
+    @GameTest
+    public void craftAndCloseInTheSameTickNeverTakesOwnItems(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.CRIMSON_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);                      // 2 tábuas do baú vão para a grade
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 3, "saíram 2 tábuas");
+
+        for (int i = 1; i <= 9; i++) {                       // o jogador craftou: a grade foi gasta...
+            menu.slots.get(i).set(ItemStack.EMPTY);
+        }
+        p.getInventory().add(new ItemStack(Items.CRIMSON_PLANKS, 5));   // ...e ele já tinha 5 tábuas próprias
+        menu.removed(p);                                     // ...e fechou antes do próximo tick
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.CRIMSON_PLANKS) == 5 && Lab.count(chest, Items.CRIMSON_PLANKS) == 3,
+                "as 5 próprias ficam e o baú segue com 3: mochila=" + Lab.carried(p, Items.CRIMSON_PLANKS)
+                        + " baú=" + Lab.count(chest, Items.CRIMSON_PLANKS));
+        clean(lab, h);
+    }
+
+    // ---- Item 16.3, onda 3 (achados baixos) ----
+
+    /** Item 8: clicar de novo na mesma receita não puxa mais nada, e o que foi emprestado volta inteiro ao fechar. */
+    @GameTest(maxTicks = 80)
+    public void repeatedClickOnTheSameRecipeNeverStacksOrDuplicates(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.DEEPSLATE, 10);
+        Lab.fill(chest, 1, Items.TUFF_BRICKS, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = stonecutter(lab, p, 5);
+        BenchPoolSync.Entry wanted = BenchSync.snapshot(p).stream().filter(e -> e.isResult() && !e.missing())
+                .findFirst().orElseThrow();
+        BenchPullRequest click = new BenchPullRequest(5, wanted.item(), false, wanted.id());
+
+        BenchPullService.handle(p, click);
+        BenchPullService.handle(p, click);                   // no mesmo tick: o servidor só atende um
+        check(h, menu.getSlot(0).getItem().is(Items.DEEPSLATE) && menu.getSlot(0).getItem().getCount() == 10
+                && Lab.count(chest, Items.DEEPSLATE) == 0, "uma montagem só: slot=" + menu.getSlot(0).getItem());
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, click);               // ticks seguintes: já está montada, nada novo sai
+            check(h, menu.getSlot(0).getItem().getCount() == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
+                    "montar de novo não acumula: " + menu.getSlot(0).getItem());
+            h.runAfterDelay(2, () -> {
+                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.DEEPSLATE), true, BenchResults.PLACE));
+                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.DEEPSLATE), true, BenchResults.PLACE));
+                check(h, menu.getSlot(0).getItem().getCount() == 10 && Lab.count(chest, Items.DEEPSLATE) == 0,
+                        "slot cheio: pedido repetido não passa do máximo nem duplica");
+                h.runAfterDelay(2, () -> {
+                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF_BRICKS), true));
+                    BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF_BRICKS), true));
+                    check(h, menu.getCarried().getCount() == 1, "dois pedidos no mesmo tick: só um é atendido: " + menu.getCarried());
+                    menu.removed(p);
+                    p.containerMenu = p.inventoryMenu;
+                    BenchSync.tick(lab.level.getServer());
+                    check(h, Lab.count(chest, Items.TUFF_BRICKS) == 10 && Lab.carried(p, Items.TUFF_BRICKS) == 0,
+                            "o item do cursor também volta ao baú: " + Lab.count(chest, Items.TUFF_BRICKS));
+                    check(h, Lab.count(chest, Items.DEEPSLATE) == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
+                        "ao fechar volta tudo, sem sobra nem falta: baú=" + Lab.count(chest, Items.DEEPSLATE)
+                                + " mochila=" + Lab.carried(p, Items.DEEPSLATE));
+                    clean(lab, h);
+                });
+            });
+        });
+    }
+
+    /** Item 9: baú de origem cheio na hora de devolver: o item do cursor não fica preso, vai para a mochila. */
+    @GameTest(maxTicks = 60)
+    public void fullChestNeverLeavesTheCursorStuck(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.TUFF, 64);
+        Lab.fill(chest, 1, Items.CALCITE, 64);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+
+        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF), false));
+        check(h, menu.getCarried().is(Items.TUFF) && menu.getCarried().getCount() == 64, "tufo no cursor");
+        for (int i = 0; i < chest.getContainerSize(); i++) {          // enche o baú: não sobra espaço para devolver
+            if (chest.getItem(i).isEmpty()) {
+                Lab.fill(chest, i, Items.DIRT, 64);
+            }
+        }
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.CALCITE), false));
+            check(h, menu.getCarried().is(Items.CALCITE) && menu.getCarried().getCount() == 64,
+                    "o cursor devia trocar para calcita, não ficar preso no tufo: " + menu.getCarried());
+            check(h, Lab.carried(p, Items.TUFF) == 64 && Lab.count(chest, Items.TUFF) == 0,
+                    "o tufo que não coube no baú foi para a mochila, sem sumir: " + Lab.carried(p, Items.TUFF));
+            clean(lab, h);
+        });
+    }
+
+    /** Item 10: o livro de receitas não atende rajada de pedidos no mesmo tick (cada um varreria os baús). */
+    @GameTest
+    public void recipeBookFloodIsCappedPerTick(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.PALE_OAK_PLANKS, 5);
+        Lab.fill(chest, 1, Items.IRON_INGOT, 1);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+
+        place(p, menu, "stick", false);
+        place(p, menu, "iron_nugget", false);
+        place(p, menu, "stick", false);
+        place(p, menu, "iron_nugget", false);                // 4 pedidos no tick: o limite
+        int planksBefore = Lab.count(chest, Items.PALE_OAK_PLANKS);
+        int ingotsBefore = Lab.count(chest, Items.IRON_INGOT);
+        place(p, menu, "stick", false);                      // o 5º no mesmo tick é barrado
+        check(h, Lab.count(chest, Items.PALE_OAK_PLANKS) == planksBefore && Lab.count(chest, Items.IRON_INGOT) == ingotsBefore,
+                "o 5o pedido do tick não pode mexer nos baús: tábuas=" + Lab.count(chest, Items.PALE_OAK_PLANKS));
+        check(h, Lab.count(chest, Items.PALE_OAK_PLANKS) + grid(menu, Items.PALE_OAK_PLANKS) + Lab.carried(p, Items.PALE_OAK_PLANKS) == 5
+                        && Lab.count(chest, Items.IRON_INGOT) + grid(menu, Items.IRON_INGOT) + Lab.carried(p, Items.IRON_INGOT) == 1,
+                "nada some nem duplica");
+        clean(lab, h);
+    }
+
+    /** Item 11: o servidor só aceita os tipos de pedido que o cliente de verdade manda; o resto é ignorado. */
+    @GameTest
+    public void invalidRecipeIdsAreIgnored(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.BASALT, 64);
+        int[] bad = {BenchPoolSync.Entry.COLOR_PICK, -4, -999, Integer.MIN_VALUE};
+        for (int i = 0; i < bad.length; i++) {
+            ServerPlayer p = lab.player(4, 2, 4);
+            Lab.prefs(p, 8, true);
+            StonecutterMenu menu = new StonecutterMenu(10 + i, p.getInventory());
+            p.containerMenu = menu;
+            BenchPullService.handle(p, new BenchPullRequest(10 + i, new ItemStack(Items.BASALT), false, bad[i]));
+            check(h, menu.getCarried().isEmpty() && Lab.count(chest, Items.BASALT) == 64,
+                    "recipeId " + bad[i] + " devia ser ignorado: cursor=" + menu.getCarried());
+        }
+        ServerPlayer ok = lab.player(4, 2, 4);              // o pedido normal do cursor (-1) continua valendo
+        Lab.prefs(ok, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(20, ok.getInventory());
+        ok.containerMenu = menu;
+        BenchPullService.handle(ok, new BenchPullRequest(20, new ItemStack(Items.BASALT), false));
+        check(h, menu.getCarried().is(Items.BASALT) && menu.getCarried().getCount() == 64, "pedido normal segue funcionando");
+        clean(lab, h);
+    }
+
+    /** Item 12: um clique de receita varre os baús uma vez só (antes eram três varreduras). */
+    @GameTest
+    public void oneRecipeClickScansTheChestsOnce(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.PURPUR_BLOCK, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        BenchPoolSync.Entry wanted = BenchSync.snapshot(p).stream().filter(e -> e.isResult() && !e.missing())
+                .findFirst().orElseThrow();
+        int before = io.github.leoascenci0.stashlink.bench.BenchPool.scanCount();
+        BenchPullService.handle(p, new BenchPullRequest(5, wanted.item(), false, wanted.id()));
+        int scans = io.github.leoascenci0.stashlink.bench.BenchPool.scanCount() - before;
+        check(h, menu.getSlot(0).getItem().is(Items.PURPUR_BLOCK), "a receita foi montada");
+        check(h, scans == 1, "um clique devia varrer os baús 1 vez, varreu " + scans);
+        clean(lab, h);
+    }
+
+    /** Fechar com a mochila CHEIA: o jogo não tem onde pôr a grade e dropava; o emprestado volta ao baú antes disso. */
+    @GameTest
+    public void closingWithFullBagReturnsBorrowedGridToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.JUNGLE_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 3 && grid(menu, Items.JUNGLE_PLANKS) == 2, "2 saíram para a grade");
+        var bag = p.getInventory().getNonEquipmentItems();
+        for (int i = 0; i < bag.size(); i++) {
+            if (bag.get(i).isEmpty()) {
+                bag.set(i, new ItemStack(Items.DIRT, 64));
+            }
+        }
+        int dropsBefore = lab.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(p.blockPosition()).inflate(6)).size();
+        menu.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        int dropsAfter = lab.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(p.blockPosition()).inflate(6)).size();
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 5 && Lab.carried(p, Items.JUNGLE_PLANKS) == 0,
+                "as 5 voltam ao baú: baú=" + Lab.count(chest, Items.JUNGLE_PLANKS) + " mochila=" + Lab.carried(p, Items.JUNGLE_PLANKS));
+        check(h, dropsAfter == dropsBefore, "nada dropado no chão: " + (dropsAfter - dropsBefore));
         clean(lab, h);
     }
 

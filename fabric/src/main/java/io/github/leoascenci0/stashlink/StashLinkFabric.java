@@ -30,7 +30,9 @@ import io.github.leoascenci0.stashlink.refill.RefillService;
 import io.github.leoascenci0.stashlink.config.StashLinkCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
@@ -81,6 +83,10 @@ public class StashLinkFabric implements ModInitializer {
 
         // Bancadas com armazenamento (Item 16): o servidor manda o que há por perto; o cliente pede um item ao cursor.
         ServerTickEvents.END_SERVER_TICK.register(BenchSync::tick);
+        // Sair com a estação aberta (ou parar o servidor) devolve o emprestado ao baú antes do save do jogador.
+        // (LEAVE roda na thread do servidor, no começo de PlayerList.remove, antes do save; o DISCONNECT de rede roda fora dela.)
+        ServerPlayerEvents.LEAVE.register(BenchSync::release);
+        ServerLifecycleEvents.SERVER_STOPPING.register(BenchSync::releaseAll);
         PayloadTypeRegistry.clientboundPlay().register(BenchPoolSync.TYPE, BenchPoolSync.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(BenchPullRequest.TYPE, BenchPullRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(BenchPullRequest.TYPE,
