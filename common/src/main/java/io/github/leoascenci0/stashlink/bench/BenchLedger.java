@@ -81,6 +81,18 @@ public final class BenchLedger {
         Entry entry = LEDGER.get(player);
         if (entry != null && entry.menu() == menu) {
             reconcile(player, entry);
+            // O jogo devolve a grade com "pôr na mochila"; com a mochila cheia ele dropa no chão. Por isso o que ainda
+            // é emprestado volta ao baú AGORA, antes de ele esvaziar a grade. Fornalha/poções ficam no bloco.
+            if (!BenchCompat.keepsItemsInBlock(menu)) {
+                List<Slot> station = new java.util.ArrayList<>();
+                for (Slot slot : menu.slots) {
+                    if (slot.container != player.getInventory()) {
+                        station.add(slot);
+                    }
+                }
+                returnFromGrid(player, station);
+            }
+            returnCursor(player);
         }
     }
 
@@ -132,8 +144,8 @@ public final class BenchLedger {
                     break;
                 }
                 ItemStack stack = slot.getItem();
-                if (!stack.is(e.getKey()) || !BenchCompat.usableForCrafting(stack)) {
-                    continue;
+                if (!stack.is(e.getKey()) || !BenchCompat.usableForCrafting(stack) || !slot.mayPlace(stack)) {
+                    continue;   // mayPlace: o slot de resultado nunca é devolução
                 }
                 int move = Math.min(stack.getCount(), left);
                 ItemStack out = stack.copyWithCount(move);

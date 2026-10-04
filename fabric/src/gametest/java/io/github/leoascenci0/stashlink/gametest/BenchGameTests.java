@@ -595,8 +595,9 @@ public class BenchGameTests {
         place(p, menu, "stick", false);
         check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 3, "saíram 2 tábuas do baú");
 
-        p.doCloseContainer();                                // o pacote de fechar do cliente: a grade vai para a mochila
-        check(h, Lab.carried(p, Items.CRIMSON_PLANKS) == 2, "a mochila devia ter as 2 tábuas: " + Lab.carried(p, Items.CRIMSON_PLANKS));
+        p.doCloseContainer();                                // o pacote de fechar do cliente: o emprestado já volta ao baú na hora
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 5 && Lab.carried(p, Items.CRIMSON_PLANKS) == 0,
+                "ao fechar, as 2 tábuas já estão no baú: baú=" + Lab.count(chest, Items.CRIMSON_PLANKS));
         System.gc();
         BenchSync.release(p);                                // logout, sem nenhum tick entre os dois
         check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 5 && Lab.carried(p, Items.CRIMSON_PLANKS) == 0,
@@ -1129,6 +1130,36 @@ public class BenchGameTests {
         int scans = io.github.leoascenci0.stashlink.bench.BenchPool.scanCount() - before;
         check(h, menu.getSlot(0).getItem().is(Items.PURPUR_BLOCK), "a receita foi montada");
         check(h, scans == 1, "um clique devia varrer os baús 1 vez, varreu " + scans);
+        clean(lab, h);
+    }
+
+    /** Fechar com a mochila CHEIA: o jogo não tem onde pôr a grade e dropava; o emprestado volta ao baú antes disso. */
+    @GameTest
+    public void closingWithFullBagReturnsBorrowedGridToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.JUNGLE_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 3 && grid(menu, Items.JUNGLE_PLANKS) == 2, "2 saíram para a grade");
+        var bag = p.getInventory().getNonEquipmentItems();
+        for (int i = 0; i < bag.size(); i++) {
+            if (bag.get(i).isEmpty()) {
+                bag.set(i, new ItemStack(Items.DIRT, 64));
+            }
+        }
+        int dropsBefore = lab.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(p.blockPosition()).inflate(6)).size();
+        menu.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        int dropsAfter = lab.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(p.blockPosition()).inflate(6)).size();
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 5 && Lab.carried(p, Items.JUNGLE_PLANKS) == 0,
+                "as 5 voltam ao baú: baú=" + Lab.count(chest, Items.JUNGLE_PLANKS) + " mochila=" + Lab.carried(p, Items.JUNGLE_PLANKS));
+        check(h, dropsAfter == dropsBefore, "nada dropado no chão: " + (dropsAfter - dropsBefore));
         clean(lab, h);
     }
 
