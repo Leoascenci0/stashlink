@@ -10,6 +10,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,8 @@ public final class BenchSync {
     static final int REFRESH_TICKS = 100;
 
     private static final class State {
-        final AbstractContainerMenu menu;
+        /** Fraca: o valor deste mapa nunca pode segurar o menu (e, por ele, o jogador) vivo. */
+        final WeakReference<AbstractContainerMenu> menu;
         /** Nulo até o primeiro envio: a primeira lista vai sempre, mesmo vazia (o painel mostra "nada por perto"). */
         List<BenchPoolSync.Entry> last = null;
         int age;
@@ -34,11 +36,11 @@ public final class BenchSync {
         boolean unsupported;
 
         State(AbstractContainerMenu menu) {
-            this.menu = menu;
+            this.menu = new WeakReference<>(menu);
         }
     }
 
-    /** Por identidade do jogador: relogar cria outro objeto e o antigo é coletado sozinho. */
+    /** Por identidade do jogador; sai daqui no logout ({@link #release}) e o valor não segura o menu. */
     private static final Map<ServerPlayer, State> STATES = new WeakHashMap<>();
 
     private BenchSync() {
@@ -52,6 +54,28 @@ public final class BenchSync {
                 Constants.LOG.error("Falha ao sincronizar o armazenamento da estação de {}",
                         player.getGameProfile().name(), e);
             }
+        }
+    }
+
+    /**
+     * O jogador vai sair (desconectou) ou o servidor vai parar: fecha a estação e devolve ao baú o que foi emprestado,
+     * <b>antes</b> de o jogo salvar o jogador. Sem isso o que está na grade e no cursor seria salvo na mochila
+     * do jogador sem o baú saber (e o baú já foi desfalcado). Tolera erro: o logout nunca pode travar por aqui.
+     */
+    public static void release(ServerPlayer player) {
+        try {
+            BenchLedger.release(player);
+        } catch (RuntimeException e) {
+            Constants.LOG.error("Falha ao devolver o emprestado de {} ao sair", player.getGameProfile().name(), e);
+        } finally {
+            STATES.remove(player);
+        }
+    }
+
+    /** Parada do servidor: libera todo mundo que ainda está online (o save de todos vem logo depois). */
+    public static void releaseAll(MinecraftServer server) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            release(player);
         }
     }
 
@@ -72,7 +96,7 @@ public final class BenchSync {
             return;
         }
         State state = STATES.get(player);
-        if (state == null || state.menu != menu) {
+        if (state == null || state.menu.get() != menu) {
             state = new State(menu);
             STATES.put(player, state);
         }
@@ -94,6 +118,24 @@ public final class BenchSync {
 
     /** O que a estação aberta enxerga e aceita (só o que serve nela), pronto para o pacote. Público para os testes. */
     public static List<BenchPoolSync.Entry> snapshot(ServerPlayer player) {
+        return capBytes(player, build(player));
+    }
+
+    /** Corta a lista no teto de bytes do pacote ({@link BenchPoolSync#MAX_BYTES}), mantendo a ordem. */
+    static List<BenchPoolSync.Entry> capBytes(ServerPlayer player, List<BenchPoolSync.Entry> list) {
+        List<BenchPoolSync.Entry> out = new ArrayList<>(list.size());
+        long bytes = 0;
+        for (BenchPoolSync.Entry entry : list) {
+            bytes += BenchCompat.packetSize(player, entry.item()) + 16;
+            if (bytes > BenchPoolSync.MAX_BYTES) {
+                break;
+            }
+            out.add(entry);
+        }
+        return out;
+    }
+
+    private static List<BenchPoolSync.Entry> build(ServerPlayer player) {
         AbstractContainerMenu menu = player.containerMenu;
         if (BenchResults.supports(menu)) {
             return BenchResults.list(player);

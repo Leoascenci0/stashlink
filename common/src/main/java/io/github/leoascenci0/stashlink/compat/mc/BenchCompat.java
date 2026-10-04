@@ -1,9 +1,12 @@
 package io.github.leoascenci0.stashlink.compat.mc;
 
+import io.netty.buffer.Unpooled;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.StackedItemContents;
@@ -213,5 +216,24 @@ public final class BenchCompat {
             }
         }
         return total;
+    }
+
+    /** Bytes que o item ocupa num pacote. Sem componentes extras é um valor fixo pequeno (não precisa codificar). */
+    public static int packetSize(Player player, ItemStack stack) {
+        if (stack.getComponentsPatch().isEmpty()) {
+            return 16;
+        }
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.registryAccess());
+        try {
+            ItemStack.STREAM_CODEC.encode(buf, stack);
+            return buf.readableBytes();
+        } finally {
+            buf.release();
+        }
+    }
+
+    /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */
+    public static void closeMenu(ServerPlayer player) {
+        player.doCloseContainer();
     }
 }

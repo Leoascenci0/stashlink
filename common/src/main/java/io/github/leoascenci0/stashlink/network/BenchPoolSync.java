@@ -55,6 +55,12 @@ public record BenchPoolSync(int containerId, List<Entry> entries) implements Cus
     /** Teto de tipos de item por pacote (o resto fica de fora; a lista vai em ordem alfabética do item). */
     public static final int MAX_ENTRIES = 512;
 
+    /**
+     * Teto de bytes dos itens por pacote. O protocolo aceita 1 MiB por pacote do servidor ao cliente e passar disso
+     * derruba o cliente (shulkers cheias levam o conteúdo junto); o resto fica de fora, como no teto de tipos.
+     */
+    public static final int MAX_BYTES = 700_000;
+
     public static final CustomPacketPayload.Type<BenchPoolSync> TYPE = McCompat.payloadType("bench_pool");
 
     private static final StreamCodec<RegistryFriendlyByteBuf, Entry> ENTRY_CODEC = StreamCodec.composite(

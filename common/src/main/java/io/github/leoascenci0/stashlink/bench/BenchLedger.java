@@ -10,6 +10,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,16 +31,21 @@ import java.util.WeakHashMap;
  */
 public final class BenchLedger {
     private static final class Entry {
-        final AbstractContainerMenu menu;
+        /** Fraca: o valor deste mapa nunca pode segurar o menu (e, por ele, o jogador) vivo. */
+        private final WeakReference<AbstractContainerMenu> menuRef;
         final Map<Item, Integer> borrowed = new LinkedHashMap<>();
         Origin origin;
 
         Entry(AbstractContainerMenu menu) {
-            this.menu = menu;
+            this.menuRef = new WeakReference<>(menu);
+        }
+
+        AbstractContainerMenu menu() {
+            return menuRef.get();
         }
     }
 
-    /** Por identidade do jogador: relogar cria outro objeto e o antigo é coletado sozinho. */
+    /** Por identidade do jogador; sai daqui no logout ({@link #release}) e o valor não segura o menu. */
     private static final Map<ServerPlayer, Entry> LEDGER = new WeakHashMap<>();
 
     private BenchLedger() {
@@ -51,7 +57,7 @@ public final class BenchLedger {
             return;
         }
         Entry entry = LEDGER.get(player);
-        if (entry != null && entry.menu != player.containerMenu) {
+        if (entry != null && entry.menu() != player.containerMenu) {
             settleFromInventory(player, entry);
             entry = null;
         }
@@ -71,7 +77,7 @@ public final class BenchLedger {
         if (entry == null) {
             return;
         }
-        if (entry.menu != player.containerMenu) {
+        if (entry.menu() != player.containerMenu) {
             settleFromInventory(player, entry);
             LEDGER.remove(player);
         } else {
@@ -82,10 +88,25 @@ public final class BenchLedger {
         }
     }
 
+    /**
+     * O jogador vai sair ou o servidor vai parar: fecha a estação (o jogo devolve a grade à mochila) e devolve de lá
+     * ao baú de origem o que não foi usado. Roda antes do save do jogador.
+     */
+    public static void release(ServerPlayer player) {
+        Entry entry = LEDGER.remove(player);
+        if (entry == null) {
+            return;
+        }
+        if (entry.menu() == player.containerMenu && player.containerMenu != player.inventoryMenu) {
+            BenchCompat.closeMenu(player);
+        }
+        settleFromInventory(player, entry);
+    }
+
     /** Antes de montar outra receita: o que o mod pôs na grade e sobrou volta ao container de origem. */
     public static void returnFromGrid(ServerPlayer player, List<Slot> grid) {
         Entry entry = LEDGER.get(player);
-        if (entry == null || entry.menu != player.containerMenu) {
+        if (entry == null || entry.menu() != player.containerMenu) {
             return;
         }
         reconcile(player, entry);
@@ -123,7 +144,7 @@ public final class BenchLedger {
     public static void returnCursor(ServerPlayer player) {
         Entry entry = LEDGER.get(player);
         AbstractContainerMenu menu = player.containerMenu;
-        if (entry == null || entry.menu != menu) {
+        if (entry == null || entry.menu() != menu) {
             return;
         }
         ItemStack carried = menu.getCarried();
@@ -155,12 +176,12 @@ public final class BenchLedger {
         for (Iterator<Map.Entry<Item, Integer>> it = entry.borrowed.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Item, Integer> e = it.next();
             int held = 0;
-            ItemStack carried = entry.menu.getCarried();
+            ItemStack carried = entry.menu().getCarried();
             if (carried.is(e.getKey())) {
                 held += carried.getCount();
             }
             ItemStack probe = new ItemStack(e.getKey());
-            for (Slot slot : entry.menu.slots) {
+            for (Slot slot : entry.menu().slots) {
                 if (slot.container != inventory && slot.mayPlace(probe) && slot.getItem().is(e.getKey())) {
                     held += slot.getItem().getCount();
                 }

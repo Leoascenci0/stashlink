@@ -554,6 +554,67 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Desconectar (ou parar o servidor) com a bancada aberta: o emprestado volta ao baú ANTES de o jogador ser salvo. */
+    @GameTest
+    public void disconnectWithBorrowedItemsReturnsThemToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.WARPED_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.WARPED_PLANKS) == 3, "saíram 2 tábuas do baú");
+
+        BenchSync.release(p);                                // o ponto que o logout e a parada do servidor chamam
+        check(h, p.containerMenu == p.inventoryMenu, "a estação devia ter sido fechada");
+        check(h, Lab.count(chest, Items.WARPED_PLANKS) == 5 && Lab.carried(p, Items.WARPED_PLANKS) == 0,
+                "tudo devia estar de volta no baú antes do save: baú=" + Lab.count(chest, Items.WARPED_PLANKS)
+                        + " jogador=" + Lab.carried(p, Items.WARPED_PLANKS));
+        clean(lab, h);
+    }
+
+    /** Muitas shulkers cheias e diferentes: o pacote da lista nunca passa do limite do protocolo (1 MiB), senão derruba o cliente. */
+    @GameTest
+    public void hugeSnapshotStaysUnderThePacketLimit(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        for (int c = 0; c < 4; c++) {          // 4 baús x 27 shulkers: ~1,4 MB se fosse tudo no pacote
+        Container chest = lab.chest(2, 2, 2 + c);
+        for (int i = 0; i < 27; i++) {
+            List<ItemStack> mid = new ArrayList<>();
+            for (int j = 0; j < 27; j++) {
+                List<ItemStack> inner = new ArrayList<>();
+                for (int k = 0; k < 27; k++) {
+                    ItemStack named = new ItemStack(Items.STONE_BUTTON);
+                    named.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                            net.minecraft.network.chat.Component.literal("n" + c + "_" + i + "_" + j + "_" + k));
+                    inner.add(named);
+                }
+                ItemStack box = new ItemStack(Items.SHULKER_BOX);
+                box.set(net.minecraft.core.component.DataComponents.CONTAINER,
+                        net.minecraft.world.item.component.ItemContainerContents.fromItems(inner));
+                mid.add(box);
+            }
+            ItemStack top = new ItemStack(Items.SHULKER_BOX);
+            top.set(net.minecraft.core.component.DataComponents.CONTAINER,
+                    net.minecraft.world.item.component.ItemContainerContents.fromItems(mid));
+            chest.setItem(i, top);
+        }
+        }
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        net.minecraft.network.RegistryFriendlyByteBuf buf =
+                new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), p.registryAccess());
+        BenchPoolSync.STREAM_CODEC.encode(buf, new BenchPoolSync(menu.containerId, list));
+        int size = buf.readableBytes();
+        check(h, !list.isEmpty(), "a lista não pode vir vazia");
+        check(h, size < 1_000_000, "o pacote passou do limite do protocolo: " + size + " bytes");
+        clean(lab, h);
+    }
+
     /** Pegou outro item no painel: o anterior (do cursor) volta ao baú de origem. */
     @GameTest
     public void panelSwapReturnsTheCursorItemToItsChest(GameTestHelper h) {
