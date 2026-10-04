@@ -126,6 +126,32 @@ public class OrganizeGameTests {
         h.succeed();
     }
 
+    /** Bug do Eliel: a pilha reservada tem de ser a que recebe o item, não uma pilha solta do mesmo item. */
+    @GameTest
+    public void chestOrganizeFillsTheReservedStackFirst(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 3);
+        chest.setItem(0, new ItemStack(Items.JUNGLE_PLANKS, 2));
+        chest.setItem(4, new ItemStack(Items.JUNGLE_PLANKS, 2));
+        chest.setItem(9, new ItemStack(Items.CALCITE, 5));
+        SlotLocks.toggle(chest, 0, new ItemStack(Items.JUNGLE_PLANKS));        // slot 0 reservado para tábua de selva
+        SlotLocks.toggle(chest, 13, new ItemStack(Items.BASALT));              // reservado e vazio, sem basalto: segue vazio
+        OrganizeLogic.Totals before = total(chest);
+
+        ServerPlayer p = player(lab);
+        Lab.open(p, chest, 1);
+        organizeChest(p, 1);
+        check(h, total(chest).equals(before), "a soma de itens mudou");
+        check(h, chest.getItem(0).is(Items.JUNGLE_PLANKS) && chest.getItem(0).getCount() == 4,
+                "a pilha reservada devia juntar as 4 tábuas: " + chest.getItem(0));
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 4, "nenhuma tábua solta fora da reservada");
+        check(h, chest.getItem(13).isEmpty(), "reservado vazio sem o item continua vazio");
+        check(h, SlotLocks.lockedItem(chest, 0) == Items.JUNGLE_PLANKS && SlotLocks.lockedItem(chest, 13) == Items.BASALT,
+                "as reservas continuam");
+        lab.cleanup();
+        h.succeed();
+    }
+
     @GameTest
     public void chestOrganizeKeepsReservedSlots(GameTestHelper h) {
         Lab lab = new Lab(h);
@@ -142,7 +168,7 @@ public class OrganizeGameTests {
         organizeChest(p, 1);
         check(h, total(chest).equals(before), "a soma de itens mudou");
         check(h, chest.getItem(4).isEmpty(), "o slot reservado vazio continua vazio (nada de outro item entra)");
-        check(h, chest.getItem(9).is(Items.DRIPSTONE_BLOCK) && chest.getItem(9).getCount() == 3, "o slot reservado ocupado não é tocado");
+        check(h, chest.getItem(9).is(Items.DRIPSTONE_BLOCK) && chest.getItem(9).getCount() == 3, "o slot reservado ocupado continua com o item dele (e nada de outro entra)");
         check(h, chest.getItem(0).is(Items.CALCITE) && chest.getItem(0).getCount() == 12, "calcita juntou nos slots livres");
         check(h, SlotLocks.lockedItem(chest, 4) == Items.AMETHYST_BLOCK && SlotLocks.lockedItem(chest, 9) == Items.DRIPSTONE_BLOCK,
                 "as reservas continuam");

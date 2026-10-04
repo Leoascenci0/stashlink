@@ -15,7 +15,7 @@ import java.util.List;
  * jogador, só {@link Container}: dá para testar de forma exaustiva.
  *
  * <p>Garantias: (1) a soma de cada item (mesmo item <i>e</i> componentes) não muda — conferida antes de gravar; (2) um
- * slot reservado para um item (Item 13) <b>não é tocado</b>: nem esvazia, nem recebe; (3) se algum slot não aceitar o que
+ * slot reservado para um item (Item 13) <b>nunca perde</b> o que tem nem recebe outro item, mas é completado com o item dele antes de o resto ser espalhado; (3) se algum slot não aceitar o que
  * o plano pôs nele ({@code canPlaceItem}), nada é gravado; (4) é idempotente: arrumar um container já arrumado não muda nada.
  */
 public final class OrganizeLogic {
@@ -106,9 +106,46 @@ public final class OrganizeLogic {
                 into.grow(stack.getCount());
             }
         }
+        // Slot reservado (Item 13) é a casa do item: antes de espalhar o resto, completa-o com o item dele (o mesmo que a N
+        // faz). Ele nunca perde o que tem nem recebe outro item.
+        java.util.Map<Integer, ItemStack> reserved = new java.util.HashMap<>();
+        for (int slot = 0; slot < size; slot++) {
+            net.minecraft.world.item.Item locked = SlotLocks.lockedItem(c, slot);
+            if (locked == null) {
+                continue;
+            }
+            ItemStack current = before.get(slot);
+            if (!current.isEmpty() && !current.is(locked)) {
+                continue;
+            }
+            ItemStack source = null;
+            for (ItemStack entry : pool) {
+                if (entry.is(locked) && (current.isEmpty() || ItemStack.isSameItemSameComponents(entry, current))) {
+                    source = entry;
+                    break;
+                }
+            }
+            if (source == null) {
+                continue;
+            }
+            ItemStack model = current.isEmpty() ? source : current;
+            int limit = Math.max(1, Math.min(c.getMaxStackSize(model), model.getMaxStackSize()));
+            int put = Math.min(limit - current.getCount(), source.getCount());
+            if (put <= 0) {
+                continue;
+            }
+            ItemStack placed = model.copyWithCount(current.getCount() + put);
+            if (!c.canPlaceItem(slot, placed)) {
+                continue;
+            }
+            reserved.put(slot, placed);
+            source.shrink(put);
+        }
+        pool.removeIf(ItemStack::isEmpty);
         pool.sort(ORDER);                                   // estável: empate fica na ordem dos slots
 
         List<ItemStack> after = new ArrayList<>(before);
+        reserved.forEach(after::set);
         int next = 0;
         for (ItemStack entry : pool) {
             int limit = Math.max(1, Math.min(c.getMaxStackSize(entry), entry.getMaxStackSize()));
