@@ -9,7 +9,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
@@ -62,8 +61,11 @@ public final class BrewingCompat {
         }
     }
 
-    /** Um mapa por conjunto de receitas do jogo (muda só com datapack/flags): calculado uma vez. */
-    private static final Map<PotionBrewing, Graph> CACHE = Collections.synchronizedMap(new WeakHashMap<>());
+    /**
+     * Um mapa por conjunto de receitas do jogo (muda só com datapack/flags): calculado uma vez. A chave é o objeto de
+     * receitas do mundo; o tipo não aparece no código ({@code var}) porque o nome da classe muda entre versões.
+     */
+    private static final Map<Object, Graph> CACHE = Collections.synchronizedMap(new WeakHashMap<>());
 
     private BrewingCompat() {
     }
@@ -93,11 +95,11 @@ public final class BrewingCompat {
     }
 
     public static Graph graph(Level level) {
-        PotionBrewing brewing = level.potionBrewing();
-        return CACHE.computeIfAbsent(brewing, BrewingCompat::build);
+        return CACHE.computeIfAbsent(level.potionBrewing(), key -> build(level));
     }
 
-    private static Graph build(PotionBrewing brewing) {
+    private static Graph build(Level level) {
+        var brewing = level.potionBrewing();
         List<ItemStack> ingredients = new ArrayList<>();
         for (Item item : BuiltInRegistries.ITEM) {
             ItemStack stack = new ItemStack(item);
