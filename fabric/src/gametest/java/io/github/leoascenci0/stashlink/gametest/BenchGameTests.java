@@ -205,6 +205,135 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Cortador de pedra: o painel lista resultados (vermelho se falta material) e clicar monta a receita com o baú. */
+    @GameTest
+    public void stonecutterPanelListsResultsAndSetsUpTheRecipe(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, TUFF, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        // Só aparecem receitas de itens que o jogador conheceu: pedra "descoberta" mas sem material vira vermelho.
+        p.getStats().setValue(p, net.minecraft.stats.Stats.ITEM_PICKED_UP.get(Items.STONE), 1);
+
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        check(h, !list.isEmpty() && list.stream().allMatch(BenchPoolSync.Entry::isResult), "só resultados: " + list.size());
+        BenchPoolSync.Entry first = list.get(0);
+        check(h, !first.missing(), "com tufo no baú o primeiro resultado é possível");
+        check(h, list.stream().anyMatch(BenchPoolSync.Entry::missing), "sem material fica vermelho");
+
+        BenchPullService.handle(p, new BenchPullRequest(5, first.item(), false, first.id()));
+        check(h, menu.getSlot(0).getItem().is(TUFF) && menu.getSlot(0).getItem().getCount() == 10,
+                "a entrada veio do baú: " + menu.getSlot(0).getItem());
+        check(h, Lab.count(chest, TUFF) == 0, "saiu do baú");
+        check(h, !menu.getSlot(1).getItem().isEmpty(), "a receita foi escolhida: resultado no slot");
+        clean(lab, h);
+    }
+
+    /** Tear: um resultado por padrão; clicar põe banner e corante nos slots certos e escolhe o padrão. */
+    @GameTest
+    public void loomPanelFillsTheRightSlots(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.BANNER.pick(net.minecraft.world.item.DyeColor.WHITE), 1);
+        Lab.fill(chest, 1, Items.DYE.pick(net.minecraft.world.item.DyeColor.RED), 3);
+        Lab.fill(chest, 2, Items.OAK_PLANKS, 9);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        LoomMenu menu = new LoomMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.LOOM, p.blockPosition().below())));
+        p.containerMenu = menu;
+
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        BenchPoolSync.Entry red = list.stream().filter(e -> e.isColorPick() && e.color() == net.minecraft.world.item.DyeColor.RED.getId())
+                .findFirst().orElse(null);
+        check(h, red != null && !red.missing() && red.tab() == 0, "aba Cores: o corante vermelho do baú aparece e está disponível");
+        check(h, list.stream().anyMatch(e -> e.isColorPick() && e.missing()) || list.stream().filter(BenchPoolSync.Entry::isColorPick).count() == 1,
+                "só as cores conhecidas aparecem");
+        BenchPoolSync.Entry first = list.stream().filter(BenchPoolSync.Entry::isResult).findFirst().orElseThrow();
+        check(h, !first.missing() && first.tab() == 1 && items(list).stream().noneMatch(i -> i == Items.OAK_PLANKS),
+                "padrão sem molde: aba Estandartes, possível");
+        BenchPullService.handle(p, new BenchPullRequest(1, red.item(), false, first.id()));
+        check(h, menu.getSlot(0).getItem().getItem() instanceof net.minecraft.world.item.BannerItem
+                && !menu.getSlot(1).getItem().isEmpty() && menu.getSlot(2).getItem().isEmpty(),
+                "banner no slot do banner, corante no do corante");
+        check(h, !menu.getSlot(3).getItem().isEmpty(), "padrão escolhido: banner pronto no resultado");
+        check(h, Lab.count(chest, Items.OAK_PLANKS) == 9, "tábuas intocadas");
+        clean(lab, h);
+    }
+
+    /** Mesa de ferraria: os itens se separam em abas pelo slot que os aceita (enfeite, equipamento, minério). */
+    @GameTest
+    public void smithingTabsFollowTheSlots(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE, 2);
+        Lab.fill(chest, 1, Items.DIAMOND_CHESTPLATE, 1);
+        Lab.fill(chest, 2, Items.NETHERITE_INGOT, 3);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.containerMenu = new net.minecraft.world.inventory.SmithingMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.SMITHING_TABLE, p.blockPosition().below())));
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        java.util.Map<Item, Integer> tabs = new java.util.HashMap<>();
+        for (BenchPoolSync.Entry e : list) {
+            tabs.put(e.item().getItem(), e.tab());
+        }
+        check(h, tabs.get(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE) == 0 && tabs.get(Items.DIAMOND_CHESTPLATE) == 1
+                && tabs.get(Items.NETHERITE_INGOT) == 2, "abas da ferraria: " + tabs);
+        clean(lab, h);
+    }
+
+    /** Encantamento e suporte de poções: abas pelo slot que aceita o item (lápis, livros, equipamento; garrafa, ingrediente, combustível). */
+    @GameTest
+    public void enchantingAndBrewingTabsFollowTheSlots(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.LAPIS_LAZULI, 5);
+        Lab.fill(chest, 1, Items.BOOK, 2);
+        Lab.fill(chest, 2, Items.DIAMOND_PICKAXE, 1);
+        Lab.fill(chest, 3, Items.NETHER_WART, 3);
+        Lab.fill(chest, 4, Items.BLAZE_POWDER, 3);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.containerMenu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
+        java.util.Map<Item, Integer> tabs = new java.util.HashMap<>();
+        for (BenchPoolSync.Entry e : BenchSync.snapshot(p)) {
+            tabs.put(e.item().getItem(), e.tab());
+        }
+        check(h, tabs.get(Items.LAPIS_LAZULI) == 2 && tabs.get(Items.BOOK) == 1 && tabs.get(Items.DIAMOND_PICKAXE) == 0,
+                "abas do encantamento: " + tabs);
+        p.containerMenu = new net.minecraft.world.inventory.BrewingStandMenu(2, p.getInventory());
+        tabs.clear();
+        for (BenchPoolSync.Entry e : BenchSync.snapshot(p)) {
+            tabs.put(e.item().getItem(), e.tab());
+        }
+        check(h, tabs.get(Items.NETHER_WART) == 1 && tabs.get(Items.BLAZE_POWDER) == 2, "abas das poções: " + tabs);
+        clean(lab, h);
+    }
+
+    /** Estação sem receita: clicar num item o põe no slot da estação que o aceita (lápis-lazúli no slot do lápis). */
+    @GameTest
+    public void panelPlacesTheItemInTheRightStationSlot(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.LAPIS_LAZULI, 20);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        net.minecraft.world.inventory.EnchantmentMenu menu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
+        p.containerMenu = menu;
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.LAPIS_LAZULI), false,
+                io.github.leoascenci0.stashlink.bench.BenchResults.PLACE));
+        check(h, menu.getSlot(1).getItem().is(Items.LAPIS_LAZULI) && menu.getSlot(1).getItem().getCount() == 20
+                && menu.getSlot(0).getItem().isEmpty(), "lápis no slot 1: " + menu.getSlot(1).getItem() + " / " + menu.getSlot(0).getItem());
+        check(h, menu.getCarried().isEmpty() && Lab.count(chest, Items.LAPIS_LAZULI) == 0, "cursor vazio, baú esvaziado");
+        clean(lab, h);
+    }
+
     /** O painel lista só o que serve na estação aberta: tear (banner/corante), fornalha (fuel/fundível), bancada (tudo). */
     @GameTest
     public void panelListsOnlyWhatTheStationAccepts(GameTestHelper h) {
@@ -218,16 +347,6 @@ public class BenchGameTests {
         Lab.fill(chest, 5, Items.DIAMOND, 2);
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 8, true);
-
-        p.containerMenu = new LoomMenu(1, p.getInventory(),
-                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.LOOM, p.blockPosition().below())));
-        net.minecraft.world.inventory.AbstractContainerMenu loomMenu = p.containerMenu;
-        p.containerMenu = p.inventoryMenu;
-        String unfiltered = items(BenchSync.snapshot(p)).toString();
-        p.containerMenu = loomMenu;
-        List<Item> loom = items(BenchSync.snapshot(p));
-        check(h, loom.contains(Items.BANNER.pick(net.minecraft.world.item.DyeColor.WHITE)) && loom.contains(Items.DYE.pick(net.minecraft.world.item.DyeColor.RED)) && !loom.contains(Items.OAK_PLANKS)
-                && !loom.contains(Items.COAL) && !loom.contains(Items.DIAMOND), "tear: só banner e corante: " + loom + " sem filtro=" + unfiltered);
 
         p.containerMenu = new FurnaceMenu(2, p.getInventory());
         List<Item> furnace = items(BenchSync.snapshot(p));

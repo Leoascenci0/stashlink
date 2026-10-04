@@ -1,18 +1,24 @@
 package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.LoomMenu;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,23 +48,43 @@ public final class BenchPanel {
     private static final int PAGE_FORWARD_X = 93;
     private static final int PAGE_W = 12;
     private static final int PAGE_H = 17;
-    private static final int GAP = 6;
+    private static final int GAP = 1;
+    /** Abas: botões de 35x27 à esquerda do painel (como as categorias do livro de receitas). */
+    private static final int TAB_W = 35;
+    private static final int TAB_H = 27;
+    private static final int TAB_OVERLAP = 30;
+    /** Numeração de botão do 26.3 (ver {@code AbstractContainerScreen.getContainerClickButton}). */
+    private static final int LEFT = 1;
+    private static final int RIGHT = 3;
 
     private static final Identifier BOOK = Identifier.withDefaultNamespace("textures/gui/recipe_book.png");
+    private static final Identifier TAB = Identifier.withDefaultNamespace("recipe_book/tab");
+    private static final Identifier TAB_SELECTED = Identifier.withDefaultNamespace("recipe_book/tab_selected");
     private static final Identifier SLOT = Identifier.withDefaultNamespace("recipe_book/slot_craftable");
+    private static final Identifier SLOT_MISSING = Identifier.withDefaultNamespace("recipe_book/slot_uncraftable");
     private static final Identifier FORWARD = Identifier.withDefaultNamespace("recipe_book/page_forward");
     private static final Identifier FORWARD_HOVER = Identifier.withDefaultNamespace("recipe_book/page_forward_highlighted");
     private static final Identifier BACKWARD = Identifier.withDefaultNamespace("recipe_book/page_backward");
     private static final Identifier BACKWARD_HOVER = Identifier.withDefaultNamespace("recipe_book/page_backward_highlighted");
     private static final int HOVER = 0x80FFFFFF;
-    private static final int TEXT = 0xFF404040;
+    /** Branco, como o texto do livro do jogo: o fundo do livro é escuro. */
+    private static final int TEXT = 0xFFFFFFFF;
 
     private final AbstractContainerMenu menu;
     private final EditBox search;
+    private final ImageButton back = new ImageButton(0, 0, PAGE_W, PAGE_H, new WidgetSprites(BACKWARD, BACKWARD_HOVER), b -> { },
+            Component.translatable("gui.recipebook.previous_page"));
+    private final ImageButton forward = new ImageButton(0, 0, PAGE_W, PAGE_H, new WidgetSprites(FORWARD, FORWARD_HOVER), b -> { },
+            Component.translatable("gui.recipebook.next_page"));
     private final Screen screen;
     private int x;
     private int y;
 
+    private final List<BenchTabs.Tab> tabs;
+    private int tab;
+    /** Cor de corante escolhida na aba "Cores" do tear (id de {@code DyeColor}); -1 até o servidor mandar a lista. */
+    private int selectedColor = -1;
+    private int filteredTab = -2;
     private int scrollRows;
     private int filteredVersion = -1;
     private String filteredQuery = null;
@@ -68,16 +94,20 @@ public final class BenchPanel {
         Minecraft mc = Minecraft.getInstance();
         this.menu = menu;
         this.screen = screen;
+        this.tabs = BenchTabs.of(menu);
         search = new EditBox(mc.font, 0, 0, SEARCH_W, SEARCH_H,
                 Component.translatableWithFallback("stashlink.bench.panel.title", "Storage"));
         search.setMaxLength(32);
-        search.setHint(Component.translatableWithFallback("stashlink.bench.panel.title", "Storage"));
+        search.setTextColor(-1);
+        search.setHint(Component.translatable("gui.recipebook.search_hint").withStyle(EditBox.SEARCH_HINT_STYLE));
         search.setVisible(false);
     }
 
     /** Cria o painel para a tela aberta, se o menu for uma estação; {@code null} caso contrário. */
     public static BenchPanel create(AbstractContainerMenu menu, int leftPos, int topPos, int imageWidth, Screen screen) {
-        if (!BenchCompat.isStation(menu)) {
+        // Bancada e fornalhas já têm o livro de receitas do jogo (que usa os baús e pinta de vermelho o que falta):
+        // duas telas iguais lado a lado só atrapalham.
+        if (!BenchCompat.isStation(menu) || BenchCompat.hasRecipeBook(menu)) {
             return null;
         }
         BenchPanel panel = new BenchPanel(menu, screen);
@@ -86,14 +116,19 @@ public final class BenchPanel {
     }
 
     /**
-     * Posição do painel: à direita da estação; se não couber (janela estreita), à esquerda; no pior caso, encostado
-     * na borda. Refeita a cada uso porque o livro de receitas empurra a tela depois de ela iniciar.
+     * Onde a estação fica quando o painel está ao lado: as duas telas viram um bloco só, centralizado (o painel à
+     * esquerda, grudado, como o livro de receitas da fornalha). Sem espaço na janela, a estação não se move.
      */
+    public static int stationLeft(int screenWidth, int imageWidth, int defaultLeft) {
+        int start = (screenWidth - (WIDTH + GAP + imageWidth)) / 2;
+        return start >= TAB_OVERLAP ? start + WIDTH + GAP : defaultLeft;
+    }
+
+    /** Posição do painel: à esquerda da estação, grudado nela e na mesma altura do livro do jogo. */
     public void layout(int leftPos, int topPos, int imageWidth) {
-        int right = leftPos + imageWidth + GAP;
-        int px = right + WIDTH <= screen.width ? right : Math.max(2, leftPos - GAP - WIDTH);
-        x = Math.max(2, Math.min(px, screen.width - WIDTH - 2));
-        y = Math.max(2, topPos);
+        int min = tabs.isEmpty() ? 2 : TAB_OVERLAP + 2;
+        x = Math.max(min, leftPos - WIDTH - GAP);
+        y = Math.max(2, (screen.height - HEIGHT) / 2);
         search.setX(x + SEARCH_X);
         search.setY(y + SEARCH_Y);
     }
@@ -107,7 +142,47 @@ public final class BenchPanel {
     }
 
     private boolean inside(double mx, double my) {
-        return mx >= x && mx < x + WIDTH && my >= y && my < y + HEIGHT;
+        return (mx >= x && mx < x + WIDTH && my >= y && my < y + HEIGHT) || tabAt(mx, my) >= 0;
+    }
+
+    /** Qual aba está sob o ponto, ou -1. */
+    private int tabAt(double mx, double my) {
+        for (int i = 0; i < tabs.size(); i++) {
+            int tx = x - TAB_OVERLAP;
+            int ty = y + 3 + TAB_H * i;
+            if (mx >= tx && mx < tx + TAB_W && my >= ty && my < ty + TAB_H) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** O corante da cor escolhida (vem na lista do servidor); a entrada vermelha diz que não há dele agora. */
+    private BenchPoolSync.Entry colorEntry() {
+        for (BenchPoolSync.Entry e : BenchClient.pool()) {
+            if (e.isColorPick() && e.color() == selectedColor) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    /** O resultado está em vermelho? Falta material, ou (tear) não há corante da cor escolhida. */
+    private boolean red(BenchPoolSync.Entry e) {
+        if (e.missing()) {
+            return true;
+        }
+        if (menu instanceof LoomMenu && e.isResult()) {
+            BenchPoolSync.Entry dye = colorEntry();
+            return dye == null || dye.missing();
+        }
+        return false;
+    }
+
+    /** O ícone mostrado: no tear, o banner com o padrão na cor escolhida. */
+    private ItemStack iconOf(BenchPoolSync.Entry e) {
+        return menu instanceof LoomMenu && e.isResult() && selectedColor >= 0
+                ? StationRecipes.recolor(e.item(), selectedColor) : e.item();
     }
 
     private int gridX() {
@@ -118,28 +193,47 @@ public final class BenchPanel {
         return y + GRID_Y;
     }
 
-    /** A lista depois do filtro da busca; só refaz quando a lista do servidor ou o texto mudou. */
+    /** A lista da aba atual depois do filtro da busca; só refaz quando a lista do servidor, a aba ou o texto mudou. */
     private List<BenchPoolSync.Entry> entries() {
         String query = search.getValue().trim().toLowerCase(Locale.ROOT);
-        if (filteredVersion != BenchClient.version() || !query.equals(filteredQuery)) {
+        int tabNow = tabs.isEmpty() ? -1 : tab;
+        if (filteredVersion != BenchClient.version() || !query.equals(filteredQuery) || filteredTab != tabNow) {
             filteredVersion = BenchClient.version();
+            boolean same = query.equals(filteredQuery) && filteredTab == tabNow;
             filteredQuery = query;
-            if (query.isEmpty()) {
-                filtered = BenchClient.pool();
-            } else {
-                List<BenchPoolSync.Entry> out = new ArrayList<>();
-                for (BenchPoolSync.Entry entry : BenchClient.pool()) {
-                    if (entry.item().getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
-                        out.add(entry);
+            filteredTab = tabNow;
+            // Cor padrão do tear: a primeira que tem corante (ou a primeira); mantém a escolhida enquanto ela existir.
+            if (menu instanceof LoomMenu && colorEntry() == null) {
+                selectedColor = -1;
+                for (BenchPoolSync.Entry e : BenchClient.pool()) {
+                    if (e.isColorPick() && (selectedColor < 0 || (!e.missing() && colorEntryMissing()))) {
+                        selectedColor = e.color();
                     }
                 }
-                filtered = out;
             }
-            scrollRows = 0;
+            List<BenchPoolSync.Entry> out = new ArrayList<>();
+            for (BenchPoolSync.Entry entry : BenchClient.pool()) {
+                if (tabNow >= 0 && entry.tab() != tabNow) {
+                    continue;
+                }
+                if (query.isEmpty() || entry.item().getHoverName().getString().toLowerCase(Locale.ROOT).contains(query)) {
+                    out.add(entry);
+                }
+            }
+            filtered = out;
+            // Lista nova do servidor com o mesmo conteúdo (ou só mais itens): a página em que o jogador está não volta ao início.
+            if (!same) {
+                scrollRows = 0;
+            }
         }
-        int maxScroll = Math.max(0, (filtered.size() + COLS - 1) / COLS - ROWS);
-        scrollRows = Math.max(0, Math.min(scrollRows, maxScroll));
+        int pages = Math.max(1, ((filtered.size() + COLS - 1) / COLS + ROWS - 1) / ROWS);
+        scrollRows = Math.max(0, Math.min(scrollRows / ROWS, pages - 1)) * ROWS;
         return filtered;
+    }
+
+    private boolean colorEntryMissing() {
+        BenchPoolSync.Entry current = colorEntry();
+        return current == null || current.missing();
     }
 
     /** Desenha o painel por cima da tela (depois dos slots) e a dica do item sob o mouse. */
@@ -152,13 +246,28 @@ public final class BenchPanel {
         graphics.blit(RenderPipelines.GUI_TEXTURED, BOOK, x, y, 1.0F, 1.0F, WIDTH, HEIGHT, 256, 256);
         // O campo de busca já foi desenhado com os outros componentes da tela, mas o fundo do painel o cobriu.
         search.extractRenderState(graphics, mouseX, mouseY, delta);
+        BenchTabs.Tab hoveredTab = null;
+        for (int i = 0; i < tabs.size(); i++) {
+            int tx = x - TAB_OVERLAP;
+            int ty = y + 3 + TAB_H * i;
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, i == tab ? TAB_SELECTED : TAB, tx, ty, TAB_W, TAB_H);
+            graphics.fakeItem(tabs.get(i).icon(), tx + 9, ty + 5);
+            if (tabAt(mouseX, mouseY) == i) {
+                hoveredTab = tabs.get(i);
+            }
+        }
+        if (hoveredTab != null) {
+            graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatableWithFallback(hoveredTab.key(),
+                    hoveredTab.fallback())), mouseX, mouseY);
+        }
 
         List<BenchPoolSync.Entry> list = entries();
         if (list.isEmpty()) {
             // Texto longo quebra em linhas dentro do painel (antes vazava para fora dele).
-            int ty = gridY() + 2;
-            for (var line : font.split(Component.translatableWithFallback("stashlink.bench.panel.empty",
-                    "Nothing usable nearby"), WIDTH - GRID_X * 2)) {
+            int ty = gridY() + 4;
+            for (var line : font.split(Component.translatableWithFallback(search.getValue().isBlank()
+                    ? "stashlink.bench.panel.empty" : "stashlink.bench.panel.nomatch",
+                    search.getValue().isBlank() ? "Nothing usable nearby" : "No item matches the search"), WIDTH - GRID_X * 2)) {
                 graphics.text(font, line, x + GRID_X, ty, TEXT, false);
                 ty += font.lineHeight + 2;
             }
@@ -172,13 +281,23 @@ public final class BenchPanel {
                 int index = (scrollRows + row) * COLS + col;
                 int cx = gridX() + col * CELL;
                 int cy = gridY() + row * CELL;
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT, cx, cy, CELL, CELL);
                 if (index >= list.size()) {
-                    continue;
+                    continue;   // só os itens disponíveis: célula sem item fica sem nada, como no livro do jogo
                 }
                 BenchPoolSync.Entry entry = list.get(index);
-                graphics.fakeItem(entry.item(), cx + 4, cy + 4);
-                graphics.itemDecorations(font, entry.item(), cx + 4, cy + 4, shortCount(entry.count()));
+                // Resultado sem material: slot vermelho, como no livro de receitas.
+                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, red(entry) ? SLOT_MISSING : SLOT, cx, cy, CELL, CELL);
+                graphics.fakeItem(iconOf(entry), cx + 4, cy + 4);
+                if (!entry.isResult() && !entry.isColorPick()) {
+                    graphics.itemDecorations(font, entry.item(), cx + 4, cy + 4, shortCount(entry.count()));
+                }
+                if (entry.isColorPick() && entry.color() == selectedColor) {
+                    // Cor escolhida: moldura branca por dentro do slot.
+                    graphics.fill(cx + 1, cy + 1, cx + CELL - 1, cy + 3, 0xFFFFFFFF);
+                    graphics.fill(cx + 1, cy + CELL - 3, cx + CELL - 1, cy + CELL - 1, 0xFFFFFFFF);
+                    graphics.fill(cx + 1, cy + 3, cx + 3, cy + CELL - 3, 0xFFFFFFFF);
+                    graphics.fill(cx + CELL - 3, cy + 3, cx + CELL - 1, cy + CELL - 3, 0xFFFFFFFF);
+                }
                 if (mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL) {
                     graphics.fill(cx + 4, cy + 4, cx + CELL - 4, cy + CELL - 4, HOVER);
                     hovered = entry;
@@ -191,21 +310,31 @@ public final class BenchPanel {
         if (totalRows > ROWS) {
             int pages = (totalRows + ROWS - 1) / ROWS;
             int page = scrollRows / ROWS + 1;
-            graphics.centeredText(font, page + "/" + pages, x + WIDTH / 2 + 1, y + PAGE_Y + 5, TEXT);
-            if (page > 1) {
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, over(mouseX, mouseY, PAGE_BACK_X) ? BACKWARD_HOVER : BACKWARD,
-                        x + PAGE_BACK_X, y + PAGE_Y, PAGE_W, PAGE_H);
-            }
-            if (page < pages) {
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, over(mouseX, mouseY, PAGE_FORWARD_X) ? FORWARD_HOVER : FORWARD,
-                        x + PAGE_FORWARD_X, y + PAGE_Y, PAGE_W, PAGE_H);
-            }
+            graphics.centeredText(font, Component.translatable("gui.recipebook.page", page, pages), x + 74, y + PAGE_Y + 4, TEXT);
+            // Os mesmos botões do livro do jogo (ImageButton), com as duas setas: voltar na página 2 em diante.
+            back.setPosition(x + PAGE_BACK_X, y + PAGE_Y);
+            forward.setPosition(x + PAGE_FORWARD_X, y + PAGE_Y);
+            back.visible = page > 1;
+            forward.visible = page < pages;
+            back.extractRenderState(graphics, mouseX, mouseY, delta);
+            forward.extractRenderState(graphics, mouseX, mouseY, delta);
         }
         if (hovered != null) {
-            List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), hovered.item()));
-            lines.add(Component.literal("x" + hovered.count()));
-            lines.add(Component.translatableWithFallback("stashlink.bench.panel.tip",
-                    "Click: take a stack. Right-click: take one."));
+            List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), iconOf(hovered)));
+            if (hovered.isColorPick()) {
+                lines.add(hovered.missing()
+                        ? Component.translatableWithFallback("stashlink.bench.panel.color.none", "None of this color in storage")
+                        : Component.translatableWithFallback("stashlink.bench.panel.color.tip", "Click: use this color"));
+            } else if (hovered.isResult()) {
+                lines.add(red(hovered)
+                        ? Component.translatableWithFallback("stashlink.bench.panel.result.missing", "Missing material")
+                        : Component.translatableWithFallback("stashlink.bench.panel.result.tip",
+                                "Click: set it up with items from storage."));
+            } else {
+                lines.add(Component.literal("x" + hovered.count()));
+                lines.add(Component.translatableWithFallback("stashlink.bench.panel.tip",
+                        "Click: put the stack in the station. Right-click: put one."));
+            }
             graphics.setComponentTooltipForNextFrame(font, lines, hx, hy);
         }
     }
@@ -226,12 +355,37 @@ public final class BenchPanel {
     }
 
     /** Clique no painel: devolve {@code true} se foi dentro dele (o jogo não deve tratar, nem soltar o item do cursor). */
-    public boolean mouseClicked(double mx, double my, int button) {
+    public boolean mouseClicked(MouseButtonEvent event) {
+        double mx = event.x();
+        double my = event.y();
+        int button = event.button();   // no 26.3: esquerdo = 1, direito = 3 (não 0 e 1 como no GLFW)
         if (!active() || !inside(mx, my)) {
+            if (search.isFocused()) {
+                screen.setFocused(null);
+            }
             return false;
         }
+        int clickedTab = tabAt(mx, my);
+        if (clickedTab >= 0) {
+            if (button == LEFT) {
+                tab = clickedTab;
+                scrollRows = 0;
+                entries();
+            }
+            return true;
+        }
+        // Lupa + campo são uma coisa só (como no livro do jogo): clicar em qualquer um dá foco à busca.
+        boolean magnifier = mx >= x + 8 && mx < x + SEARCH_X && my >= y + SEARCH_Y && my < y + SEARCH_Y + SEARCH_H;
+        if (magnifier || search.mouseClicked(event, false)) {
+            screen.setFocused(search);
+            search.setFocused(true);
+            return true;
+        }
+        if (search.isFocused()) {
+            screen.setFocused(null);
+        }
         int totalRows = (entries().size() + COLS - 1) / COLS;
-        if (totalRows > ROWS && button == 0) {
+        if (totalRows > ROWS && button == LEFT) {
             if (over(mx, my, PAGE_BACK_X)) {
                 scrollRows -= ROWS;
                 entries();
@@ -245,21 +399,40 @@ public final class BenchPanel {
         }
         int col = (int) ((mx - gridX()) / CELL);
         int row = (int) ((my - gridY()) / CELL);
-        if (mx >= gridX() && my >= gridY() && col >= 0 && col < COLS && row >= 0 && row < ROWS && (button == 0 || button == 1)) {
+        if (mx >= gridX() && my >= gridY() && col >= 0 && col < COLS && row >= 0 && row < ROWS && (button == LEFT || button == RIGHT)) {
             int index = (scrollRows + row) * COLS + col;
             List<BenchPoolSync.Entry> list = entries();
             if (index < list.size()) {
-                BenchClient.request(menu, list.get(index), button == 1);
+                click(list.get(index), button);
             }
         }
         return true;
+    }
+
+    private void click(BenchPoolSync.Entry entry, int button) {
+        if (entry.isColorPick()) {
+            if (button == LEFT) {
+                selectedColor = entry.color();
+                tab = 1;   // com a cor escolhida, mostra os estandartes dela
+                scrollRows = 0;
+                entries();
+            }
+        } else if (entry.isResult()) {
+            if (button == LEFT && !red(entry)) {
+                BenchPoolSync.Entry dye = menu instanceof LoomMenu ? colorEntry() : null;
+                BenchClient.requestRecipe(menu, entry, dye != null ? dye.item() : entry.item());
+            }
+        } else {
+            BenchClient.request(menu, entry, button == RIGHT);
+        }
     }
 
     public boolean mouseScrolled(double mx, double my, double scrollY) {
         if (!active() || !inside(mx, my)) {
             return false;
         }
-        scrollRows -= (int) Math.signum(scrollY);
+        // Sempre de página em página (como o livro do jogo): rolar uma linha só deixaria o "1/2" e as setas errados.
+        scrollRows -= ROWS * (int) Math.signum(scrollY);
         entries();
         return true;
     }

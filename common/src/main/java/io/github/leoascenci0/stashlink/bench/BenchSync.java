@@ -94,8 +94,11 @@ public final class BenchSync {
 
     /** O que a estação aberta enxerga e aceita (só o que serve nela), pronto para o pacote. Público para os testes. */
     public static List<BenchPoolSync.Entry> snapshot(ServerPlayer player) {
-        List<BenchPoolSync.Entry> out = new ArrayList<>();
         AbstractContainerMenu menu = player.containerMenu;
+        if (BenchResults.supports(menu)) {
+            return BenchResults.list(player);
+        }
+        List<BenchPoolSync.Entry> out = new ArrayList<>();
         boolean filter = menu != player.inventoryMenu && BenchCompat.isStation(menu);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
             if (filter && !BenchCompat.relevant(menu, player, stack.item())) {
@@ -104,7 +107,8 @@ public final class BenchSync {
             if (out.size() >= BenchPoolSync.MAX_ENTRIES) {
                 break;
             }
-            out.add(new BenchPoolSync.Entry(stack.item(), stack.count()));
+            out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,
+                    BenchResults.slotTab(menu, stack.item()), -1));
         }
         return out;
     }

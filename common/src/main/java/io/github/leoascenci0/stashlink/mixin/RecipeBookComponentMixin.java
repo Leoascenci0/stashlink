@@ -1,7 +1,18 @@
 package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchClient;
+import net.minecraft.client.ClientRecipeBook;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.recipebook.GhostSlots;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
+import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
+import net.minecraft.world.item.crafting.display.RecipeDisplayId;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
+import org.jspecify.annotations.Nullable;
+import java.util.List;
 import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import org.spongepowered.asm.mixin.Final;
@@ -28,8 +39,76 @@ public abstract class RecipeBookComponentMixin {
     @Shadow
     private int timesInventoryChanged;
 
+    @Shadow
+    @Final
+    private GhostSlots ghostSlots;
+    @Shadow
+    private ClientRecipeBook book;
+    @Shadow
+    protected Minecraft minecraft;
+
+    @Shadow
+    protected abstract boolean isCraftingSlot(Slot slot);
+
+    @Shadow
+    public abstract boolean isVisible();
+
+    @Shadow
+    private boolean tryPlaceRecipe(RecipeCollection collection, RecipeDisplayId recipe, boolean useMaxItems) {
+        throw new AssertionError();
+    }
+
     @Unique
     private int stashlink$seenVersion = -1;
+
+    /** O item que faltava e aparecia como "fantasma" no slot clicado (lido antes de o jogo limpar os fantasmas). */
+    @Unique
+    private ItemStack stashlink$missingIngredient = ItemStack.EMPTY;
+
+    /** Antes: clicou num slot vazio da grade que mostra um ingrediente fantasma? Guarda qual item era. */
+    @Inject(method = "slotClicked", at = @At("HEAD"))
+    private void stashlink$rememberGhost(@Nullable Slot slot, CallbackInfo ci) {
+        stashlink$missingIngredient = ItemStack.EMPTY;
+        if (slot == null || slot.hasItem() || !isVisible() || !isCraftingSlot(slot)) {
+            return;
+        }
+        Object ghost = ((GhostSlotsAccessor) ghostSlots).stashlink$ingredients().get(slot);
+        if (ghost != null) {
+            List<ItemStack> items = ((GhostSlotAccessor) ghost).stashlink$items();
+            if (!items.isEmpty()) {
+                stashlink$missingIngredient = items.get(0).copyWithCount(1);
+            }
+        }
+    }
+
+    /**
+     * Depois (o jogo já limpou os fantasmas): se o jogador não tem esse item nem na mochila nem no armazenamento, vai
+     * para a receita que o fabrica (só receitas que ele já descobriu), em vez de não fazer nada.
+     */
+    @Inject(method = "slotClicked", at = @At("TAIL"))
+    private void stashlink$jumpToMissingIngredientRecipe(@Nullable Slot slot, CallbackInfo ci) {
+        ItemStack wanted = stashlink$missingIngredient;
+        stashlink$missingIngredient = ItemStack.EMPTY;
+        if (wanted.isEmpty() || minecraft.player.getInventory().countItem(wanted.getItem()) > 0
+                || BenchClient.poolHas(wanted)) {
+            return;
+        }
+        var context = SlotDisplayContext.fromLevel(minecraft.level);
+        RecipeCollection bestCollection = null;
+        RecipeDisplayId best = null;
+        for (RecipeCollection collection : book.getCollections()) {
+            for (RecipeDisplayEntry entry : collection.getRecipes()) {
+                if (entry.resultItems(context).stream().anyMatch(r -> r.is(wanted.getItem()))
+                        && (best == null || (collection.isCraftable(entry.id()) && !bestCollection.isCraftable(best)))) {
+                    bestCollection = collection;
+                    best = entry.id();
+                }
+            }
+        }
+        if (best != null) {
+            tryPlaceRecipe(bestCollection, best, false);
+        }
+    }
 
     /** Chegou uma lista nova do servidor: força o livro a refazer a conta no próximo tick. */
     @Inject(method = "tick", at = @At("HEAD"))
