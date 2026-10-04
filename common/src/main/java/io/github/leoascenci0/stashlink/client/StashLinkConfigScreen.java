@@ -10,6 +10,7 @@ import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.LockIconButton;
@@ -18,6 +19,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -57,6 +60,13 @@ public class StashLinkConfigScreen extends Screen {
     private boolean clientModeActive;
     private int infoY;
     private int slotsLabelY;
+    /** Rolagem da lista (px). Widgets da lista, y original de cada um e a janela visível entre abas e rodapé. */
+    private int scroll;
+    private int maxScroll;
+    private int viewTop;
+    private int viewBottom;
+    private final List<AbstractWidget> scrollables = new ArrayList<>();
+    private final List<Integer> scrollBaseY = new ArrayList<>();
 
     public StashLinkConfigScreen(Screen parent) {
         super(Component.translatableWithFallback("stashlink.config.title", "StashLink settings"));
@@ -94,7 +104,13 @@ public class StashLinkConfigScreen extends Screen {
                 b -> switchPage(PAGE_CATEGORIES)).bounds(x + 2 * (tabW + 4), top + 20, lastW, 20).build());
         categories.active = page != PAGE_CATEGORIES;
 
-        int y = top + 48;
+        // Na aba "Tecla N" o texto explicativo fica logo abaixo das abas (a lista rola, o rodapé é fixo).
+        int y = page == PAGE_CATEGORIES ? top + 60 : top + 48;
+        if (page == PAGE_CATEGORIES) {
+            infoY = top + 44;
+        }
+        viewTop = y;
+        int firstScrollable = this.children().size();   // tudo que entra depois das 3 abas rola
         if (page == PAGE_FEATURES) {
             y = initFeatures(x, y, false);
         } else if (page == PAGE_CATEGORIES) {
@@ -102,12 +118,55 @@ public class StashLinkConfigScreen extends Screen {
         } else {
             y = initSettings(x, y);
         }
+
+        // Cabe na tela: Concluído logo abaixo da lista. Não cabe: Concluído fixo no rodapé e a lista rola.
+        int doneY = y + 8;
+        if (doneY + 20 > this.height - 6) {
+            doneY = this.height - 28;
+            viewBottom = doneY - 4;
+            maxScroll = Math.max(0, y - viewBottom);
+        } else {
+            viewBottom = this.height;
+            maxScroll = 0;
+        }
+        scrollables.clear();
+        scrollBaseY.clear();
+        for (int i = firstScrollable; i < this.children().size(); i++) {
+            if (this.children().get(i) instanceof AbstractWidget widget) {
+                scrollables.add(widget);
+                scrollBaseY.add(widget.getY());
+            }
+        }
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
-                .bounds(x, y + 8, WIDTH, 20).build());
+                .bounds(x, doneY, WIDTH, 20).build());
+        applyScroll();
+    }
+
+    /** Reposiciona a lista conforme a rolagem; o que ficaria cortado pelo topo ou pelo rodapé some. */
+    private void applyScroll() {
+        scroll = Math.max(0, Math.min(maxScroll, scroll));
+        for (int i = 0; i < scrollables.size(); i++) {
+            AbstractWidget widget = scrollables.get(i);
+            int y = scrollBaseY.get(i) - scroll;
+            widget.setY(y);
+            widget.visible = y >= viewTop && y + widget.getHeight() <= viewBottom;
+        }
+    }
+
+    /** Roda do mouse rola a lista de funções (uma linha por "clique" da roda). */
+    @Override
+    public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (maxScroll > 0 && scrollY != 0) {
+            scroll -= (int) Math.signum(scrollY) * FEATURE_ROW;
+            applyScroll();
+            return true;
+        }
+        return super.mouseScrolled(x, y, scrollX, scrollY);
     }
 
     private void switchPage(int newPage) {
         page = newPage;
+        scroll = 0;
         rebuildWidgets();
     }
 
@@ -150,9 +209,6 @@ public class StashLinkConfigScreen extends Screen {
             lock.setTooltip(Tooltip.create(lockTip(locked)));
             addRenderableWidget(lock);
             y += FEATURE_ROW;
-        }
-        if (categories) {
-            infoY = y + 34;   // texto explicativo abaixo do botão Concluído
         }
         return y;
     }
@@ -297,15 +353,28 @@ public class StashLinkConfigScreen extends Screen {
                     cx, infoY, 0xFFAAAAAA);
         }
         if (page == PAGE_SETTINGS) {
-            if (clientModeActive) {
+            int infoDraw = infoY - scroll;
+            if (clientModeActive && infoDraw >= viewTop && infoDraw + 9 <= viewBottom) {
                 graphics.centeredText(this.font, Component.translatableWithFallback("stashlink.config.client_mode_active",
                         "Client mode active: the server does not have StashLink, the mod acts only on your client"),
-                        cx, infoY, 0xFF55FF55);
+                        cx, infoDraw, 0xFF55FF55);
             }
             // Rótulo do campo de slots (fica 11 px acima do EditBox; a posição depende de quais widgets aparecem).
-            graphics.text(this.font, Component.translatableWithFallback("stashlink.config.locked_slots_hint",
-                    "Locked slots (0-35, comma-separated; 0-8 = hotbar)"),
-                    cx - WIDTH / 2, slotsLabelY, 0xFFAAAAAA);
+            int labelDraw = slotsLabelY - scroll;
+            if (labelDraw >= viewTop && labelDraw + 9 <= viewBottom) {
+                graphics.text(this.font, Component.translatableWithFallback("stashlink.config.locked_slots_hint",
+                        "Locked slots (0-35, comma-separated; 0-8 = hotbar)"),
+                        cx - WIDTH / 2, labelDraw, 0xFFAAAAAA);
+            }
+        }
+        if (maxScroll > 0) {
+            // Barrinha de rolagem à direita da lista: o tamanho mostra quanto da lista cabe, a posição onde estou.
+            int barX = cx + WIDTH / 2 + 6;
+            int trackH = viewBottom - viewTop;
+            int thumbH = Math.max(12, trackH * trackH / (trackH + maxScroll));
+            int thumbY = viewTop + (trackH - thumbH) * scroll / maxScroll;
+            graphics.fill(barX, viewTop, barX + 4, viewBottom, 0x66000000);
+            graphics.fill(barX, thumbY, barX + 4, thumbY + thumbH, 0xFFAAAAAA);
         }
     }
 
