@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.organize;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.compat.mc.OrganizeCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
@@ -65,6 +66,7 @@ public final class OrganizeService {
     }
 
     private static void process(ServerPlayer player, OrganizeRequest request) {
+        OrganizeCompat.ensureOrder(player);
         int action = request.action();
         if (action < 0 || action >= COOLDOWN.length || !player.isAlive() || player.isSpectator()) {
             return;

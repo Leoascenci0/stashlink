@@ -9,6 +9,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -30,6 +34,40 @@ public final class OrganizeCompat {
     private static final float MARGIN = 0.02f;
 
     private OrganizeCompat() {
+    }
+
+    /** Posição de cada item na ordem do inventário criativo (abas na ordem do jogo); pronta depois de {@link #ensureOrder}. */
+    private static volatile java.util.Map<Item, Integer> tabOrder;
+
+    /**
+     * Monta (uma vez) a ordem do inventário criativo: Blocos, Coloridos, Natural, Funcional, Redstone, Ferramentas, Combate,
+     * Comida, Ingredientes... É a ordem que o jogador já conhece, e inclui itens de outros mods (que entram nas abas).
+     */
+    public static void ensureOrder(ServerPlayer player) {
+        if (tabOrder != null) {
+            return;
+        }
+        ServerLevel level = player.level();
+        CreativeModeTabs.tryRebuildTabContents(level.enabledFeatures(), false, level.registryAccess());
+        java.util.Map<Item, Integer> order = new java.util.HashMap<>();
+        int next = 0;
+        for (CreativeModeTab tab : CreativeModeTabs.tabs()) {
+            for (ItemStack stack : tab.getDisplayItems()) {
+                if (!order.containsKey(stack.getItem())) {
+                    order.put(stack.getItem(), next++);
+                }
+            }
+        }
+        if (!order.isEmpty()) {
+            tabOrder = order;
+        }
+    }
+
+    /** Posição do item na ordem do criativo; quem não está em nenhuma aba (ou ainda sem a ordem) vai depois de todos. */
+    public static int rank(Item item) {
+        java.util.Map<Item, Integer> order = tabOrder;
+        Integer rank = order == null ? null : order.get(item);
+        return rank == null ? Integer.MAX_VALUE : rank;
     }
 
     /**

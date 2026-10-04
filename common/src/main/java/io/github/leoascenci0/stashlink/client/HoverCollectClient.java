@@ -63,10 +63,7 @@ public final class HoverCollectClient {
         // Entrar em outro slot exige mover o mouse, e mover com o botão apertado gera "arrastou". Sem isso (botão solto
         // que o jogo não avisou), só passar o mouse com Shift não coleta nada.
         if (System.currentTimeMillis() - lastDragMs > DRAG_WINDOW_MS) {
-            leftDown = false;
-            wasLeftDown = false;
-            PASS.reset();
-            return;
+            return;   // não zera o estado: segurar o botão parado e só depois arrastar tem de continuar valendo
         }
         // Fora de qualquer slot só "esquece" o slot anterior: voltar a ele depois é uma nova passagem.
         if (!PASS.shouldClick(hovered == null ? -1 : hovered.index, mc.level.getGameTime()) || hovered == null) {

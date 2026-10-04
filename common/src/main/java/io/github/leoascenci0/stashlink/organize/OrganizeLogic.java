@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.organize;
 
+import io.github.leoascenci0.stashlink.compat.mc.OrganizeCompat;
 import io.github.leoascenci0.stashlink.quickstack.ItemCategory;
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,7 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Arrumar <b>um</b> container (Item 20.1): junta os stacks parciais e ordena por categoria e nome. Sem rede nem
+ * Arrumar <b>um</b> container (Item 20.1): junta os stacks parciais e ordena como o inventário criativo. Sem rede nem
  * jogador, só {@link Container}: dá para testar de forma exaustiva.
  *
  * <p>Garantias: (1) a soma de cada item (mesmo item <i>e</i> componentes) não muda — conferida antes de gravar; (2) um
@@ -28,12 +29,14 @@ public final class OrganizeLogic {
     }
 
     /**
-     * Ordem de exibição: primeiro o que não tem categoria (blocos, minérios, materiais), depois armaduras, ferramentas,
-     * armas, comida e poções; dentro de cada grupo, pelo nome do item (o id do jogo, igual em qualquer idioma). Empate
-     * (mesmo item com componentes diferentes) mantém a ordem em que já estavam, o que torna a arrumação idempotente.
+     * Ordem de exibição: a do <b>inventário criativo</b> do jogo (Blocos, Coloridos, Natural, Funcional, Redstone,
+     * Ferramentas, Combate, Comida, Ingredientes... e os itens de mods nas abas deles), que o jogador já conhece. O que não
+     * está em nenhuma aba vem depois, por categoria e pelo id do item (igual em qualquer idioma). Empate (mesmo item
+     * com componentes diferentes) mantém a ordem em que já estavam, o que torna a arrumação idempotente.
      */
     static final Comparator<ItemStack> ORDER = Comparator
-            .<ItemStack>comparingInt(stack -> {
+            .<ItemStack>comparingInt(stack -> OrganizeCompat.rank(stack.getItem()))
+            .thenComparingInt(stack -> {
                 ItemCategory category = ItemCategory.of(stack);
                 return category == null ? 0 : category.ordinal() + 1;
             })
