@@ -392,6 +392,19 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
      é a do jogo base e o painel some.
   9. Servidor **sem** o mod: tudo como no jogo base (sem painel, sem armazenamento).
 
+### Item 16.1 — Painel das bancadas só mostra o que serve na estação ✅
+- **Branch:** `feat/bancadas-filtro-armazenamento`
+- Pedido do Eliel (2026-10-03): o painel "Armazenamento" ao lado das estações não deve listar tudo; cada estação mostra
+  **só os itens que podem ser usados nela** (ex.: tear = banner, corante e molde).
+- **Feito:** o filtro roda **no servidor** (`BenchSync.snapshot` → `BenchCompat.relevant`), então o pacote fica menor e o
+  teto de 512 itens vale só para o que serve. A regra vem dos **próprios slots da estação** (`Slot.mayPlace`): tear,
+  cartografia, pedra de amolar, ferreiro e suporte de poções seguem o jogo sozinhos (e itens de outros mods). Casos
+  especiais: **bancada** mostra tudo (qualquer item pode ser ingrediente); **fornalha/defumador/alto-forno** = combustível
+  ou item que funde (lista de receitas do jogo); **cortador de pedra** = itens com receita; **encantamento** = lápis ou item
+  encantável; **bigorna** = item com dano/encantado, livro encantado ou material que conserta algo da mochila.
+  Painel vazio diz "Nada por perto que sirva aqui". Pedir/retirar item continua igual (servidor confere tudo).
+- **Testes:** 1 GameTest novo (`panelListsOnlyWhatTheStationAccepts`: tear, fornalha e bancada), 103 no total.
+
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ✅
 - **Branch:** `feat/filtro-tecla-n`
 - Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,

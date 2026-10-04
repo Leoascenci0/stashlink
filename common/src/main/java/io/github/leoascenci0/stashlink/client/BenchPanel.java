@@ -141,7 +141,7 @@ public final class BenchPanel {
         List<BenchPoolSync.Entry> list = entries();
         if (list.isEmpty()) {
             graphics.centeredText(font, Component.translatableWithFallback("stashlink.bench.panel.empty",
-                    "Nothing nearby"), x + WIDTH / 2, gridY() + ROWS * CELL / 2 - 4, 0xFFAAAAAA);
+                    "Nothing usable nearby"), x + WIDTH / 2, gridY() + ROWS * CELL / 2 - 4, 0xFFAAAAAA);
             return;
         }
         BenchPoolSync.Entry hovered = null;

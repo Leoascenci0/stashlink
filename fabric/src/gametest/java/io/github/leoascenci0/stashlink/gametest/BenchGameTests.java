@@ -25,6 +25,7 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.FurnaceMenu;
+import net.minecraft.world.inventory.LoomMenu;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.StonecutterMenu;
 import net.minecraft.world.item.Item;
@@ -202,6 +203,49 @@ public class BenchGameTests {
                 && !items.contains(Items.AMETHYST_SHARD) && !items.contains(Items.BRICK),
                 "devia ver só o baú a 6 (nem o baú a 20, nem shulker nenhuma): " + items);
         clean(lab, h);
+    }
+
+    /** O painel lista só o que serve na estação aberta: tear (banner/corante), fornalha (fuel/fundível), bancada (tudo). */
+    @GameTest
+    public void panelListsOnlyWhatTheStationAccepts(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.BANNER.pick(net.minecraft.world.item.DyeColor.WHITE), 1);
+        Lab.fill(chest, 1, Items.DYE.pick(net.minecraft.world.item.DyeColor.RED), 3);
+        Lab.fill(chest, 2, Items.OAK_PLANKS, 9);
+        Lab.fill(chest, 3, Items.COAL, 4);
+        Lab.fill(chest, 4, Items.RAW_IRON, 4);
+        Lab.fill(chest, 5, Items.DIAMOND, 2);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+
+        p.containerMenu = new LoomMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.LOOM, p.blockPosition().below())));
+        net.minecraft.world.inventory.AbstractContainerMenu loomMenu = p.containerMenu;
+        p.containerMenu = p.inventoryMenu;
+        String unfiltered = items(BenchSync.snapshot(p)).toString();
+        p.containerMenu = loomMenu;
+        List<Item> loom = items(BenchSync.snapshot(p));
+        check(h, loom.contains(Items.BANNER.pick(net.minecraft.world.item.DyeColor.WHITE)) && loom.contains(Items.DYE.pick(net.minecraft.world.item.DyeColor.RED)) && !loom.contains(Items.OAK_PLANKS)
+                && !loom.contains(Items.COAL) && !loom.contains(Items.DIAMOND), "tear: só banner e corante: " + loom + " sem filtro=" + unfiltered);
+
+        p.containerMenu = new FurnaceMenu(2, p.getInventory());
+        List<Item> furnace = items(BenchSync.snapshot(p));
+        check(h, furnace.contains(Items.COAL) && furnace.contains(Items.RAW_IRON) && furnace.contains(Items.OAK_PLANKS)
+                && !furnace.contains(Items.DYE.pick(net.minecraft.world.item.DyeColor.RED)) && !furnace.contains(Items.DIAMOND),
+                "fornalha: combustível e fundível (tábua queima), nada de corante/diamante: " + furnace);
+
+        table(lab, p, 3);
+        check(h, items(BenchSync.snapshot(p)).size() == 6, "bancada: mostra tudo");
+        clean(lab, h);
+    }
+
+    private static List<Item> items(List<BenchPoolSync.Entry> entries) {
+        List<Item> out = new ArrayList<>();
+        for (BenchPoolSync.Entry e : entries) {
+            out.add(e.item().getItem());
+        }
+        return out;
     }
 
     /** Cadeado nos ajustes: trancado, o valor do servidor vale e o pedido pessoal do jogador é ignorado. */
