@@ -745,3 +745,10 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Cliente.** `ContainerScreenOrganizeMixin` (botões Organizar e Sistema ao lado do baú; Sistema fecha o baú de verdade antes), `OrganizeScreen` (abas Buscar / Organizar tudo), tecla O. Tudo é só vitrine; o servidor revalida.
 - **Testes.** `OrganizeLogicTest` (12) e `OrganizeGameTests` (24: 2 jogadores, baú duplo, fornalha, filtros, prévia velha, fuzz de 400 ações com soma conferida). Mutação: duplicar, aplicar sem conferir e prévia sem restaurar foram pegos. O fuzz achou um bug (plano esvaziava slot reservado com item diferente da reserva), corrigido.
 - **Limites.** Baú do End e containers de mods que não são baú/barril/shulker não entram. Só Fabric foi exercitado em jogo.
+
+## Item 16.3, onda 2 — achados médios da revisão das bancadas (2026-10-04)
+
+- **Fornalha/suporte de poções:** o que fica nos slots do bloco é do jogador (`BenchCompat.keepsItemsInBlock`); só o cursor ainda é "emprestado". Antes, ao fechar, itens próprios do mesmo tipo iam para o baú.
+- **Receita no pedido:** `recipeId` dos resultados é agora uma chave estável (`BenchResults.key`, hash do item+componentes do ícone), não o índice da lista. Chave que não existe mais → não monta nada e reenvia a lista.
+- **Fechar no mesmo tick de craftar:** `AbstractContainerMenuMixin` chama `BenchLedger.beforeClose` no início de `removed`, com os slots ainda cheios, para refazer a conta antes de assentar.
+- **Salto do ingrediente fantasma (cliente):** só roda com `BenchClient.activeFor(menu)` (função ligada, sem cadeado, mod no servidor). Prova: mixin de cliente, sem GameTest; roteiro manual no relatório da onda.

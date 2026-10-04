@@ -232,6 +232,14 @@ public final class BenchCompat {
         }
     }
 
+    /**
+     * Estações em que o que está nos slots <b>fica no bloco</b> ao fechar (fornalhas e suporte de poções): o item
+     * emprestado que ficou lá vira do jogador e não volta ao baú; só o cursor ainda é "emprestado".
+     */
+    public static boolean keepsItemsInBlock(AbstractContainerMenu menu) {
+        return menu instanceof AbstractFurnaceMenu || menu instanceof BrewingStandMenu;
+    }
+
     /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */
     public static void closeMenu(ServerPlayer player) {
         player.doCloseContainer();

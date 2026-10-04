@@ -846,6 +846,114 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /**
+     * Fornalha: o emprestado que ficou no bloco é do jogador. Ao fechar, as lenhas PRÓPRIAS da mochila não podem ir
+     * para o baú (troca de dono); o que ainda estava no cursor ao fechar continua voltando ao baú.
+     */
+    @GameTest
+    public void furnaceKeepsBorrowedItemAndNeverTakesTheOwnersOwn(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.JUNGLE_LOG, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.getInventory().add(new ItemStack(Items.JUNGLE_LOG, 20));
+        FurnaceMenu furnace = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = furnace;
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.JUNGLE_LOG), false, -2));   // painel: pôr na entrada
+        check(h, furnace.getSlot(0).getItem().is(Items.JUNGLE_LOG) && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "a lenha emprestada foi para a entrada: " + furnace.getSlot(0).getItem());
+        furnace.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.JUNGLE_LOG) == 20 && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "as 20 lenhas próprias ficam com o jogador e o baú não ganha nada: mochila=" + Lab.carried(p, Items.JUNGLE_LOG)
+                        + " baú=" + Lab.count(chest, Items.JUNGLE_LOG));
+        check(h, furnace.getSlot(0).getItem().getCount() == 5, "o emprestado ficou na fornalha");
+        clean(lab, h);
+    }
+
+    /** Fornalha, item ainda no cursor ao fechar: esse nunca foi para o bloco, então volta ao baú. */
+    @GameTest
+    public void furnaceCursorItemStillReturnsToTheChest(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.ACACIA_LOG, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.getInventory().add(new ItemStack(Items.ACACIA_LOG, 20));
+        FurnaceMenu furnace = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = furnace;
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.ACACIA_LOG), false));   // painel: pega no cursor
+        check(h, furnace.getCarried().is(Items.ACACIA_LOG), "a lenha foi para o cursor");
+        furnace.removed(p);
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.ACACIA_LOG) == 20 && Lab.count(chest, Items.ACACIA_LOG) == 5,
+                "o cursor volta ao baú e as 20 próprias ficam: mochila=" + Lab.carried(p, Items.ACACIA_LOG)
+                        + " baú=" + Lab.count(chest, Items.ACACIA_LOG));
+        clean(lab, h);
+    }
+
+    /** O snapshot do cliente pode estar velho: o pedido carrega a identidade da receita, não a posição na lista. */
+    @GameTest
+    public void staleRecipeListNeverBuildsTheWrongRecipe(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, TUFF, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+
+        List<BenchPoolSync.Entry> stale = BenchSync.snapshot(p);                    // o que o cliente tem
+        BenchPoolSync.Entry wanted = stale.stream().filter(e -> e.isResult() && !e.missing())
+                .reduce((a, b) -> b).orElseThrow();                                 // o último possível
+        Lab.fill(chest, 1, Items.BLACKSTONE, 10);                                   // a lista muda antes do clique
+        Lab.fill(chest, 2, Items.GRANITE, 10);
+        Lab.fill(chest, 3, Items.ANDESITE, 10);
+
+        BenchPullService.handle(p, new BenchPullRequest(5, wanted.item(), false, wanted.id()));
+        check(h, menu.getSlot(0).getItem().is(TUFF), "a entrada é a da receita pedida, não a de outra: " + menu.getSlot(0).getItem());
+        check(h, menu.getSlot(1).getItem().is(wanted.item().getItem()),
+                "o resultado é o pedido: " + menu.getSlot(1).getItem() + " esperado " + wanted.item());
+
+        // Receita que sumiu da lista (ninguém tem mais material nem conhece): não monta nada.
+        menu.removed(p);
+        p.containerMenu = new StonecutterMenu(6, p.getInventory());
+        chest.clearContent();
+        BenchPullService.handle(p, new BenchPullRequest(6, wanted.item(), false, wanted.id()));
+        check(h, p.containerMenu.getSlot(0).getItem().isEmpty(), "receita que sumiu não monta nada");
+        clean(lab, h);
+    }
+
+    /** Craftar e fechar no mesmo tick: o caderno refaz a conta antes de assentar e nunca leva item próprio ao baú. */
+    @GameTest
+    public void craftAndCloseInTheSameTickNeverTakesOwnItems(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.CRIMSON_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);                      // 2 tábuas do baú vão para a grade
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 3, "saíram 2 tábuas");
+
+        for (int i = 1; i <= 9; i++) {                       // o jogador craftou: a grade foi gasta...
+            menu.slots.get(i).set(ItemStack.EMPTY);
+        }
+        p.getInventory().add(new ItemStack(Items.CRIMSON_PLANKS, 5));   // ...e ele já tinha 5 tábuas próprias
+        menu.removed(p);                                     // ...e fechou antes do próximo tick
+        p.containerMenu = p.inventoryMenu;
+        BenchSync.tick(lab.level.getServer());
+        check(h, Lab.carried(p, Items.CRIMSON_PLANKS) == 5 && Lab.count(chest, Items.CRIMSON_PLANKS) == 3,
+                "as 5 próprias ficam e o baú segue com 3: mochila=" + Lab.carried(p, Items.CRIMSON_PLANKS)
+                        + " baú=" + Lab.count(chest, Items.CRIMSON_PLANKS));
+        clean(lab, h);
+    }
+
     private static List<ItemStack> contents(Container c) {
         List<ItemStack> out = new ArrayList<>();
         for (int i = 0; i < c.getContainerSize(); i++) {

@@ -47,11 +47,20 @@ public final class BenchResults {
         for (int i = 0; i < options.size() && ok.size() + missing.size() < BenchPoolSync.MAX_ENTRIES; i++) {
             StationRecipes.Option option = options.get(i);
             boolean can = option.needs().stream().allMatch(need -> have.stream().anyMatch(need));
-            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, i, !can, option.tab(), -1));
+            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, key(option), !can, option.tab(), -1));
         }
         colors.addAll(ok);
         colors.addAll(missing);
         return colors;
+    }
+
+    /**
+     * Identidade estável de uma receita no pedido: o que ela produz (item + componentes), não a posição na lista. A
+     * lista é refeita a cada clique e o snapshot do cliente chega a 5 s atrasado, então um índice podia apontar para
+     * outra receita. Sempre {@code >= 0} (os negativos têm significado próprio).
+     */
+    static int key(StationRecipes.Option option) {
+        return ItemStack.hashItemAndComponents(option.icon()) & Integer.MAX_VALUE;
     }
 
     /** Aba de um item solto: na mesa de ferraria, qual slot o aceita (enfeite, equipamento ou minério); nas outras, 0. */
@@ -104,13 +113,20 @@ public final class BenchResults {
         return have;
     }
 
-    /** Monta a receita {@code id}: põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
+    /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
     public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice) {
         List<StationRecipes.Option> options = StationRecipes.options(player, menu, available(player));
-        if (id < 0 || id >= options.size()) {
+        StationRecipes.Option option = null;
+        for (StationRecipes.Option candidate : options) {
+            if (key(candidate) == id) {
+                option = candidate;
+                break;
+            }
+        }
+        if (option == null) {
+            BenchSync.markDirty(player);   // a lista mudou desde o snapshot do cliente: manda a nova e não monta nada
             return;
         }
-        StationRecipes.Option option = options.get(id);
         List<java.util.function.Predicate<ItemStack>> needs = new ArrayList<>(option.needs());
         if (menu instanceof net.minecraft.world.inventory.LoomMenu && StationRecipes.isDye(choice)) {
             needs.set(1, s -> s.is(choice.getItem()));   // o corante da cor que o jogador escolheu no painel

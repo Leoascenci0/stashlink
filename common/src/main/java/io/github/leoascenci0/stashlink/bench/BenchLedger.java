@@ -71,6 +71,18 @@ public final class BenchLedger {
         entry.origin = entry.origin == null ? origin : entry.origin.merge(origin);
     }
 
+    /**
+     * A estação vai fechar (chamado no início de {@code removed}, com os slots ainda cheios): refaz a conta agora.
+     * Sem isso, craftar e fechar no mesmo tick deixava o caderno achando que a grade ainda tinha o emprestado, e
+     * o assentamento levava itens <b>próprios</b> do mesmo tipo da mochila para o baú.
+     */
+    public static void beforeClose(ServerPlayer player, AbstractContainerMenu menu) {
+        Entry entry = LEDGER.get(player);
+        if (entry != null && entry.menu() == menu) {
+            reconcile(player, entry);
+        }
+    }
+
     /** Todo tick: se a estação foi fechada, devolve o que não foi usado; senão, atualiza a conta. */
     public static void tick(ServerPlayer player) {
         Entry entry = LEDGER.get(player);
@@ -173,6 +185,8 @@ public final class BenchLedger {
     /** Refaz a conta: nada além do que ainda está no cursor e nos slots de entrada da estação pode estar "emprestado". */
     private static void reconcile(ServerPlayer player, Entry entry) {
         Inventory inventory = player.getInventory();
+        // Fornalha/suporte de poções: o que está nos slots fica no bloco e já é do jogador, só o cursor conta.
+        boolean keepsInBlock = BenchCompat.keepsItemsInBlock(entry.menu());
         for (Iterator<Map.Entry<Item, Integer>> it = entry.borrowed.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<Item, Integer> e = it.next();
             int held = 0;
@@ -181,7 +195,7 @@ public final class BenchLedger {
                 held += carried.getCount();
             }
             ItemStack probe = new ItemStack(e.getKey());
-            for (Slot slot : entry.menu().slots) {
+            for (Slot slot : keepsInBlock ? List.<Slot>of() : entry.menu().slots) {
                 if (slot.container != inventory && slot.mayPlace(probe) && slot.getItem().is(e.getKey())) {
                     held += slot.getItem().getCount();
                 }
