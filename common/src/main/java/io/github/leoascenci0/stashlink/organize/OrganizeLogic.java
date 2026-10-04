@@ -142,19 +142,65 @@ public final class OrganizeLogic {
             source.shrink(put);
         }
         pool.removeIf(ItemStack::isEmpty);
+
+        // O que não coube na pilha reservada (ex.: ela já está em 64) fica logo depois dela, nos primeiros slots livres
+        // seguintes, em vez de ir parar no meio dos outros itens. Só se couber inteiro; senão segue para a ordem normal.
+        List<Integer> open = new ArrayList<>(free);
+        java.util.Map<Integer, ItemStack> beside = new java.util.HashMap<>();
+        for (int slot = 0; slot < size; slot++) {
+            net.minecraft.world.item.Item locked = SlotLocks.lockedItem(c, slot);
+            if (locked == null) {
+                continue;
+            }
+            for (java.util.Iterator<ItemStack> it = pool.iterator(); it.hasNext(); ) {
+                ItemStack entry = it.next();
+                if (!entry.is(locked)) {
+                    continue;
+                }
+                int limit = Math.max(1, Math.min(c.getMaxStackSize(entry), entry.getMaxStackSize()));
+                int stacks = (entry.getCount() + limit - 1) / limit;
+                List<Integer> slots = new ArrayList<>();
+                for (int candidate : open) {
+                    if (candidate > slot && slots.size() < stacks) {
+                        slots.add(candidate);
+                    }
+                }
+                if (slots.size() < stacks) {
+                    continue;
+                }
+                java.util.Map<Integer, ItemStack> put = new java.util.HashMap<>();
+                int remaining = entry.getCount();
+                boolean accepted = true;
+                for (int target : slots) {
+                    ItemStack placed = entry.copyWithCount(Math.min(remaining, limit));
+                    if (!c.canPlaceItem(target, placed)) {
+                        accepted = false;
+                        break;
+                    }
+                    put.put(target, placed);
+                    remaining -= placed.getCount();
+                }
+                if (accepted) {
+                    beside.putAll(put);
+                    open.removeAll(slots);
+                    it.remove();
+                }
+            }
+        }
         pool.sort(ORDER);                                   // estável: empate fica na ordem dos slots
 
         List<ItemStack> after = new ArrayList<>(before);
         reserved.forEach(after::set);
+        beside.forEach(after::set);
         int next = 0;
         for (ItemStack entry : pool) {
             int limit = Math.max(1, Math.min(c.getMaxStackSize(entry), entry.getMaxStackSize()));
             int remaining = entry.getCount();
             while (remaining > 0) {
-                if (next >= free.size()) {
+                if (next >= open.size()) {
                     return null;                            // não deveria acontecer (juntar só reduz stacks)
                 }
-                int slot = free.get(next++);
+                int slot = open.get(next++);
                 int put = Math.min(remaining, limit);
                 ItemStack placed = entry.copyWithCount(put);
                 if (!c.canPlaceItem(slot, placed)) {
@@ -164,8 +210,8 @@ public final class OrganizeLogic {
                 remaining -= put;
             }
         }
-        for (; next < free.size(); next++) {
-            after.set(free.get(next), ItemStack.EMPTY);
+        for (; next < open.size(); next++) {
+            after.set(open.get(next), ItemStack.EMPTY);
         }
         if (!sameTotals(before, after)) {
             return null;                                    // cinto de segurança: a soma tem de bater

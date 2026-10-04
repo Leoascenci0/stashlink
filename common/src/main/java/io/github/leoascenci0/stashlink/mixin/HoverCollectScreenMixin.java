@@ -36,6 +36,13 @@ public abstract class HoverCollectScreenMixin {
         }
     }
 
+    @Inject(method = "mouseDragged", at = @At("HEAD"))
+    private void stashlink$leftDragged(MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
+        if (ClientCompat.isLeftButton(event)) {
+            HoverCollectClient.dragSeen();
+        }
+    }
+
     @Inject(method = "mouseReleased", at = @At("HEAD"))
     private void stashlink$leftReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (ClientCompat.isLeftButton(event)) {

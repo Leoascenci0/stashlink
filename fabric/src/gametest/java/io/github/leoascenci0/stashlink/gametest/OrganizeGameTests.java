@@ -152,6 +152,31 @@ public class OrganizeGameTests {
         h.succeed();
     }
 
+    /** A pilha reservada já está cheia: a tábua que sobra fica logo ao lado dela, e organizar de novo não muda nada. */
+    @GameTest
+    public void chestOrganizePutsTheLeftoverBesideTheFullReservedStack(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 3);
+        chest.setItem(0, new ItemStack(Items.JUNGLE_PLANKS, 64));
+        chest.setItem(4, new ItemStack(Items.JUNGLE_PLANKS, 1));
+        chest.setItem(5, new ItemStack(Items.CALCITE, 5));
+        chest.setItem(7, new ItemStack(Items.BASALT, 9));
+        SlotLocks.toggle(chest, 0, new ItemStack(Items.JUNGLE_PLANKS));
+        OrganizeLogic.Totals before = total(chest);
+
+        ServerPlayer p = player(lab);
+        Lab.open(p, chest, 1);
+        organizeChest(p, 1);
+        check(h, total(chest).equals(before), "a soma de itens mudou");
+        check(h, chest.getItem(0).getCount() == 64 && chest.getItem(1).is(Items.JUNGLE_PLANKS) && chest.getItem(1).getCount() == 1,
+                "a tábua que sobrou devia ficar logo depois da pilha reservada: " + chest.getItem(1));
+        List<ItemStack> once = OrganizeLogic.snapshot(chest);
+        organizeChest(p, 1);
+        check(h, OrganizeLogic.sameContents(chest, once), "organizar de novo não pode mudar nada");
+        lab.cleanup();
+        h.succeed();
+    }
+
     @GameTest
     public void chestOrganizeKeepsReservedSlots(GameTestHelper h) {
         Lab lab = new Lab(h);
