@@ -22,12 +22,13 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          for j in $(find ~/.gradle common/build -name "*.jar" 2>/dev/null); do
+          find ~/.gradle common/build -name "*.jar" 2>/dev/null | grep -i -e "26\.3" | head -30
+          for j in $(find ~/.gradle common/build -name "*.jar" 2>/dev/null | grep -e "26\.3"); do
             if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/world/level/block/entity/BrewingStandBlockEntity.class"; then
               echo "== $j"
               unzip -l "$j" | awk '{print $4}' | grep -i -e "alchemy/" -e "brew"
               mkdir -p /tmp/x && cd /tmp/x && unzip -o -q "$j" 'net/minecraft/*' 2>/dev/null
-              for c in $(find net/minecraft -iname "*brew*.class" -o -iname "Potion*.class" | grep -v -F '$'); do echo "--- $c"; javap -p "$c"; done
+              for c in $(find net/minecraft -iname "*brew*.class" -o -iname "Potion*.class" -o -path "*alchemy*" -name "*.class" | grep -v -F '$' | sort -u); do echo "--- $c"; javap -p "$c" | grep -v -e "lambda" -e "Holder\$Reference"; done
               echo "--- Level/ServerLevel/MinecraftServer (brew/potion)"
               for c in net/minecraft/world/level/Level.class net/minecraft/server/level/ServerLevel.class net/minecraft/server/MinecraftServer.class net/minecraft/world/level/LevelReader.class; do javap -p "$c" | grep -i -e brew -e potion; done
               echo "--- BrewingStandBlockEntity code"
