@@ -583,8 +583,9 @@ public class BenchGameTests {
             check(h, p.containerMenu.slots.get(1).getItem().getCount() == 1 && Lab.count(chest, Items.CHARCOAL) == 19,
                     "alto-forno: um carvão vegetal");
             p.containerMenu.slots.get(1).set(ItemStack.EMPTY);
-            StashLinkConfig.setFeatureLocked(Feature.BENCH_FUEL, true);
             h.runAfterDelay(2, () -> {
+                // Trancar e pedir no mesmo tick: os testes rodam lado a lado e o clean() dos outros destranca tudo.
+                StashLinkConfig.setFeatureLocked(Feature.BENCH_FUEL, true);
                 BenchPullService.handle(p, new BenchPullRequest(2, new ItemStack(Items.CHARCOAL), false, BenchResults.FUEL));
                 check(h, p.containerMenu.slots.get(1).getItem().isEmpty() && Lab.count(chest, Items.CHARCOAL) == 19,
                         "trancado: nada sai do baú");
@@ -1699,8 +1700,9 @@ public class BenchGameTests {
         check(h, menu.getSlot(0).getItem().is(Items.EMERALD) && Lab.count(chest, Items.DIAMOND) == 3
                 && Lab.count(chest, Items.EMERALD) == 0, "a esmeralda do jogador fica; nada sai do baú");
         menu.getSlot(0).set(ItemStack.EMPTY);
-        StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);
         h.runAfterDelay(2, () -> {
+            // Trancar e pedir no mesmo tick: os testes rodam lado a lado e o clean() dos outros destranca tudo.
+            StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);
             BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PAY));
             check(h, menu.getSlot(0).getItem().isEmpty() && Lab.count(chest, Items.DIAMOND) == 3, "trancado: nada sai");
             p.containerMenu = p.inventoryMenu;

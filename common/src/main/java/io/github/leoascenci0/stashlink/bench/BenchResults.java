@@ -244,6 +244,13 @@ public final class BenchResults {
         if (slot == null || !slot.mayPlace(model) || !FeatureGate.allow(player, Feature.BENCH_BEACON)) {
             return;
         }
+        // Só troca se o novo pagamento existe no armazenamento: senão o slot ficaria vazio à toa.
+        boolean available = BenchPool.of(player).contents().stream()
+                .anyMatch(s -> s.count() > 0 && ItemStack.isSameItemSameComponents(s.item(), model));
+        if (!available) {
+            BenchSync.markDirty(player);
+            return;
+        }
         if (slot.hasItem() && !ItemStack.isSameItemSameComponents(slot.getItem(), model)) {
             BenchLedger.returnFromGrid(player, List.of(slot));
             if (slot.hasItem()) {
