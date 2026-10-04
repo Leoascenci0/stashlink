@@ -736,3 +736,12 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   mochila travado na config (`ClientPrefs.lockedSlots`). Telas fora de baú (inventário, criativo, bancadas) nunca agem.
 - **Detecção de "não coube":** o cliente aplica o shift-clique na hora (previsão); se o slot não mudou, não coube.
 
+
+## Item 20 — Organizar o armazenamento
+
+- **20.1 Um baú ().** Junta stacks (mesmo item *e* componentes) e ordena: sem categoria, armadura, ferramentas, armas, comida, poções; dentro do grupo pelo id do item (igual em qualquer idioma). Empate mantém a ordem dos slots, então arrumar de novo não muda nada. A soma por item é conferida antes de gravar; slot reservado (Item 13) é congelado; se  recusar, nada é gravado. Servidor: mesmo menu aberto, , claims, nenhum outro jogador com o baú aberto.
+- **20.2 O sistema (, ).** O plano **roda de verdade nos baús e restaura na hora** (mesmo tick), usando , travas e filtros: a prévia não pode divergir do Aplicar. Aplicar só grava se cada baú ainda está idêntico ao "antes"; Desfazer só se está idêntico ao "depois". Casa do item: quem reserva um slot para ele; senão quem tem mais (empate: o mais perto) — decisão sobre a N pura (mais perto), que puxaria itens do baú principal para o da porta. Baú com a N desligada fica fora de tudo; categoria desligada nunca se move; slot reservado nunca perde item (só recebe o item da reserva); baú aberto por outro jogador e sem claim ficam de fora; só bloco de armazenamento (nunca fornalha/estações). O estado (prévia, último aplicado) é por jogador, na memória.
+- **20.3 Busca e destaque.** O servidor só conhece nomes em inglês, então o **cliente traduz o texto para os itens que casam no idioma dele** e manda os ids (); o texto vai de reserva. Resposta . Destaque: entidade  com brilho (contorno visível através de paredes), nunca gravada, enviada só ao dono (), 15 s, no máximo 8, novo destaque troca o anterior (, API frágil em ).
+- **Cliente.**  (botões Organizar e Sistema ao lado do baú; Sistema fecha o baú de verdade antes),  (abas Buscar / Organizar tudo), tecla O. Tudo é só vitrine; o servidor revalida.
+- **Testes.**  (12) e  (24: 2 jogadores, baú duplo, fornalha, filtros, prévia velha, fuzz de 400 ações com soma conferida). Mutação: duplicar, aplicar sem conferir e prévia sem restaurar foram pegos. O fuzz achou um bug (plano esvaziava slot reservado com item diferente da reserva), corrigido.
+- **Limites.** Baú do End e Item de mods fora de chest/barril/shulker não entram. Só Fabric foi exercitado em jogo.

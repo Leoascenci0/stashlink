@@ -574,8 +574,9 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   hotbar cheia nada acontece e nada some; fora do raio não puxa; testes no harness `:fabric:runGameTest`, incluindo 2
   jogadores.
 
-### Item 20 — Organizar os itens do sistema de armazenamento ⬜
+### Item 20 — Organizar os itens do sistema de armazenamento ✅
 - **Branch:** `feat/organizar-armazenamento`
+- **Feito (2026-10-04, aprovado pelo Eliel em jogo):** botão Organizar no baú, tecla O com busca e organizar tudo (prévia, Aplicar, Desfazer) e contorno do baú achado. Detalhes em `ARCHITECTURE.md` (Item 20). 24 GameTests + 12 unitários.
 - Pedido do Eliel (2026-10-03): uma forma de organizar os itens dentro do sistema de armazenamento que seja **boa e
   fácil de mexer**. Proposta de desenho, em 3 camadas, da mais simples para a mais completa (cada uma já é útil sozinha;
   dá para entregar em partes, 20.1 → 20.3):
