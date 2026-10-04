@@ -51,7 +51,9 @@ public enum Feature {
     /** Shift + passar o mouse coleta (ou guarda) o item do slot, sem clicar (Item 21). */
     HOVER_COLLECT("hover_collect"),
     /** Organizar o armazenamento: botão no baú, organizar o sistema todo (prévia/desfazer), busca e destaque (Item 20). */
-    ORGANIZE("organize");
+    ORGANIZE("organize"),
+    /** Botão de combustível nas fornalhas (fornalha, defumador, alto-forno): puxa carvão etc. do armazenamento (Item 16.3). */
+    BENCH_FUEL("bench_fuel");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

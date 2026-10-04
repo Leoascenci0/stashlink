@@ -61,6 +61,9 @@ public final class BenchPanel {
     private static final int TAB_TOP = 3;
     private static final int TAB_ICON_X = 9;
     private static final int TAB_ICON_Y = 5;
+    /** Aba de dois ícones (como as do livro de receitas): um em x+3 e o outro em x+14, sobrepostos. */
+    private static final int TAB_PAIR_X1 = 3;
+    private static final int TAB_PAIR_X2 = 14;
     /** O item fica a 4 px do canto do slot de 25 px (16 px de item centrados); o realce do mouse também. */
     private static final int ITEM_INSET = 4;
     /** A lupa do livro ocupa de x+8 até o campo de busca. */
@@ -88,6 +91,8 @@ public final class BenchPanel {
     private static final Identifier PICKED_FRONT = Identifier.withDefaultNamespace("container/slot_highlight_front");
     /** O mesmo realce translúcido que o jogo põe sobre o slot sob o mouse. */
     private static final int HOVER = 0x80FFFFFF;
+    /** Texto do canto do item no painel: nenhum (a contagem está no tooltip, em todas as estações). */
+    private static final String NO_COUNT = "";
     /** Branco, como o texto do livro do jogo: o fundo do livro é escuro. */
     private static final int TEXT = 0xFFFFFFFF;
 
@@ -280,7 +285,13 @@ public final class BenchPanel {
             int tx = x - TAB_OVERLAP;
             int ty = tabY(i);
             graphics.blitSprite(RenderPipelines.GUI_TEXTURED, i == tab ? TAB_SELECTED : TAB, tx, ty, TAB_W, TAB_H);
-            graphics.fakeItem(tabs.get(i).icon(), tx + TAB_ICON_X, ty + TAB_ICON_Y);
+            BenchTabs.Tab t = tabs.get(i);
+            if (t.second().isEmpty()) {
+                graphics.fakeItem(t.icon(), tx + TAB_ICON_X, ty + TAB_ICON_Y);
+            } else {
+                graphics.fakeItem(t.icon(), tx + TAB_PAIR_X1, ty + TAB_ICON_Y);
+                graphics.fakeItem(t.second(), tx + TAB_PAIR_X2, ty + TAB_ICON_Y);
+            }
             if (tabAt(mouseX, mouseY) == i) {
                 hoveredTab = tabs.get(i);
             }
@@ -322,7 +333,8 @@ public final class BenchPanel {
                 }
                 graphics.fakeItem(iconOf(entry), cx + ITEM_INSET, cy + ITEM_INSET);
                 if (!entry.isResult() && !entry.isColorPick()) {
-                    graphics.itemDecorations(font, entry.item(), cx + ITEM_INSET, cy + ITEM_INSET, shortCount(entry.count()));
+                    // Sem número no canto (a quantidade fica no tooltip "No baú: N"); só a barra de durabilidade.
+                    graphics.itemDecorations(font, entry.item(), cx + ITEM_INSET, cy + ITEM_INSET, NO_COUNT);
                 }
                 if (picked) {
                     graphics.blitSprite(RenderPipelines.GUI_TEXTURED, PICKED_FRONT, cx, cy, CELL, CELL);
@@ -363,17 +375,6 @@ public final class BenchPanel {
 
     private boolean over(double mx, double my, int arrowX) {
         return mx >= x + arrowX && mx < x + arrowX + PAGE_W && my >= y + PAGE_Y && my < y + PAGE_Y + PAGE_H;
-    }
-
-    /** "1,2k" em vez de "1234": cabe no slot. Abaixo de mil mostra o número; um só não mostra nada, como o jogo. */
-    static String shortCount(int count) {
-        if (count < 1000) {
-            return count == 1 ? "" : Integer.toString(count);
-        }
-        if (count < 100_000) {
-            return String.format(Locale.ROOT, "%.1fk", count / 1000.0);
-        }
-        return count / 1000 + "k";
     }
 
     /**

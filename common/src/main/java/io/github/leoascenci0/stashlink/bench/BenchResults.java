@@ -2,6 +2,8 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,9 +28,12 @@ public final class BenchResults {
     /** {@code recipeId} do pedido comum do painel: "ponha um stack deste item no meu cursor". */
     public static final int CURSOR = -1;
 
+    /** {@code recipeId} do botão de combustível das fornalhas: "ponha combustível do armazenamento no slot dele". */
+    public static final int FUEL = -3;
+
     /** Só estes {@code recipeId} chegam do cliente de verdade ({@code >= 0} é uma receita); o resto é ignorado. */
     public static boolean validRequestId(int recipeId) {
-        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR;
+        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == FUEL;
     }
 
     private BenchResults() {
@@ -175,6 +180,39 @@ public final class BenchResults {
             }
         }
         return false;
+    }
+
+    /**
+     * Botão de combustível (fornalha, defumador, alto-forno): o servidor escolhe o combustível pela mesma regra do botão
+     * ({@link BenchCompat#pickFuel}; o item do pedido é só o ícone que o cliente mostrava) e o põe direto no slot de
+     * combustível: uma pilha (o que cabe) ou um só. Fornalha guarda o que está nos slots, então o que entra ali já é do
+     * jogador e não volta ao baú ao fechar (nada vai para o caderno de emprestados).
+     */
+    public static void fuel(ServerPlayer player, AbstractContainerMenu menu, boolean one) {
+        Slot slot = BenchCompat.fuelSlot(menu);
+        if (slot == null || !FeatureGate.allow(player, Feature.BENCH_FUEL)) {
+            return;
+        }
+        BenchPool pool = BenchPool.of(player);
+        List<BenchPool.Stack> stored = pool.contents();
+        ItemStack model = BenchCompat.pickFuel(slot, candidate -> stored.stream()
+                .anyMatch(s -> s.count() > 0 && ItemStack.isSameItemSameComponents(s.item(), candidate)));
+        if (model.isEmpty()) {
+            BenchSync.markDirty(player);
+            return;
+        }
+        ItemStack inside = slot.getItem();
+        int room = Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model)) - inside.getCount();
+        if (room <= 0) {
+            return;
+        }
+        // take() nunca passa do pedido e o pedido cabe no slot: tudo o que sai do baú entra no slot (nada some).
+        int total = ItemSource.sum(pool.source().take(model, one ? 1 : room));
+        if (total > 0) {
+            slot.set(model.copyWithCount(inside.getCount() + total));
+            menu.broadcastChanges();
+        }
+        BenchSync.markDirty(player);
     }
 
     /**

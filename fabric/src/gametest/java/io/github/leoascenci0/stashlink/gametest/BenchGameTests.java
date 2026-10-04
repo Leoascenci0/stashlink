@@ -275,7 +275,7 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
-    /** Mesa de ferraria: os itens se separam em abas pelo slot que os aceita (enfeite, equipamento, minério). */
+    /** Mesa de ferraria: abas Enfeites / Armaduras / Ferramentas e armas / Materiais, pelo slot que aceita o item. */
     @GameTest
     public void smithingTabsFollowTheSlots(GameTestHelper h) {
         Lab lab = new Lab(h);
@@ -283,6 +283,8 @@ public class BenchGameTests {
         Lab.fill(chest, 0, Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE, 2);
         Lab.fill(chest, 1, Items.DIAMOND_CHESTPLATE, 1);
         Lab.fill(chest, 2, Items.NETHERITE_INGOT, 3);
+        Lab.fill(chest, 3, Items.DIAMOND_SWORD, 1);
+        Lab.fill(chest, 4, Items.DIAMOND_PICKAXE, 1);
         ServerPlayer p = lab.player(4, 2, 4);
         Lab.prefs(p, 8, true);
         p.containerMenu = new net.minecraft.world.inventory.SmithingMenu(1, p.getInventory(),
@@ -292,8 +294,11 @@ public class BenchGameTests {
         for (BenchPoolSync.Entry e : list) {
             tabs.put(e.item().getItem(), e.tab());
         }
-        check(h, tabs.get(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE) == 0 && tabs.get(Items.DIAMOND_CHESTPLATE) == 1
-                && tabs.get(Items.NETHERITE_INGOT) == 2, "abas da ferraria: " + tabs);
+        check(h, tabs.get(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE) == BenchCompat.SMITHING_TAB_TRIMS
+                && tabs.get(Items.DIAMOND_CHESTPLATE) == BenchCompat.SMITHING_TAB_ARMOR
+                && tabs.get(Items.DIAMOND_SWORD) == BenchCompat.SMITHING_TAB_TOOLS
+                && tabs.get(Items.DIAMOND_PICKAXE) == BenchCompat.SMITHING_TAB_TOOLS
+                && tabs.get(Items.NETHERITE_INGOT) == BenchCompat.SMITHING_TAB_MATERIALS, "abas da ferraria: " + tabs);
         clean(lab, h);
     }
 
@@ -505,6 +510,94 @@ public class BenchGameTests {
         check(h, Lab.count(chest, LOG) + furnace.slots.get(0).getItem().getCount() + Lab.carried(p, LOG) == 5,
                 "total de lenha mudou");
         clean(lab, h);
+    }
+
+    /**
+     * Botão de combustível (Item 16.3): carvão do baú vai direto ao slot de combustível (pilha / um), completa o
+     * combustível que já está lá, ignora balde vazio e nunca cria nem some item.
+     */
+    @GameTest
+    public void fuelButtonFillsTheFuelSlot(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.COAL, 64);
+        Lab.fill(chest, 1, Items.COAL, 10);
+        Lab.fill(chest, 2, LOG, 64);   // tronco queima, mas o botão nunca o escolhe sozinho
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        FurnaceMenu furnace = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = furnace;
+        net.minecraft.world.inventory.Slot fuel = furnace.slots.get(1);
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), true, BenchResults.FUEL));
+        check(h, fuel.getItem().is(Items.COAL) && fuel.getItem().getCount() == 1, "direito: 1 carvão no slot: " + fuel.getItem());
+        check(h, Lab.count(chest, Items.COAL) == 73 && Lab.count(chest, LOG) == 64, "saiu 1 carvão, tronco intocado");
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), false, BenchResults.FUEL));
+            check(h, fuel.getItem().is(Items.COAL) && fuel.getItem().getCount() == 64, "esquerdo: completa a pilha: " + fuel.getItem());
+            check(h, Lab.count(chest, Items.COAL) + fuel.getItem().getCount() == 74, "total de carvão mudou");
+            h.runAfterDelay(2, () -> {
+                // Slot cheio: nada sai.
+                BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), false, BenchResults.FUEL));
+                check(h, Lab.count(chest, Items.COAL) == 10, "slot cheio: não tira mais");
+                // Combustível que o jogador pôs (tábua): o botão completa com o mesmo item.
+                fuel.set(new ItemStack(PLANKS, 3));
+                Lab.fill(chest, 3, PLANKS, 5);
+                h.runAfterDelay(2, () -> {
+                    BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), false, BenchResults.FUEL));
+                    check(h, fuel.getItem().is(PLANKS) && fuel.getItem().getCount() == 8 && Lab.count(chest, PLANKS) == 0
+                            && Lab.count(chest, Items.COAL) == 10, "completa a tábua do slot, sem trocar por carvão: " + fuel.getItem());
+                    // Sobra do balde de lava: balde vazio não é combustível, o botão não mexe.
+                    fuel.set(new ItemStack(Items.BUCKET));
+                    Lab.fill(chest, 4, Items.BUCKET, 4);
+                    h.runAfterDelay(2, () -> {
+                        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), false, BenchResults.FUEL));
+                        check(h, fuel.getItem().is(Items.BUCKET) && fuel.getItem().getCount() == 1
+                                && Lab.count(chest, Items.BUCKET) == 4, "balde vazio no slot: nada muda");
+                        fuel.set(ItemStack.EMPTY);
+                        clean(lab, h);
+                    });
+                });
+            });
+        });
+    }
+
+    /** Botão de combustível: defumador e alto-forno também; trancado ou fora de fornalha, nada sai do baú. */
+    @GameTest
+    public void fuelButtonWorksOnSmokerAndBlastFurnaceAndRespectsTheLock(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.CHARCOAL, 20);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.containerMenu = new net.minecraft.world.inventory.SmokerMenu(1, p.getInventory());
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.CHARCOAL), false, BenchResults.FUEL));
+        check(h, p.containerMenu.slots.get(1).getItem().is(Items.CHARCOAL) && p.containerMenu.slots.get(1).getItem().getCount() == 20
+                && Lab.count(chest, Items.CHARCOAL) == 0, "defumador: carvão vegetal no combustível");
+        p.containerMenu.slots.get(1).set(ItemStack.EMPTY);
+        Lab.fill(chest, 0, Items.CHARCOAL, 20);
+        h.runAfterDelay(2, () -> {
+            p.containerMenu = new net.minecraft.world.inventory.BlastFurnaceMenu(2, p.getInventory());
+            BenchPullService.handle(p, new BenchPullRequest(2, new ItemStack(Items.CHARCOAL), true, BenchResults.FUEL));
+            check(h, p.containerMenu.slots.get(1).getItem().getCount() == 1 && Lab.count(chest, Items.CHARCOAL) == 19,
+                    "alto-forno: um carvão vegetal");
+            p.containerMenu.slots.get(1).set(ItemStack.EMPTY);
+            StashLinkConfig.setFeatureLocked(Feature.BENCH_FUEL, true);
+            h.runAfterDelay(2, () -> {
+                BenchPullService.handle(p, new BenchPullRequest(2, new ItemStack(Items.CHARCOAL), false, BenchResults.FUEL));
+                check(h, p.containerMenu.slots.get(1).getItem().isEmpty() && Lab.count(chest, Items.CHARCOAL) == 19,
+                        "trancado: nada sai do baú");
+                StashLinkConfig.setFeatureLocked(Feature.BENCH_FUEL, false);
+                // Pedido de combustível numa estação que não é fornalha: ignorado.
+                p.containerMenu = new StonecutterMenu(3, p.getInventory());
+                h.runAfterDelay(2, () -> {
+                    BenchPullService.handle(p, new BenchPullRequest(3, new ItemStack(Items.CHARCOAL), false, BenchResults.FUEL));
+                    check(h, p.containerMenu.getCarried().isEmpty() && Lab.count(chest, Items.CHARCOAL) == 19,
+                            "cortador de pedra: pedido de combustível ignorado");
+                    clean(lab, h);
+                });
+            });
+        });
     }
 
     @GameTest

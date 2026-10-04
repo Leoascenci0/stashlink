@@ -94,6 +94,12 @@ public final class BenchCompat {
     public static final int LOOM_TAB_BANNERS = 1;
     public static final int LOOM_TAB_MOLDS = 2;
 
+    /** Abas da mesa de ferraria: moldes, armaduras, ferramentas e armas (subir para netherite), material. */
+    public static final int SMITHING_TAB_TRIMS = 0;
+    public static final int SMITHING_TAB_ARMOR = 1;
+    public static final int SMITHING_TAB_TOOLS = 2;
+    public static final int SMITHING_TAB_MATERIALS = 3;
+
     /** O que um item é para a bigorna; {@code tab} é a aba do painel. Um predicado só: o filtro e a aba nunca discordam. */
     private enum AnvilKind {
         BOOK(0), GEAR(1), MATERIAL(2);
@@ -138,17 +144,23 @@ public final class BenchCompat {
     }
 
     /**
-     * Aba de um item solto no painel: na mesa de ferraria, qual slot o aceita (enfeite, equipamento ou minério); no
+     * Aba de um item solto no painel: na mesa de ferraria, qual slot o aceita (molde, armadura, ferramenta/arma ou
+     * material); no
      * encantamento, equipamento, livros ou lápis-lazúli; no suporte de poções, garrafas, ingrediente ou combustível;
      * na bigorna, livros, equipamento ou material de conserto; nas outras, 0.
      */
     public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
         switch (stationOf(menu)) {
             case SMITHING -> {
-                for (int i = 0; i < 3; i++) {
-                    if (menu.getSlot(i).mayPlace(stack)) {
-                        return i;
-                    }
+                // Slot 0 = molde, 1 = item a melhorar (armadura ou ferramenta/arma), 2 = material.
+                if (menu.getSlot(0).mayPlace(stack)) {
+                    return SMITHING_TAB_TRIMS;
+                }
+                if (menu.getSlot(1).mayPlace(stack)) {
+                    return ItemKinds.isArmor(stack) ? SMITHING_TAB_ARMOR : SMITHING_TAB_TOOLS;
+                }
+                if (menu.getSlot(2).mayPlace(stack)) {
+                    return SMITHING_TAB_MATERIALS;
                 }
             }
             case ENCHANTING -> {
@@ -380,6 +392,45 @@ public final class BenchCompat {
      */
     public static boolean keepsItemsInBlock(AbstractContainerMenu menu) {
         return menu instanceof AbstractFurnaceMenu || menu instanceof BrewingStandMenu;
+    }
+
+    /**
+     * Combustíveis "de verdade" que o botão de combustível das fornalhas usa, na ordem de preferência. Só itens que
+     * existem para queimar: o botão nunca escolhe sozinho tábua, tronco ou ferramenta de madeira do baú (o jogador
+     * pode pôr um desses na mão, e aí o botão completa com o mesmo item).
+     */
+    private static final List<Item> FUELS = List.of(Items.COAL, Items.CHARCOAL, Items.COAL_BLOCK, Items.BLAZE_ROD,
+            Items.DRIED_KELP_BLOCK, Items.LAVA_BUCKET);
+
+    /** O slot de combustível da fornalha/defumador/alto-forno aberto, ou {@code null} se não é uma fornalha. */
+    public static Slot fuelSlot(AbstractContainerMenu menu) {
+        return menu instanceof AbstractFurnaceMenu ? menu.getSlot(1) : null;
+    }
+
+    /** O item queima neste slot? O slot do jogo também aceita balde vazio (sobra do balde de lava), que não é combustível. */
+    public static boolean burnsIn(Slot slot, ItemStack stack) {
+        return !stack.isEmpty() && !stack.is(Items.BUCKET) && slot.mayPlace(stack);
+    }
+
+    /**
+     * Que combustível o botão põe no slot (um item, contagem 1), ou vazio se não há o que pôr. Slot com combustível:
+     * completa com o mesmo item (se o armazenamento tem e ainda cabe). Slot vazio: o primeiro de {@link #FUELS} que o
+     * armazenamento tem. A mesma regra no cliente (ícone e dica do botão) e no servidor (que decide de verdade).
+     */
+    public static ItemStack pickFuel(Slot slot, java.util.function.Predicate<ItemStack> inStorage) {
+        ItemStack inside = slot.getItem();
+        if (!inside.isEmpty()) {
+            ItemStack same = inside.copyWithCount(1);
+            boolean room = inside.getCount() < Math.min(inside.getMaxStackSize(), slot.getMaxStackSize(inside));
+            return room && burnsIn(slot, same) && inStorage.test(same) ? same : ItemStack.EMPTY;
+        }
+        for (Item item : FUELS) {
+            ItemStack candidate = new ItemStack(item);
+            if (burnsIn(slot, candidate) && inStorage.test(candidate)) {
+                return candidate;
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */
