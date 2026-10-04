@@ -49,11 +49,20 @@ public final class BenchResults {
         for (StationRecipes.DyePick pick : StationRecipes.dyePicks(player, player.containerMenu, have)) {
             colors.add(new BenchPoolSync.Entry(pick.dye(), 0, BenchPoolSync.Entry.COLOR_PICK, !pick.has(), 0, pick.color()));
         }
+        java.util.Set<Integer> seenOk = new java.util.HashSet<>();
+        java.util.Set<Integer> seenMissing = new java.util.HashSet<>();
         for (int i = 0; i < options.size() && ok.size() + missing.size() < BenchPoolSync.MAX_ENTRIES; i++) {
             StationRecipes.Option option = options.get(i);
             boolean can = option.needs().stream().allMatch(need -> have.stream().anyMatch(need));
-            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, key(option), !can, option.tab(), -1));
+            int key = key(option);
+            // O mesmo resultado pode sair de mais de uma pedra (ex.: ardósia abissal talhada). Uma entrada só: a possível
+            // vence a que falta material, e entre iguais fica a primeira.
+            if (can ? !seenOk.add(key) : !seenMissing.add(key)) {
+                continue;
+            }
+            (can ? ok : missing).add(new BenchPoolSync.Entry(option.icon(), 0, key, !can, option.tab(), -1));
         }
+        missing.removeIf(entry -> seenOk.contains(entry.id()));
         colors.addAll(ok);
         colors.addAll(missing);
         return colors;
@@ -96,8 +105,15 @@ public final class BenchResults {
         List<StationRecipes.Option> options = StationRecipes.options(player, menu, have);
         StationRecipes.Option option = null;
         for (StationRecipes.Option candidate : options) {
-            if (key(candidate) == id) {
+            if (key(candidate) != id) {
+                continue;
+            }
+            // Mesmo resultado de várias pedras: usa a que tem material agora (a lista mostra uma só entrada por resultado).
+            boolean can = candidate.needs().stream().allMatch(need -> have.stream().anyMatch(need));
+            if (option == null || can) {
                 option = candidate;
+            }
+            if (can) {
                 break;
             }
         }

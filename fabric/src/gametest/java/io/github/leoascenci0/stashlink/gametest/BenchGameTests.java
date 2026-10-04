@@ -368,6 +368,59 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Relato do Eliel: a ardósia abissal talhada aparecia duas vezes no cortador (sai de mais de uma pedra). */
+    @GameTest
+    public void stonecutterListsEachResultOnlyOnce(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.COBBLED_DEEPSLATE, 10);
+        Lab.fill(chest, 1, Items.POLISHED_DEEPSLATE, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        for (Item item : new Item[]{Items.COBBLED_DEEPSLATE, Items.POLISHED_DEEPSLATE, Items.CHISELED_DEEPSLATE}) {
+            p.getStats().setValue(p, net.minecraft.stats.Stats.ITEM_PICKED_UP.get(item), 1);
+        }
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        for (int i = 0; i < list.size(); i++) {
+            for (int j = i + 1; j < list.size(); j++) {
+                check(h, !net.minecraft.world.item.ItemStack.isSameItemSameComponents(list.get(i).item(), list.get(j).item()),
+                        "resultado repetido na lista: " + list.get(i).item());
+            }
+        }
+        BenchPoolSync.Entry chiseled = list.stream().filter(e -> e.item().is(Items.CHISELED_DEEPSLATE)).findFirst().orElse(null);
+        check(h, chiseled != null && !chiseled.missing(), "a ardósia talhada aparece, e é possível");
+        BenchPullService.handle(p, new BenchPullRequest(5, chiseled.item(), false, chiseled.id()));
+        check(h, !menu.getSlot(0).getItem().isEmpty() && !menu.getSlot(1).getItem().isEmpty(),
+                "o clique monta a receita mesmo com duas pedras de origem");
+        clean(lab, h);
+    }
+
+    /** Defumador só aceita comida e alto-forno só minério/metal, mas os dois queimam combustível como a fornalha. */
+    @GameTest
+    public void smokerAndBlastFurnacePanelsListFoodOreAndFuel(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.COAL, 4);
+        Lab.fill(chest, 1, Items.RAW_IRON, 4);
+        Lab.fill(chest, 2, Items.PORKCHOP, 4);
+        Lab.fill(chest, 3, Items.COBBLESTONE, 4);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+
+        p.containerMenu = new net.minecraft.world.inventory.SmokerMenu(2, p.getInventory());
+        List<Item> smoker = items(BenchSync.snapshot(p));
+        check(h, smoker.contains(Items.PORKCHOP) && smoker.contains(Items.COAL) && !smoker.contains(Items.RAW_IRON)
+                && !smoker.contains(Items.COBBLESTONE), "defumador: comida e combustível: " + smoker);
+
+        p.containerMenu = new net.minecraft.world.inventory.BlastFurnaceMenu(3, p.getInventory());
+        List<Item> blast = items(BenchSync.snapshot(p));
+        check(h, blast.contains(Items.RAW_IRON) && blast.contains(Items.COAL) && !blast.contains(Items.PORKCHOP)
+                && !blast.contains(Items.COBBLESTONE), "alto-forno: minério e combustível: " + blast);
+        clean(lab, h);
+    }
+
     private static List<Item> items(List<BenchPoolSync.Entry> entries) {
         List<Item> out = new ArrayList<>();
         for (BenchPoolSync.Entry e : entries) {
