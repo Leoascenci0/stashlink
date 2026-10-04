@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
+import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
 import io.github.leoascenci0.stashlink.client.ReceivePanel;
 import io.github.leoascenci0.stashlink.client.SlotLockClient;
@@ -100,9 +101,8 @@ public abstract class AbstractContainerScreenMixin {
                 leftPos = BenchPanel.stationLeft(self.width, imageWidth, leftPos);
                 // Encantamento e suporte de poções calculam o próprio x como (width - imageWidth) / 2 e ignoram leftPos
                 // (fundo, clique, desenho): a largura que eles enxergam passa a ser a que dá exatamente leftPos.
-                if (self.getMenu() instanceof net.minecraft.world.inventory.EnchantmentMenu
-                        || self.getMenu() instanceof net.minecraft.world.inventory.BrewingStandMenu) {
-                    self.width = 2 * leftPos + imageWidth;
+                if (BenchCompat.ignoresLeftPos(self.getMenu())) {
+                    self.width = BenchCompat.widthForLeftPos(leftPos, imageWidth);
                 }
                 stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
             }
@@ -120,13 +120,13 @@ public abstract class AbstractContainerScreenMixin {
     private void stashlink$keepAnvilNameFieldInPlace(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
                                                      CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        if (stashlink$benchPanel == null || !(self.getMenu() instanceof net.minecraft.world.inventory.AnvilMenu)) {
+        if (stashlink$benchPanel == null || !BenchCompat.isAnvil(self.getMenu())) {
             return;
         }
         for (net.minecraft.client.gui.components.events.GuiEventListener child : self.children()) {
-            if (child instanceof net.minecraft.client.gui.components.EditBox box && box.getWidth() == 103
-                    && box.getX() != leftPos + 62) {
-                box.setX(leftPos + 62);
+            if (child instanceof net.minecraft.client.gui.components.EditBox box && box.getWidth() == BenchCompat.ANVIL_NAME_FIELD_WIDTH
+                    && box.getX() != leftPos + BenchCompat.ANVIL_NAME_FIELD_DX) {
+                box.setX(leftPos + BenchCompat.ANVIL_NAME_FIELD_DX);
             }
         }
     }

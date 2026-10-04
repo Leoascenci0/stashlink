@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.compat.mc;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -88,6 +89,54 @@ public final class BenchCompat {
         return Station.OTHER;
     }
 
+    /** Abas do tear (ordem dos botões do painel e número que o servidor põe em {@code Entry.tab}). */
+    public static final int LOOM_TAB_COLORS = 0;
+    public static final int LOOM_TAB_BANNERS = 1;
+    public static final int LOOM_TAB_MOLDS = 2;
+
+    /** O que um item é para a bigorna; {@code tab} é a aba do painel. Um predicado só: o filtro e a aba nunca discordam. */
+    private enum AnvilKind {
+        BOOK(0), GEAR(1), MATERIAL(2);
+
+        final int tab;
+
+        AnvilKind(int tab) {
+            this.tab = tab;
+        }
+    }
+
+    private static AnvilKind anvilKind(ItemStack stack) {
+        if (stack.is(Items.ENCHANTED_BOOK)) {
+            return AnvilKind.BOOK;
+        }
+        return stack.isDamageableItem() || EnchantmentHelper.hasAnyEnchantments(stack) || stack.is(Items.NAME_TAG)
+                ? AnvilKind.GEAR : AnvilKind.MATERIAL;
+    }
+
+    /**
+     * Encantamento e suporte de poções calculam o próprio x como {@code (width - imageWidth) / 2} e ignoram
+     * {@code leftPos} (fundo, clique, desenho); para o painel deslocar a estação, a largura que eles enxergam tem que
+     * ser a que dá exatamente {@code leftPos}. As demais telas respeitam {@code leftPos} (a pedra de amolar só no
+     * fundo; ver {@code GrindstoneScreenMixin}, que não dá para refatorar: o {@code ordinal} é constante de anotação).
+     */
+    public static boolean ignoresLeftPos(AbstractContainerMenu menu) {
+        Station station = stationOf(menu);
+        return station == Station.ENCHANTING || station == Station.BREWING;
+    }
+
+    /** A largura de janela que faz uma tela que ignora {@code leftPos} cair exatamente em {@code leftPos}. */
+    public static int widthForLeftPos(int leftPos, int imageWidth) {
+        return 2 * leftPos + imageWidth;
+    }
+
+    /** A bigorna cria o campo de nome (103 de largura, 62 à direita de {@code leftPos}) com o centro da janela. */
+    public static final int ANVIL_NAME_FIELD_WIDTH = 103;
+    public static final int ANVIL_NAME_FIELD_DX = 62;
+
+    public static boolean isAnvil(AbstractContainerMenu menu) {
+        return stationOf(menu) == Station.ANVIL;
+    }
+
     /**
      * Aba de um item solto no painel: na mesa de ferraria, qual slot o aceita (enfeite, equipamento ou minério); no
      * encantamento, equipamento, livros ou lápis-lazúli; no suporte de poções, garrafas, ingrediente ou combustível;
@@ -118,10 +167,7 @@ public final class BenchCompat {
                 }
             }
             case ANVIL -> {
-                if (stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK)) {
-                    return 0;
-                }
-                return stack.isDamageableItem() || stack.isEnchanted() || stack.is(Items.NAME_TAG) ? 1 : 2;
+                return anvilKind(stack).tab;
             }
             default -> {
             }
@@ -147,12 +193,19 @@ public final class BenchCompat {
     }
 
     /**
-     * O stack serve nesta estação? O painel "Armazenamento" só lista o que o jogador poderia pôr nela: no tear,
-     * banner, corante e molde; na pedra de amolar, o que tem dano ou encantamento; e assim por diante.
-     * A regra vem dos próprios slots da estação ({@code mayPlace}), então acompanha o jogo e itens de outros mods.
-     * Só a bancada (qualquer item pode ser ingrediente) aceita tudo; fornalha, cortador de pedra, encantamento
-     * e bigorna têm o slot de entrada livre no jogo (aceita qualquer coisa), por isso a conta é feita aqui; o slot 1
-     * dessas duas (combustível, lápis-lazúli) tem regra própria e é consultado direto.
+     * O stack serve nesta estação? Há <b>três regras de "o que serve"</b> no mod, uma por tipo de lista:
+     * <ol>
+     * <li><b>Painel "Armazenamento"</b> (este método): só lista o que o jogador poderia pôr na estação. A regra vem
+     * dos próprios slots ({@code mayPlace}), então acompanha o jogo e itens de outros mods. Só a bancada (qualquer
+     * item pode ser ingrediente) aceita tudo; fornalha, encantamento e bigorna têm o slot de entrada livre no jogo
+     * (aceita qualquer coisa), por isso a conta é feita aqui; o slot 1 de fornalha e encantamento (combustível,
+     * lápis-lazúli) tem regra própria e é consultado direto. O cortador de pedra e o tear <b>não</b> passam por
+     * aqui: listam resultados ({@code BenchResults.list}), não itens soltos.</li>
+     * <li><b>Livro de receitas</b> ({@link #usableForCrafting}): só itens comuns, a regra do próprio jogo
+     * ({@code Inventory.isUsableForCrafting}: sem dano, encantamento nem nome).</li>
+     * <li><b>Resultados com receita</b> (cortador, tear): quem decide é {@code StationRecipes} (o que o jogador já
+     * conheceu e o material que há).</li>
+     * </ol>
      */
     public static boolean relevant(AbstractContainerMenu menu, Player player, ItemStack stack) {
         if (menu instanceof CraftingMenu) {
@@ -162,15 +215,12 @@ public final class BenchCompat {
             return menu.slots.get(1).mayPlace(stack) || player.level().recipeAccess()
                     .propertySet(furnaceInput(menu)).test(stack);
         }
-        if (menu instanceof StonecutterMenu) {
-            return player.level().recipeAccess().stonecutterRecipes().acceptsInput(stack);
-        }
         if (menu instanceof EnchantmentMenu) {
             return menu.slots.get(1).mayPlace(stack) || stack.isEnchantable();
         }
         if (menu instanceof AnvilMenu) {
-            return stack.isDamageableItem() || stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.NAME_TAG)
-                    || EnchantmentHelper.hasAnyEnchantments(stack) || repairsSomethingOf(player, stack);
+            // Livro, equipamento e etiqueta sempre servem; material só se conserta algo que o jogador carrega.
+            return anvilKind(stack) != AnvilKind.MATERIAL || repairsSomethingOf(player, stack);
         }
         return acceptedBySlots(menu, player, stack);
     }
@@ -203,6 +253,16 @@ public final class BenchCompat {
             }
         }
         return false;
+    }
+
+    /** Id do item no registro ("minecraft:stone"): igual em qualquer idioma e em qualquer máquina. */
+    public static String itemId(ItemStack stack) {
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+    }
+
+    /** Hash de item + componentes: desempate estável entre stacks de mesmo nome (livros encantados, poções). */
+    public static int componentsHash(ItemStack stack) {
+        return ItemStack.hashItemAndComponents(stack);
     }
 
     /** Identidade de um stack: mesmo item e mesmos componentes (a quantidade não conta). */

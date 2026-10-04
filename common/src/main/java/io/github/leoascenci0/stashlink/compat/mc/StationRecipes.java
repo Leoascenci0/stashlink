@@ -99,7 +99,7 @@ public final class StationRecipes {
         patterns.get(BannerPatternTags.NO_ITEM_REQUIRED).ifPresent(set -> {
             for (Holder<BannerPattern> pattern : set) {
                 out.add(new Option(withPattern(banner, pattern, DyeColor.WHITE), new int[]{0, 1},
-                        List.of(isThisBanner, StationRecipes::isDye), pattern, 1));
+                        List.of(isThisBanner, StationRecipes::isDye), pattern, BenchCompat.LOOM_TAB_BANNERS));
             }
         });
         // Padrões que vêm de um item (flor, creeper, caveira...): só os que o jogador já conheceu.
@@ -111,7 +111,7 @@ public final class StationRecipes {
             }
             for (Holder<BannerPattern> pattern : provided) {
                 out.add(new Option(withPattern(banner, pattern, DyeColor.WHITE), new int[]{0, 1, 2},
-                        List.of(isThisBanner, StationRecipes::isDye, s -> s.is(item)), pattern, 2));
+                        List.of(isThisBanner, StationRecipes::isDye, s -> s.is(item)), pattern, BenchCompat.LOOM_TAB_MOLDS));
             }
         }
     }

@@ -1,8 +1,10 @@
 package io.github.leoascenci0.stashlink.gametest;
 
+import io.github.leoascenci0.stashlink.bench.BenchOrder;
 import io.github.leoascenci0.stashlink.bench.BenchPullService;
 import io.github.leoascenci0.stashlink.bench.BenchResults;
 import io.github.leoascenci0.stashlink.bench.BenchSync;
+import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
@@ -1365,6 +1367,92 @@ public class BenchGameTests {
             check(h, pulls[0] >= 50, "o fuzz quase não usou o armazenamento: " + pulls[0] + " retiradas em 1200 ações");
             clean(lab, h);
         });
+    }
+
+    /** Botão direito num resultado do cortador: um de cada ingrediente (1 tufo), não um stack. */
+    @GameTest
+    public void rightClickOnAResultSetsUpOneOfEach(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, TUFF, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        p.getStats().setValue(p, net.minecraft.stats.Stats.ITEM_PICKED_UP.get(Items.STONE), 1);
+
+        BenchPoolSync.Entry first = BenchSync.snapshot(p).get(0);
+        check(h, !first.missing(), "com tufo no baú o primeiro resultado é possível");
+        BenchPullService.handle(p, new BenchPullRequest(5, first.item(), true, first.id()));
+        check(h, menu.getSlot(0).getItem().is(TUFF) && menu.getSlot(0).getItem().getCount() == 1,
+                "um só tufo na entrada: " + menu.getSlot(0).getItem());
+        check(h, Lab.count(chest, TUFF) == 9, "só um saiu do baú: " + Lab.count(chest, TUFF));
+        check(h, !menu.getSlot(1).getItem().isEmpty(), "a receita foi escolhida");
+        clean(lab, h);
+    }
+
+    /** A lista sai na ordem única (BenchOrder): possíveis antes dos vermelhos, cada grupo por nome. */
+    @GameTest
+    public void resultListFollowsTheSingleOrder(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, TUFF, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        p.containerMenu = new StonecutterMenu(5, p.getInventory());
+        p.getStats().setValue(p, net.minecraft.stats.Stats.ITEM_PICKED_UP.get(Items.STONE), 1);
+
+        List<BenchPoolSync.Entry> list = BenchSync.snapshot(p);
+        List<BenchPoolSync.Entry> sorted = new ArrayList<>(list);
+        sorted.sort(BenchOrder.forServer());
+        check(h, list.size() > 1 && list.equals(sorted), "a lista devia já sair ordenada pelo comparador único");
+        int firstMissing = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).missing() && firstMissing < 0) {
+                firstMissing = i;
+            }
+            check(h, firstMissing < 0 || list.get(i).missing(), "um possível depois de um vermelho, na posição " + i);
+        }
+        clean(lab, h);
+    }
+
+    /** O raio mandado ao painel é o efetivo do servidor, e 0 se "usar baús" está desligado. */
+    @GameTest
+    public void panelRadiusIsTheEffectiveOne(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 5, true);
+        check(h, BenchSync.radiusFor(p) == 5, "raio preferido dentro do teto: " + BenchSync.radiusFor(p));
+        Lab.prefs(p, 5, false);
+        check(h, BenchSync.radiusFor(p) == 0, "sem baús como fonte o raio é 0: " + BenchSync.radiusFor(p));
+        int cap = StashLinkConfig.radiusCap();
+        Lab.prefs(p, cap + 50, true);
+        check(h, BenchSync.radiusFor(p) <= cap, "o raio nunca passa do teto do servidor: " + BenchSync.radiusFor(p));
+        net.minecraft.network.RegistryFriendlyByteBuf buf =
+                new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), p.registryAccess());
+        BenchPoolSync.STREAM_CODEC.encode(buf, new BenchPoolSync(1, List.of(), 7));
+        check(h, BenchPoolSync.STREAM_CODEC.decode(buf).radius() == 7, "o raio viaja no pacote");
+        clean(lab, h);
+    }
+
+    /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (livro 0, equipamento/etiqueta 1, material 2). */
+    @GameTest
+    public void anvilFilterAndTabShareOnePredicate(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ServerPlayer p = lab.player(4, 2, 4);
+        p.getInventory().add(new ItemStack(Items.IRON_PICKAXE));
+        net.minecraft.world.inventory.AnvilMenu menu = new net.minecraft.world.inventory.AnvilMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        ItemStack[] stacks = {new ItemStack(Items.ENCHANTED_BOOK), new ItemStack(Items.DIAMOND_PICKAXE),
+                new ItemStack(Items.NAME_TAG), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.DIRT)};
+        int[] tabs = {0, 1, 1, 2, 2};
+        boolean[] relevant = {true, true, true, true, false};   // lingote conserta a picareta de ferro da mochila
+        for (int i = 0; i < stacks.length; i++) {
+            check(h, BenchCompat.slotTab(menu, stacks[i]) == tabs[i], "aba de " + stacks[i] + ": " + BenchCompat.slotTab(menu, stacks[i]));
+            check(h, BenchCompat.relevant(menu, p, stacks[i]) == relevant[i], "filtro de " + stacks[i]);
+        }
+        p.containerMenu = p.inventoryMenu;
+        clean(lab, h);
     }
 
     private static void safeClose(ServerPlayer p) {

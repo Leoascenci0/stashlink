@@ -11,7 +11,8 @@ import net.minecraft.world.item.ItemStack;
  * Cliente → servidor: "do painel Armazenamento da estação {@code containerId}, ponha este item no meu cursor"
  * (um stack, ou só um se {@code one}). O servidor revalida tudo: estação aberta, função ligada, item de fato no
  * armazenamento, cursor livre ou do mesmo item. Com {@code recipeId >= 0} o pedido é "monte esta receita" (cortador de
- * pedra): o servidor refaz a lista de receitas e põe a entrada no slot; {@code item} é só o ícone. O cliente nunca cria nem escolhe de onde sai.
+ * pedra): o servidor refaz a lista de receitas e põe a entrada no slot ({@code one}: um de cada ingrediente em vez de uma pilha);
+ * {@code item} é só o ícone. O cliente nunca cria nem escolhe de onde sai.
  */
 public record BenchPullRequest(int containerId, ItemStack item, boolean one, int recipeId) implements CustomPacketPayload {
     public BenchPullRequest(int containerId, ItemStack item, boolean one) {

@@ -4,6 +4,7 @@ import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
 import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.server.MinecraftServer;
@@ -31,6 +32,7 @@ public final class BenchSync {
         final WeakReference<AbstractContainerMenu> menu;
         /** Nulo até o primeiro envio: a primeira lista vai sempre, mesmo vazia (o painel mostra "nada por perto"). */
         List<BenchPoolSync.Entry> last = null;
+        int lastRadius = BenchPoolSync.UNKNOWN_RADIUS;
         int age;
         boolean dirty = true;
         boolean unsupported;
@@ -110,11 +112,13 @@ public final class BenchSync {
         state.dirty = false;
         state.age = 0;
         List<BenchPoolSync.Entry> now = snapshot(player);
-        if (now.equals(state.last)) {
+        int radius = radiusFor(player);
+        if (now.equals(state.last) && radius == state.lastRadius) {
             return;
         }
         state.last = now;
-        if (!Services.PLATFORM.sendIfSupported(player, new BenchPoolSync(menu.containerId, now))) {
+        state.lastRadius = radius;
+        if (!Services.PLATFORM.sendIfSupported(player, new BenchPoolSync(menu.containerId, now, radius))) {
             state.unsupported = true;
         }
     }
@@ -138,23 +142,28 @@ public final class BenchSync {
         return out;
     }
 
+    /**
+     * O raio que a estação enxerga de verdade (o efetivo: escolha do jogador limitada pelo teto do servidor, ou o
+     * padrão), e 0 se "usar baús como fonte" está desligado. É o mesmo valor que {@code NearbyContainers} usa.
+     */
+    public static int radiusFor(ServerPlayer player) {
+        return PlayerPrefsStore.includeChests(player) ? PlayerPrefsStore.radius(player) : 0;
+    }
+
     private static List<BenchPoolSync.Entry> build(ServerPlayer player) {
         AbstractContainerMenu menu = player.containerMenu;
         if (BenchResults.supports(menu)) {
             return BenchResults.list(player);
         }
         List<BenchPoolSync.Entry> out = new ArrayList<>();
-        boolean filter = menu != player.inventoryMenu && BenchCompat.isStation(menu);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
-            if (filter && !BenchCompat.relevant(menu, player, stack.item())) {
+            if (!BenchCompat.relevant(menu, player, stack.item())) {
                 continue;
-            }
-            if (out.size() >= BenchPoolSync.MAX_ENTRIES) {
-                break;
             }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,
                     BenchResults.slotTab(menu, stack.item()), -1));
         }
-        return out;
+        // Ordem única (BenchOrder); o corte do teto é depois de ordenar.
+        return BenchOrder.sortedAndCapped(out);
     }
 }
