@@ -2,7 +2,7 @@ package io.github.leoascenci0.stashlink.compat.mc;
 
 import io.github.leoascenci0.stashlink.bench.BrewPlanner;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.BrewingStandMenu;
 import net.minecraft.world.inventory.Slot;
@@ -11,19 +11,19 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.crafting.BrewingInput;
+import net.minecraft.world.item.crafting.BrewingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 /**
  * O suporte de poções do jogo, para o painel (Item 16.3, Fase 3): as receitas viram o mapa de {@link BrewPlanner}
- * (poções e ingredientes numerados). Toda API frágil de poção fica aqui: {@code PotionBrewing}, {@code PotionContents},
+ * (poções e ingredientes numerados). Toda API frágil de poção fica aqui: {@code BrewingRecipe} (26.3: receitas de dados), {@code PotionContents},
  * os slots e o combustível do {@code BrewingStandMenu}. Mudou numa versão do jogo? Conserte aqui.
  */
 public final class BrewingCompat {
@@ -61,12 +61,6 @@ public final class BrewingCompat {
         }
     }
 
-    /**
-     * Um mapa por conjunto de receitas do jogo (muda só com datapack/flags): calculado uma vez. A chave é o objeto de
-     * receitas do mundo; o tipo não aparece no código ({@code var}) porque o nome da classe muda entre versões.
-     */
-    private static final Map<Object, Graph> CACHE = Collections.synchronizedMap(new WeakHashMap<>());
-
     private BrewingCompat() {
     }
 
@@ -94,13 +88,100 @@ public final class BrewingCompat {
                 && stack.has(DataComponents.POTION_CONTENTS);
     }
 
-    /**
-     * TEMPORÁRIO: a API de receitas de poção mudou no 26.3 e ainda está sendo mapeada; até lá o mapa fica vazio (a aba
-     * Poções não lista nada e o resto do suporte funciona como antes).
-     */
-    public static Graph graph(Level level) {
-        return EMPTY;
+    /** O mapa já montado e de qual conjunto de receitas ele veio (recalcula se o servidor recarregar receitas). */
+    private record Cached(Object manager, int recipes, Graph graph) {
     }
 
+    private static volatile Cached cached;
+
     private static final Graph EMPTY = new Graph(List.of(), List.of(), List.of(), List.of());
+
+    /**
+     * O mapa das poções do servidor. No 26.3 as receitas do suporte são receitas de dados ({@code BrewingRecipe},
+     * {@code data/minecraft/recipe/brewing/*.json}), guardadas com as outras no gerenciador de receitas do servidor;
+     * por isso também valem receitas de datapack e de mod. Fora do servidor: mapa vazio.
+     */
+    public static Graph graph(Level level) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return EMPTY;
+        }
+        var manager = serverLevel.getServer().getRecipeManager();
+        List<BrewingRecipe> recipes = new ArrayList<>();
+        for (RecipeHolder<?> holder : manager.getRecipes()) {
+            if (holder.value() instanceof BrewingRecipe recipe) {
+                recipes.add(recipe);
+            }
+        }
+        Cached now = cached;
+        if (now != null && now.manager() == manager && now.recipes() == recipes.size()) {
+            return now.graph();
+        }
+        Graph graph = build(recipes);
+        cached = new Cached(manager, recipes.size(), graph);
+        return graph;
+    }
+
+    private static Graph build(List<BrewingRecipe> recipes) {
+        // Ingredientes: os itens que alguma receita aceita como reagente.
+        List<ItemStack> ingredients = new ArrayList<>();
+        for (BrewingRecipe recipe : recipes) {
+            recipe.getReagent().ingredient().items().forEach(holder -> {
+                ItemStack stack = new ItemStack(holder.value());
+                if (!stack.isEmpty() && ingredients.stream().noneMatch(s -> ItemStack.isSameItemSameComponents(s, stack))) {
+                    ingredients.add(stack);
+                }
+            });
+        }
+        // Para cada receita, quais ingredientes servem de reagente (calculado uma vez).
+        List<List<Integer>> reagents = new ArrayList<>();
+        for (BrewingRecipe recipe : recipes) {
+            List<Integer> ok = new ArrayList<>();
+            for (int i = 0; i < ingredients.size(); i++) {
+                if (recipe.getReagent().test(ingredients.get(i))) {
+                    ok.add(i);
+                }
+            }
+            reagents.add(ok);
+        }
+        List<ItemStack> potions = new ArrayList<>();
+        List<Integer> roots = new ArrayList<>();
+        for (Item bottle : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION)) {
+            roots.add(potions.size());
+            potions.add(PotionContents.createItemStack(bottle, Potions.WATER));
+        }
+        List<BrewPlanner.Edge> edges = new ArrayList<>();
+        Graph graph = new Graph(potions, ingredients, edges, roots);
+        Deque<Integer> queue = new ArrayDeque<>(roots);
+        while (!queue.isEmpty()) {
+            int from = queue.poll();
+            ItemStack input = potions.get(from);
+            for (int r = 0; r < recipes.size(); r++) {
+                BrewingRecipe recipe = recipes.get(r);
+                if (!recipe.getInput().test(input)) {
+                    continue;
+                }
+                for (int i : reagents.get(r)) {
+                    BrewingInput mix = new BrewingInput(input.copy(), ingredients.get(i).copy());
+                    if (!recipe.matches(mix)) {
+                        continue;
+                    }
+                    ItemStack out = recipe.assemble(mix);
+                    if (out.isEmpty() || ItemStack.isSameItemSameComponents(out, input)) {
+                        continue;
+                    }
+                    int to = graph.potionOf(out);
+                    if (to < 0) {
+                        if (potions.size() >= MAX_NODES) {
+                            continue;
+                        }
+                        to = potions.size();
+                        potions.add(out.copyWithCount(1));
+                        queue.add(to);
+                    }
+                    edges.add(new BrewPlanner.Edge(from, i, to));
+                }
+            }
+        }
+        return new Graph(List.copyOf(potions), List.copyOf(ingredients), List.copyOf(edges), List.copyOf(roots));
+    }
 }
