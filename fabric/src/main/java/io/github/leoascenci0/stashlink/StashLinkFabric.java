@@ -96,6 +96,15 @@ public class StashLinkFabric implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(SetLabelRequest.TYPE,
                 (payload, context) -> LabelService.handleSet(context.player(), payload));
 
+        // Organizar o armazenamento (Item 20): pedido do cliente -> servidor revalida; prévia/busca descem ao cliente.
+        ServerTickEvents.END_SERVER_TICK.register(io.github.leoascenci0.stashlink.organize.OrganizeHighlight::tick);
+        PayloadTypeRegistry.serverboundPlay().register(io.github.leoascenci0.stashlink.network.OrganizeRequest.TYPE,
+                io.github.leoascenci0.stashlink.network.OrganizeRequest.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(io.github.leoascenci0.stashlink.network.OrganizeRequest.TYPE,
+                (payload, context) -> io.github.leoascenci0.stashlink.organize.OrganizeService.handle(context.player(), payload));
+        PayloadTypeRegistry.clientboundPlay().register(io.github.leoascenci0.stashlink.network.OrganizeSync.TYPE,
+                io.github.leoascenci0.stashlink.network.OrganizeSync.STREAM_CODEC);
+
         // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
         PayloadTypeRegistry.serverboundPlay().register(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(PlayerPrefsRequest.TYPE,

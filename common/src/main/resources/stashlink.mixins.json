@@ -20,6 +20,7 @@
     "GrindstoneScreenMixin",
     "AbstractContainerScreenMixin",
     "HoverCollectScreenMixin",
+    "ContainerScreenOrganizeMixin",
     "RecipeBookComponentMixin"
   ],
   "injectors": {

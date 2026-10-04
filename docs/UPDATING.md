@@ -109,11 +109,12 @@ o jogo falha ao abrir (`defaultRequire = 1`) e o erro aponta o mixin. Confira os
 | `BaseContainerBlockEntityMixin` | `saveAdditional(ValueOutput)` e `loadAdditional(ValueInput)` (memória do slot travado) | Item 13; API `ValueOutput.store` / `ValueInput.read` |
 | `BaseContainerBlockEntityMixin` (rótulo e botão da N) | também `collectImplicitComponents(DataComponentMap.Builder)` e `applyImplicitComponents(DataComponentGetter)` (a shulker leva o rótulo e o "recebe com a N" no item, via `CUSTOM_DATA`); `saveAdditional`/`loadAdditional` gravam `stashlink_no_quick_stack` (`ValueInput.getBooleanOr`, `ValueOutput.putBoolean`) | Itens 14 e 17; `LabelCompat.writeToItem/readFromItem/readNoQuickStackFromItem` |
 | `ShulkerBoxBlockMixin` | `ShulkerBoxBlock.getDrops(BlockState, LootParams.Builder)` (na sobrevivência o drop vem da tabela de loot, que não copia o rótulo nem o botão da N em CUSTOM_DATA; o mixin os põe no item) | Itens 14 e 17; `LabelCompat.writeToStack` |
-| `EntityMixin` | `Entity.shouldBeSaved`, `Entity.broadcastToPlayer(ServerPlayer)` (alcance de 32 blocos do holograma) e `Entity.entityTags()` | Item 14 |
+| `EntityMixin` | `Entity.shouldBeSaved`, `Entity.broadcastToPlayer(ServerPlayer)` (alcance de 32 blocos do holograma; o contorno de destaque da busca só vai ao dono) e `Entity.entityTags()` | Itens 14 e 20 |
 | `CompoundContainerAccessor` | campos privados `container1` / `container2` do baú duplo | Item 13 |
 | `SlotMixin` | `Slot.mayPlace` e `ShulkerBoxSlot.mayPlace` (este não chama o pai) | Item 13; confira também se outros `Slot` do jogo sobrescrevem `mayPlace` |
 | `ScreenInvoker` (cliente) | `Screen.addRenderableWidget` (protegido; `@Shadow` de método herdado não funciona) | Item 14 |
 | `AbstractContainerScreenMixin` (cliente) | `init()`, `extractLabels(GuiGraphicsExtractor,int,int)`, `removed()`, `keyPressed(KeyEvent)` (lápis do rótulo, Item 14), `mouseClicked(MouseButtonEvent, boolean)`, `extractSlot(GuiGraphicsExtractor, Slot, int, int)` e o privado `getHoveredSlot(double, double)`, mais `extractRenderState(GuiGraphicsExtractor,int,int,float)` e `mouseScrolled(double,double,double,double)` (painel das estações, Item 16) | Item 13; em 26.3 os métodos de desenho se chamam `extract*` (antes `render*`) |
+| `ContainerScreenOrganizeMixin` (cliente) | `AbstractContainerScreen.init()` (botões Organizar e Sistema ao lado da tela do baú). Usa `ScreenInvoker.addRenderableWidget` | Item 20 |
 | `ServerGamePacketListenerImplMixin` | `ServerGamePacketListenerImpl.tryPickItem(ItemStack)` (privado; pick block resolvido no servidor) e o campo público `player` | Item 19; confira o nome com `javap -p` |
 | `InventoryUtilsMixin` (Litematica) | `InventoryUtils.schematicWorldPickBlock` | Item 7 |
 
