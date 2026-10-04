@@ -17,6 +17,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       # Primeiro só o jar (para baixar e testar no jogo mesmo se algum teste falhar), depois o build completo.
       - run: ./gradlew assemble --no-daemon
+      # TEMPORÁRIO (Item 16.3): descobrir a API de poções do 26.3; remover antes do merge.
+      - name: diag poções
+        if: failure()
+        run: |
+          for j in $(find common/build ~/.gradle -name "*.jar" 2>/dev/null | grep -i -e minecraft -e neoform | head -50); do
+            if unzip -l "$j" 2>/dev/null | grep -q "net/minecraft/world/item/alchemy/"; then
+              echo "== $j"; unzip -l "$j" | grep -i -e "alchemy/" -e "rewing" | awk '{print $4}'
+              mkdir -p /tmp/x && cd /tmp/x && unzip -o -q "$j" 'net/minecraft/world/item/alchemy/*' 'net/minecraft/world/level/Level.class' 'net/minecraft/server/MinecraftServer.class' 'net/minecraft/world/level/block/entity/BrewingStandBlockEntity.class' 2>/dev/null
+              for c in $(find net/minecraft/world/item/alchemy -name "*.class" | grep -iv -e '\$' ); do javap -p "$c" | grep -i -e "class" -e "mix" -e "ingredient" -e "brew"; done
+              javap -p net/minecraft/world/level/Level.class | grep -i -e brew -e potion
+              javap -p net/minecraft/server/MinecraftServer.class | grep -i -e brew -e potion
+              javap -p -c net/minecraft/world/level/block/entity/BrewingStandBlockEntity.class | grep -i -e brew -e invoke | head -40
+              cd - >/dev/null; break
+            fi
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: stashlink-jars
