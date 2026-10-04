@@ -76,12 +76,21 @@ public class StashLinkNeoForgeClient {
         });
         LabelClient.setSenders(ClientPacketDistributor::sendToServer, ClientPacketDistributor::sendToServer);
 
+        // Organizar o armazenamento (Item 20): tecla O abre a tela (só se o servidor conhece o pacote).
+        OrganizeClient.setServerHasMod(() -> {
+            Minecraft mc = Minecraft.getInstance();
+            return mc.getConnection() != null
+                    && mc.getConnection().hasChannel(io.github.leoascenci0.stashlink.network.OrganizeRequest.TYPE);
+        });
+        OrganizeClient.setSender(ClientPacketDistributor::sendToServer);
+
         modBus.addListener((RegisterKeyMappingsEvent event) -> {
             event.registerCategory(QuickStackKey.CATEGORY);
             event.register(QuickStackKey.KEY);
             event.register(LootAllKey.KEY);
             event.register(ConfigKey.KEY);
             event.register(LabelClient.KEY);
+            event.register(OrganizeClient.KEY);
         });
         // Tecla W: gatilho é a tela de container. Cancelar o evento engole a tecla (não fecha a tela etc.).
         NeoForge.EVENT_BUS.addListener((ScreenEvent.KeyPressed.Pre event) -> {
@@ -101,6 +110,7 @@ public class StashLinkNeoForgeClient {
             Minecraft mc = Minecraft.getInstance();
             ConfigKey.poll(mc);
             LabelClient.poll(mc);
+            OrganizeClient.poll(mc);
             QuickStackKey.poll(mc, () -> {
                 if (mc.getConnection() != null && mc.getConnection().hasChannel(QuickStackRequest.TYPE)) {
                     ClientPacketDistributor.sendToServer(QuickStackRequest.INSTANCE);

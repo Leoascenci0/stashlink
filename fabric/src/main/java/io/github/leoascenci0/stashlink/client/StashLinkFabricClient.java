@@ -66,6 +66,14 @@ public class StashLinkFabricClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(LabelClient.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(LabelClient::poll);
 
+        // Organizar o armazenamento (Item 20): tecla O abre a tela; o servidor responde com a prévia e a busca.
+        OrganizeClient.setServerHasMod(() -> ClientPlayNetworking.canSend(io.github.leoascenci0.stashlink.network.OrganizeRequest.TYPE));
+        OrganizeClient.setSender(ClientPlayNetworking::send);
+        ClientPlayNetworking.registerGlobalReceiver(io.github.leoascenci0.stashlink.network.OrganizeSync.TYPE,
+                (payload, context) -> OrganizeClient.apply(payload));
+        KeyMappingHelper.registerKeyMapping(OrganizeClient.KEY);
+        ClientTickEvents.END_CLIENT_TICK.register(OrganizeClient::poll);
+
         KeyMappingHelper.registerKeyMapping(QuickStackKey.KEY);
         ClientTickEvents.END_CLIENT_TICK.register(mc -> QuickStackKey.poll(mc, () -> {
             if (ClientPlayNetworking.canSend(QuickStackRequest.TYPE)) {

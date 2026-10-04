@@ -87,7 +87,7 @@ public final class QuickStackService {
      * O item é de uma categoria que este jogador desligou (ou que o servidor trancou)? Então a N nunca o guarda.
      * Item sem categoria (bloco comum etc.) nunca é filtrado.
      */
-    static boolean categoryOff(ServerPlayer player, ItemStack stack) {
+    public static boolean categoryOff(ServerPlayer player, ItemStack stack) {
         ItemCategory category = ItemCategory.of(stack);
         return category != null && !PlayerPrefsStore.featureEnabled(player, category.feature());
     }

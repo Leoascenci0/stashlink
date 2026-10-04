@@ -49,7 +49,9 @@ public enum Feature {
     /** Categoria da N: poções. */
     CAT_POTIONS("cat_potions", false, true),
     /** Shift + passar o mouse coleta (ou guarda) o item do slot, sem clicar (Item 21). */
-    HOVER_COLLECT("hover_collect");
+    HOVER_COLLECT("hover_collect"),
+    /** Organizar o armazenamento: botão no baú, organizar o sistema todo (prévia/desfazer), busca e destaque (Item 20). */
+    ORGANIZE("organize");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

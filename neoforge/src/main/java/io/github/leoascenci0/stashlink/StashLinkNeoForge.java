@@ -60,6 +60,8 @@ public class StashLinkNeoForge {
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> SlotLockSync.tick(event.getServer()));
         // Bancadas com armazenamento (Item 16): manda ao cliente com o mod o que há por perto.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> BenchSync.tick(event.getServer()));
+        // Organizar o armazenamento (Item 20): apaga os contornos de destaque vencidos.
+        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> io.github.leoascenci0.stashlink.organize.OrganizeHighlight.tick(event.getServer()));
         // Rótulos de baú (Item 14): mantém os hologramas.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> HologramService.tick(event.getServer()));
 
@@ -93,6 +95,13 @@ public class StashLinkNeoForge {
                     (payload, context) -> io.github.leoascenci0.stashlink.client.LabelClient.openEditor(payload));
             registrar.playToServer(SetLabelRequest.TYPE, SetLabelRequest.STREAM_CODEC,
                     (payload, context) -> LabelService.handleSet((ServerPlayer) context.player(), payload));
+            // Organizar o armazenamento (Item 20): pedido do cliente; prévia/busca descem ao cliente.
+            registrar.playToServer(io.github.leoascenci0.stashlink.network.OrganizeRequest.TYPE,
+                    io.github.leoascenci0.stashlink.network.OrganizeRequest.STREAM_CODEC,
+                    (payload, context) -> io.github.leoascenci0.stashlink.organize.OrganizeService.handle((ServerPlayer) context.player(), payload));
+            registrar.playToClient(io.github.leoascenci0.stashlink.network.OrganizeSync.TYPE,
+                    io.github.leoascenci0.stashlink.network.OrganizeSync.STREAM_CODEC,
+                    (payload, context) -> io.github.leoascenci0.stashlink.client.OrganizeClient.apply(payload));
             // Preferências pessoais do jogador (funcionam em Realms, sem comando): o servidor corrige e limita.
             registrar.playToServer(PlayerPrefsRequest.TYPE, PlayerPrefsRequest.STREAM_CODEC,
                     (payload, context) -> PlayerPrefsService.handle((ServerPlayer) context.player(), payload));
