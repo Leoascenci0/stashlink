@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.gametest;
 
 import io.github.leoascenci0.stashlink.bench.BenchPullService;
+import io.github.leoascenci0.stashlink.bench.BenchResults;
 import io.github.leoascenci0.stashlink.bench.BenchSync;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
@@ -65,6 +66,14 @@ public class BenchGameTests {
     private static RecipeHolder<?> recipe(ServerLevel level, String path) {
         return level.recipeAccess().byKey(ResourceKey.create(Registries.RECIPE, Identifier.withDefaultNamespace(path)))
                 .orElseThrow(() -> new IllegalStateException("receita não achada: " + path));
+    }
+
+    /** Cortador de pedra de verdade (bloco no mundo): ao fechar, o jogo devolve a entrada à mochila. */
+    private static StonecutterMenu stonecutter(Lab lab, ServerPlayer p, int id) {
+        StonecutterMenu menu = new StonecutterMenu(id, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.STONECUTTER, p.blockPosition().below())));
+        p.containerMenu = menu;
+        return menu;
     }
 
     /** Bancada de verdade (bloco no mundo), para o menu poder devolver a grade ao fechar e ficar válido por perto. */
@@ -574,6 +583,28 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Caminho real: o Esc fecha a bancada e, antes de o servidor rodar um tick (jogo pausado), o jogador sai do mundo. */
+    @GameTest
+    public void disconnectRightAfterClosingTheBenchStillReturnsTheItems(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.CRIMSON_PLANKS, 5);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+        place(p, menu, "stick", false);
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 3, "saíram 2 tábuas do baú");
+
+        p.doCloseContainer();                                // o pacote de fechar do cliente: a grade vai para a mochila
+        check(h, Lab.carried(p, Items.CRIMSON_PLANKS) == 2, "a mochila devia ter as 2 tábuas: " + Lab.carried(p, Items.CRIMSON_PLANKS));
+        System.gc();
+        BenchSync.release(p);                                // logout, sem nenhum tick entre os dois
+        check(h, Lab.count(chest, Items.CRIMSON_PLANKS) == 5 && Lab.carried(p, Items.CRIMSON_PLANKS) == 0,
+                "tudo devia estar de volta no baú: baú=" + Lab.count(chest, Items.CRIMSON_PLANKS)
+                        + " jogador=" + Lab.carried(p, Items.CRIMSON_PLANKS));
+        clean(lab, h);
+    }
+
     /** Muitas shulkers cheias e diferentes: o pacote da lista nunca passa do limite do protocolo (1 MiB), senão derruba o cliente. */
     @GameTest
     public void hugeSnapshotStaysUnderThePacketLimit(GameTestHelper h) {
@@ -951,6 +982,145 @@ public class BenchGameTests {
         check(h, Lab.carried(p, Items.CRIMSON_PLANKS) == 5 && Lab.count(chest, Items.CRIMSON_PLANKS) == 3,
                 "as 5 próprias ficam e o baú segue com 3: mochila=" + Lab.carried(p, Items.CRIMSON_PLANKS)
                         + " baú=" + Lab.count(chest, Items.CRIMSON_PLANKS));
+        clean(lab, h);
+    }
+
+    // ---- Item 16.3, onda 3 (achados baixos) ----
+
+    /** Item 8: clicar de novo na mesma receita não puxa mais nada, e o que foi emprestado volta inteiro ao fechar. */
+    @GameTest(maxTicks = 60)
+    public void repeatedClickOnTheSameRecipeNeverStacksOrDuplicates(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.DEEPSLATE, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = stonecutter(lab, p, 5);
+        BenchPoolSync.Entry wanted = BenchSync.snapshot(p).stream().filter(e -> e.isResult() && !e.missing())
+                .findFirst().orElseThrow();
+        BenchPullRequest click = new BenchPullRequest(5, wanted.item(), false, wanted.id());
+
+        BenchPullService.handle(p, click);
+        BenchPullService.handle(p, click);                   // no mesmo tick: o servidor só atende um
+        check(h, menu.getSlot(0).getItem().is(Items.DEEPSLATE) && menu.getSlot(0).getItem().getCount() == 10
+                && Lab.count(chest, Items.DEEPSLATE) == 0, "uma montagem só: slot=" + menu.getSlot(0).getItem());
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, click);               // ticks seguintes: já está montada, nada novo sai
+            check(h, menu.getSlot(0).getItem().getCount() == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
+                    "montar de novo não acumula: " + menu.getSlot(0).getItem());
+            h.runAfterDelay(2, () -> {
+                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.DEEPSLATE), true, BenchResults.PLACE));
+                BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.DEEPSLATE), true, BenchResults.PLACE));
+                check(h, menu.getSlot(0).getItem().getCount() == 10 && Lab.count(chest, Items.DEEPSLATE) == 0,
+                        "slot cheio: pedido repetido não passa do máximo nem duplica");
+                menu.removed(p);
+                p.containerMenu = p.inventoryMenu;
+                BenchSync.tick(lab.level.getServer());
+                check(h, Lab.count(chest, Items.DEEPSLATE) == 10 && Lab.carried(p, Items.DEEPSLATE) == 0,
+                        "ao fechar volta tudo, sem sobra nem falta: baú=" + Lab.count(chest, Items.DEEPSLATE)
+                                + " mochila=" + Lab.carried(p, Items.DEEPSLATE));
+                clean(lab, h);
+            });
+        });
+    }
+
+    /** Item 9: baú de origem cheio na hora de devolver: o item do cursor não fica preso, vai para a mochila. */
+    @GameTest(maxTicks = 60)
+    public void fullChestNeverLeavesTheCursorStuck(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.TUFF, 64);
+        Lab.fill(chest, 1, Items.CALCITE, 64);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+
+        BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.TUFF), false));
+        check(h, menu.getCarried().is(Items.TUFF) && menu.getCarried().getCount() == 64, "tufo no cursor");
+        for (int i = 0; i < chest.getContainerSize(); i++) {          // enche o baú: não sobra espaço para devolver
+            if (chest.getItem(i).isEmpty()) {
+                Lab.fill(chest, i, Items.DIRT, 64);
+            }
+        }
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(5, new ItemStack(Items.CALCITE), false));
+            check(h, menu.getCarried().is(Items.CALCITE) && menu.getCarried().getCount() == 64,
+                    "o cursor devia trocar para calcita, não ficar preso no tufo: " + menu.getCarried());
+            check(h, Lab.carried(p, Items.TUFF) == 64 && Lab.count(chest, Items.TUFF) == 0,
+                    "o tufo que não coube no baú foi para a mochila, sem sumir: " + Lab.carried(p, Items.TUFF));
+            clean(lab, h);
+        });
+    }
+
+    /** Item 10: o livro de receitas não atende rajada de pedidos no mesmo tick (cada um varreria os baús). */
+    @GameTest
+    public void recipeBookFloodIsCappedPerTick(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.PALE_OAK_PLANKS, 5);
+        Lab.fill(chest, 1, Items.IRON_INGOT, 1);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        CraftingMenu menu = table(lab, p, 1);
+
+        place(p, menu, "stick", false);
+        place(p, menu, "iron_nugget", false);
+        place(p, menu, "stick", false);
+        place(p, menu, "iron_nugget", false);                // 4 pedidos no tick: o limite
+        int planksBefore = Lab.count(chest, Items.PALE_OAK_PLANKS);
+        int ingotsBefore = Lab.count(chest, Items.IRON_INGOT);
+        place(p, menu, "stick", false);                      // o 5º no mesmo tick é barrado
+        check(h, Lab.count(chest, Items.PALE_OAK_PLANKS) == planksBefore && Lab.count(chest, Items.IRON_INGOT) == ingotsBefore,
+                "o 5o pedido do tick não pode mexer nos baús: tábuas=" + Lab.count(chest, Items.PALE_OAK_PLANKS));
+        check(h, Lab.count(chest, Items.PALE_OAK_PLANKS) + grid(menu, Items.PALE_OAK_PLANKS) + Lab.carried(p, Items.PALE_OAK_PLANKS) == 5
+                        && Lab.count(chest, Items.IRON_INGOT) + grid(menu, Items.IRON_INGOT) + Lab.carried(p, Items.IRON_INGOT) == 1,
+                "nada some nem duplica");
+        clean(lab, h);
+    }
+
+    /** Item 11: o servidor só aceita os tipos de pedido que o cliente de verdade manda; o resto é ignorado. */
+    @GameTest
+    public void invalidRecipeIdsAreIgnored(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.BASALT, 64);
+        int[] bad = {BenchPoolSync.Entry.COLOR_PICK, -4, -999, Integer.MIN_VALUE};
+        for (int i = 0; i < bad.length; i++) {
+            ServerPlayer p = lab.player(4, 2, 4);
+            Lab.prefs(p, 8, true);
+            StonecutterMenu menu = new StonecutterMenu(10 + i, p.getInventory());
+            p.containerMenu = menu;
+            BenchPullService.handle(p, new BenchPullRequest(10 + i, new ItemStack(Items.BASALT), false, bad[i]));
+            check(h, menu.getCarried().isEmpty() && Lab.count(chest, Items.BASALT) == 64,
+                    "recipeId " + bad[i] + " devia ser ignorado: cursor=" + menu.getCarried());
+        }
+        ServerPlayer ok = lab.player(4, 2, 4);              // o pedido normal do cursor (-1) continua valendo
+        Lab.prefs(ok, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(20, ok.getInventory());
+        ok.containerMenu = menu;
+        BenchPullService.handle(ok, new BenchPullRequest(20, new ItemStack(Items.BASALT), false));
+        check(h, menu.getCarried().is(Items.BASALT) && menu.getCarried().getCount() == 64, "pedido normal segue funcionando");
+        clean(lab, h);
+    }
+
+    /** Item 12: um clique de receita varre os baús uma vez só (antes eram três varreduras). */
+    @GameTest
+    public void oneRecipeClickScansTheChestsOnce(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.PURPUR_BLOCK, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        StonecutterMenu menu = new StonecutterMenu(5, p.getInventory());
+        p.containerMenu = menu;
+        BenchPoolSync.Entry wanted = BenchSync.snapshot(p).stream().filter(e -> e.isResult() && !e.missing())
+                .findFirst().orElseThrow();
+        int before = io.github.leoascenci0.stashlink.bench.BenchPool.scanCount();
+        BenchPullService.handle(p, new BenchPullRequest(5, wanted.item(), false, wanted.id()));
+        int scans = io.github.leoascenci0.stashlink.bench.BenchPool.scanCount() - before;
+        check(h, menu.getSlot(0).getItem().is(Items.PURPUR_BLOCK), "a receita foi montada");
+        check(h, scans == 1, "um clique devia varrer os baús 1 vez, varreu " + scans);
         clean(lab, h);
     }
 

@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.Origin;
 import net.minecraft.server.level.ServerPlayer;
@@ -168,6 +169,12 @@ public final class BenchLedger {
         ItemSource target = BenchPool.returnTarget(player, entry.origin);
         ItemStack rest = target.give(carried.copyWithCount(move));
         int moved = move - rest.getCount();
+        if (!rest.isEmpty()) {
+            // O baú de origem encheu (ou saiu do alcance): o cursor não pode ficar preso ao item que não cabe.
+            // Vai para a mochila (nunca some nem duplica) e deixa de ser "emprestado".
+            McCompat.placeBackInInventory(player, rest);
+            moved = move;
+        }
         if (moved > 0) {
             ItemStack now = carried.copy();
             now.shrink(moved);

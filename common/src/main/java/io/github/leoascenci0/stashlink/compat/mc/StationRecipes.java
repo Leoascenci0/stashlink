@@ -116,8 +116,40 @@ public final class StationRecipes {
         }
     }
 
+    /** Uma cor do tear (aba "Cores"): o corante, se há dele agora e o id da cor. */
+    public record DyePick(ItemStack dye, boolean has, int color) {
+    }
+
+    /** Aba "Cores" do tear: uma entrada por cor de corante conhecida; vazia nas outras estações. */
+    public static List<DyePick> dyePicks(ServerPlayer player, AbstractContainerMenu menu, List<ItemStack> have) {
+        List<DyePick> out = new ArrayList<>();
+        if (menu instanceof LoomMenu) {
+            for (DyeColor color : knownDyeColors(player, have)) {
+                ItemStack dye = new ItemStack(Items.DYE.pick(color));
+                out.add(new DyePick(dye, have.stream().anyMatch(s -> s.is(dye.getItem())), color.getId()));
+            }
+        }
+        return out;
+    }
+
+    /** No tear, o slot do corante exige o corante da cor que o jogador escolheu no painel ({@code choice}). */
+    public static void applyChoice(AbstractContainerMenu menu, List<Predicate<ItemStack>> needs, ItemStack choice) {
+        if (menu instanceof LoomMenu && isDye(choice)) {
+            needs.set(1, s -> s.is(choice.getItem()));
+        }
+    }
+
+    /** Ícones das abas do tear (corante e estandarte de exemplo). */
+    public static ItemStack sampleDye() {
+        return new ItemStack(Items.DYE.pick(DyeColor.RED));
+    }
+
+    public static ItemStack sampleBanner() {
+        return new ItemStack(Items.BANNER.pick(DyeColor.WHITE));
+    }
+
     /** As cores de corante que o jogador conhece (descobriu ou tem à mão), em ordem; o item é o corante dessa cor. */
-    public static List<DyeColor> knownDyeColors(ServerPlayer player, List<ItemStack> have) {
+    private static List<DyeColor> knownDyeColors(ServerPlayer player, List<ItemStack> have) {
         List<DyeColor> out = new ArrayList<>();
         for (DyeColor color : DyeColor.values()) {
             Item dye = Items.DYE.pick(color);

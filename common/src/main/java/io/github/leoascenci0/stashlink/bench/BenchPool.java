@@ -40,6 +40,9 @@ public final class BenchPool {
     public record Stack(ItemStack item, int count) {
     }
 
+    /** Quantas varreduras de baús já aconteceram (só a thread do servidor mexe); os testes conferem o custo de um clique. */
+    private static int SCANS;
+
     private final ItemSource source;
     private final ServerPlayer player;
     /** A fonte de baús e barris, criada só quando a varredura acontece; guarda o que foi tocado (a origem). */
@@ -49,9 +52,16 @@ public final class BenchPool {
         this.player = player;
         // Só baús e barris (decisão do Eliel): shulkers, no inventário ou colocadas, nunca servem às bancadas. E vale o
         // ajuste "Usar baús como fonte": com ele em Não, a bancada não enxerga armazenamento nenhum.
-        Supplier<NearbyContainers.Found> nearby = memo(() -> NearbyContainers.find(player, PlayerPrefsStore.includeChests(player)));
+        Supplier<NearbyContainers.Found> nearby = memo(() -> {
+            SCANS++;
+            return NearbyContainers.find(player, PlayerPrefsStore.includeChests(player));
+        });
         this.source = new PrioritizedItemSource(List.of(
                 new LazyItemSource(() -> storage = new ContainerSource(guard(player, nearby.get().storage())))));
+    }
+
+    public static int scanCount() {
+        return SCANS;
     }
 
     public static BenchPool of(ServerPlayer player) {

@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,10 +65,14 @@ public final class BenchRecipe {
                 || !open.stillValid(player) || !FeatureGate.allowSilently(player, Feature.BENCH)) {
             return;
         }
+        // Anti-flood: rajada de pedidos no mesmo tick não varre os baús de novo (o jogo segue só com a mochila).
+        if (!BenchFlood.BOOK.allow(player, McCompat.gameTime(player))) {
+            return;
+        }
         // Trocou de receita: o que o mod pôs na grade antes e sobrou volta ao baú de origem, não à mochila.
         BenchLedger.returnFromGrid(player, inputSlots);
         BenchPool pool = BenchPool.of(player);
-        Map<Item, Integer> missing = BenchCompat.missingIngredients(inventory, (RecipeBookMenu) open, inputSlots,
+        Map<Item, Integer> missing = BenchCompat.missingIngredients(inventory, open, inputSlots,
                 holder, useMax, pool.plainCounts());
         if (missing.isEmpty()) {
             return;

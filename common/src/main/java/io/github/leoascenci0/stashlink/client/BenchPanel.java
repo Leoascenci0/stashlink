@@ -17,7 +17,6 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.LoomMenu;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -77,6 +76,8 @@ public final class BenchPanel {
     private final ImageButton forward = new ImageButton(0, 0, PAGE_W, PAGE_H, new WidgetSprites(FORWARD, FORWARD_HOVER), b -> { },
             Component.translatable("gui.recipebook.next_page"));
     private final Screen screen;
+    /** A estação é o tear (aba "Cores", banner pintado, corante escolhido). */
+    private final boolean loom;
     private int x;
     private int y;
 
@@ -94,6 +95,7 @@ public final class BenchPanel {
         Minecraft mc = Minecraft.getInstance();
         this.menu = menu;
         this.screen = screen;
+        this.loom = BenchCompat.stationOf(menu) == BenchCompat.Station.LOOM;
         this.tabs = BenchTabs.of(menu);
         search = new EditBox(mc.font, 0, 0, SEARCH_W, SEARCH_H,
                 Component.translatableWithFallback("stashlink.bench.panel.title", "Storage"));
@@ -159,12 +161,7 @@ public final class BenchPanel {
 
     /** O corante da cor escolhida (vem na lista do servidor); a entrada vermelha diz que não há dele agora. */
     private BenchPoolSync.Entry colorEntry() {
-        for (BenchPoolSync.Entry e : BenchClient.pool()) {
-            if (e.isColorPick() && e.color() == selectedColor) {
-                return e;
-            }
-        }
-        return null;
+        return BenchClient.colorPick(selectedColor);
     }
 
     /** O resultado está em vermelho? Falta material, ou (tear) não há corante da cor escolhida. */
@@ -172,7 +169,7 @@ public final class BenchPanel {
         if (e.missing()) {
             return true;
         }
-        if (menu instanceof LoomMenu && e.isResult()) {
+        if (loom && e.isResult()) {
             BenchPoolSync.Entry dye = colorEntry();
             return dye == null || dye.missing();
         }
@@ -181,7 +178,7 @@ public final class BenchPanel {
 
     /** O ícone mostrado: no tear, o banner com o padrão na cor escolhida. */
     private ItemStack iconOf(BenchPoolSync.Entry e) {
-        return menu instanceof LoomMenu && e.isResult() && selectedColor >= 0
+        return loom && e.isResult() && selectedColor >= 0
                 ? StationRecipes.recolor(e.item(), selectedColor) : e.item();
     }
 
@@ -203,7 +200,7 @@ public final class BenchPanel {
             filteredQuery = query;
             filteredTab = tabNow;
             // Cor padrão do tear: a primeira que tem corante (ou a primeira); mantém a escolhida enquanto ela existir.
-            if (menu instanceof LoomMenu && colorEntry() == null) {
+            if (loom && colorEntry() == null) {
                 selectedColor = -1;
                 for (BenchPoolSync.Entry e : BenchClient.pool()) {
                     if (e.isColorPick() && (selectedColor < 0 || (!e.missing() && colorEntryMissing()))) {
@@ -419,7 +416,7 @@ public final class BenchPanel {
             }
         } else if (entry.isResult()) {
             if (button == LEFT && !red(entry)) {
-                BenchPoolSync.Entry dye = menu instanceof LoomMenu ? colorEntry() : null;
+                BenchPoolSync.Entry dye = loom ? colorEntry() : null;
                 BenchClient.requestRecipe(menu, entry, dye != null ? dye.item() : entry.item());
             }
         } else {

@@ -34,8 +34,11 @@ public class StashLinkFabricClient implements ClientModInitializer {
         // Ao entrar: esquece os cadeados do servidor anterior; o servidor responde às preferências com os novos.
         ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> {
             ClientPolicy.reset();
+            BenchClient.reset();
             ClientPrefs.sync();
         });
+        // Ao sair: a lista de armazenamento do servidor anterior não pode sobrar para o próximo.
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> BenchClient.reset());
         ClientPlayNetworking.registerGlobalReceiver(FeaturePolicySync.TYPE,
                 (payload, context) -> ClientPolicy.apply(payload.lockedMask(), payload.canEdit()));
         ClientFeatures.setLockSender(request -> {

@@ -59,10 +59,13 @@ public final class BenchSync {
 
     /**
      * O jogador vai sair (desconectou) ou o servidor vai parar: fecha a estação e devolve ao baú o que foi emprestado,
-     * <b>antes</b> de o jogo salvar o jogador. Sem isso o que está na grade e no cursor seria salvo na mochila
+     * <b>antes</b> de o jogo salvar o jogador. Só roda na thread do servidor (baú e inventário não são thread-safe). Sem isso o que está na grade e no cursor seria salvo na mochila
      * do jogador sem o baú saber (e o baú já foi desfalcado). Tolera erro: o logout nunca pode travar por aqui.
      */
     public static void release(ServerPlayer player) {
+        if (!player.level().getServer().isSameThread()) {
+            return;   // só a thread do servidor mexe em baú e inventário (o evento de rede de desconexão roda fora dela)
+        }
         try {
             BenchLedger.release(player);
         } catch (RuntimeException e) {
