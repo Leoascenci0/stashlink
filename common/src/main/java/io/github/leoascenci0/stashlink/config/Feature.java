@@ -57,7 +57,9 @@ public enum Feature {
     /** Mesa de encantamento: o lápis-lazúli do armazenamento entra sozinho no slot dele (Item 16.3). */
     BENCH_LAPIS("bench_lapis"),
     /** Bigorna: com um item no 1º slot, a aba Livros mostra só os livros que servem nele (Item 16.3). */
-    BENCH_BOOK_FILTER("bench_book_filter");
+    BENCH_BOOK_FILTER("bench_book_filter"),
+    /** Sinalizador: os ícones de pagamento viram botões que puxam o minério do armazenamento (Item 16.3). */
+    BENCH_BEACON("bench_beacon");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

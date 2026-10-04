@@ -134,6 +134,12 @@ public final class BenchClient {
                 io.github.leoascenci0.stashlink.bench.BenchResults.FUEL));
     }
 
+    /** Botão de pagamento do sinalizador: 1 de {@code payment} no slot de pagamento (o servidor confere tudo). */
+    public static void requestPayment(AbstractContainerMenu menu, ItemStack payment) {
+        sender.accept(new BenchPullRequest(menu.containerId, payment.copyWithCount(1), true,
+                io.github.leoascenci0.stashlink.bench.BenchResults.PAY));
+    }
+
     /** "Monte esta receita": {@code choice} é o item que o jogador escolheu junto (o corante da cor, no tear); {@code one}
      * = um de cada ingrediente (botão direito) em vez de um stack. */
     public static void requestRecipe(AbstractContainerMenu menu, BenchPoolSync.Entry entry, ItemStack choice, boolean one) {

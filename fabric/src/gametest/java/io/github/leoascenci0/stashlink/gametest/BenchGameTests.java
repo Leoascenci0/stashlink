@@ -1636,6 +1636,78 @@ public class BenchGameTests {
         });
     }
 
+    /**
+     * Sinalizador: o botão de um minério põe 1 dele no pagamento; slot cheio não tira mais; item que não é pagamento
+     * ou que não há é ignorado; trocar de minério devolve o anterior ao baú; fechar devolve o que não foi usado.
+     */
+    @GameTest
+    public void beaconPaymentButtonsPullOneFromStorage(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.IRON_INGOT, 5);
+        Lab.fill(chest, 1, Items.GOLD_INGOT, 2);
+        Lab.fill(chest, 2, Items.COPPER_INGOT, 9);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);
+        net.minecraft.world.inventory.BeaconMenu menu = new net.minecraft.world.inventory.BeaconMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        net.minecraft.world.inventory.Slot pay = menu.getSlot(0);
+        check(h, BenchCompat.stationOf(menu) == BenchCompat.Station.BEACON && !BenchCompat.usesPanel(menu),
+                "sinalizador é estação, sem painel");
+        check(h, BenchSync.snapshot(p).stream().allMatch(e -> !e.item().is(Items.COPPER_INGOT)),
+                "a lista do sinalizador só tem pagamento (cobre não)");
+
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.IRON_INGOT), true, BenchResults.PAY));
+        check(h, pay.getItem().is(Items.IRON_INGOT) && pay.getItem().getCount() == 1 && Lab.count(chest, Items.IRON_INGOT) == 4,
+                "1 ferro no pagamento: " + pay.getItem());
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.IRON_INGOT), true, BenchResults.PAY));
+            check(h, pay.getItem().getCount() == 1 && Lab.count(chest, Items.IRON_INGOT) == 4, "slot cheio: não tira mais");
+            h.runAfterDelay(2, () -> {
+                BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COPPER_INGOT), true, BenchResults.PAY));
+                check(h, pay.getItem().is(Items.IRON_INGOT) && Lab.count(chest, Items.COPPER_INGOT) == 9, "cobre não é pagamento");
+                h.runAfterDelay(2, () -> {
+                    BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.EMERALD), true, BenchResults.PAY));
+                    check(h, pay.getItem().is(Items.IRON_INGOT) && Lab.count(chest, Items.IRON_INGOT) == 4,
+                            "esmeralda que não há: nada muda");
+                    h.runAfterDelay(2, () -> {
+                        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.GOLD_INGOT), true, BenchResults.PAY));
+                        check(h, pay.getItem().is(Items.GOLD_INGOT) && Lab.count(chest, Items.IRON_INGOT) == 5
+                                && Lab.count(chest, Items.GOLD_INGOT) == 1, "trocou: o ferro voltou ao baú, ouro no slot");
+                        p.doCloseContainer();
+                        check(h, Lab.count(chest, Items.GOLD_INGOT) == 2 && Lab.carried(p, Items.GOLD_INGOT) == 0,
+                                "fechou sem confirmar: o ouro voltou ao baú (nem mochila nem chão)");
+                        clean(lab, h);
+                    });
+                });
+            });
+        });
+    }
+
+    /** Sinalizador: pagamento do próprio jogador nunca vai para o baú; trancado, nada sai. */
+    @GameTest
+    public void beaconKeepsThePlayersOwnPaymentAndRespectsTheLock(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.DIAMOND, 3);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);
+        net.minecraft.world.inventory.BeaconMenu menu = new net.minecraft.world.inventory.BeaconMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        menu.getSlot(0).set(new ItemStack(Items.EMERALD));      // pagamento que o jogador pôs com a mão
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PAY));
+        check(h, menu.getSlot(0).getItem().is(Items.EMERALD) && Lab.count(chest, Items.DIAMOND) == 3
+                && Lab.count(chest, Items.EMERALD) == 0, "a esmeralda do jogador fica; nada sai do baú");
+        menu.getSlot(0).set(ItemStack.EMPTY);
+        StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);
+        h.runAfterDelay(2, () -> {
+            BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PAY));
+            check(h, menu.getSlot(0).getItem().isEmpty() && Lab.count(chest, Items.DIAMOND) == 3, "trancado: nada sai");
+            p.containerMenu = p.inventoryMenu;
+            clean(lab, h);
+        });
+    }
+
     /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (armadura, ferramenta/etiqueta, arma, livro, material). */
     @GameTest
     public void anvilFilterAndTabShareOnePredicate(GameTestHelper h) {

@@ -136,7 +136,8 @@ public final class BenchPanel {
     public static BenchPanel create(AbstractContainerMenu menu, int leftPos, int topPos, int imageWidth, Screen screen) {
         // Bancada e fornalhas já têm o livro de receitas do jogo (que usa os baús e pinta de vermelho o que falta):
         // duas telas iguais lado a lado só atrapalham.
-        if (!BenchCompat.isStation(menu) || BenchCompat.hasRecipeBook(menu)) {
+        // O sinalizador também não: lá o pagamento são botões sobre os ícones do jogo (BenchBeaconButtons).
+        if (!BenchCompat.usesPanel(menu)) {
             return null;
         }
         BenchPanel panel = new BenchPanel(menu, screen);

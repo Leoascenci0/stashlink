@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
+import io.github.leoascenci0.stashlink.client.BenchBeaconButtons;
 import io.github.leoascenci0.stashlink.client.BenchFuelButton;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
@@ -52,6 +53,10 @@ public abstract class AbstractContainerScreenMixin {
     /** Botão de combustível das fornalhas (Item 16.3); só existe em fornalha, defumador e alto-forno. */
     @Unique
     private BenchFuelButton stashlink$fuelButton;
+
+    /** Ícones de pagamento clicáveis do sinalizador (Item 16.3); só existe no sinalizador. */
+    @Unique
+    private BenchBeaconButtons stashlink$beaconButtons;
 
 
     /** O lápis de rótulo ao lado do título, em baú/barril/shulker (só se o servidor tem o mod e se mirava um bloco). */
@@ -117,14 +122,15 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    /** O botão de combustível ao lado do slot de combustível das fornalhas. */
+    /** O botão de combustível das fornalhas e os ícones de pagamento clicáveis do sinalizador. */
     @Inject(method = "init", at = @At("TAIL"))
     private void stashlink$addFuelButton(CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         stashlink$fuelButton = BenchFuelButton.create(self.getMenu());
+        stashlink$beaconButtons = BenchBeaconButtons.create(self.getMenu());
     }
 
-    /** Desenha o botão de combustível (a posição acompanha o livro de receitas, que desloca a fornalha). */
+    /** Desenha o botão de combustível (a posição acompanha o livro de receitas, que desloca a fornalha) e os do sinalizador. */
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void stashlink$drawFuelButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
                                           CallbackInfo ci) {
@@ -132,15 +138,25 @@ public abstract class AbstractContainerScreenMixin {
             stashlink$fuelButton.layout(leftPos, topPos);
             stashlink$fuelButton.draw(graphics, mouseX, mouseY);
         }
+        if (stashlink$beaconButtons != null) {
+            stashlink$beaconButtons.layout(leftPos, topPos);
+            stashlink$beaconButtons.draw(graphics, mouseX, mouseY);
+        }
     }
 
-    /** Clique no botão de combustível: pede ao servidor; o clique não chega ao jogo. */
+    /** Clique no botão de combustível ou num ícone do sinalizador: pede ao servidor; o clique não chega ao jogo. */
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void stashlink$clickFuelButton(MouseButtonEvent event, boolean doubleClick,
                                            CallbackInfoReturnable<Boolean> cir) {
         if (stashlink$fuelButton != null) {
             stashlink$fuelButton.layout(leftPos, topPos);
             if (stashlink$fuelButton.mouseClicked(event)) {
+                cir.setReturnValue(true);
+            }
+        }
+        if (stashlink$beaconButtons != null) {
+            stashlink$beaconButtons.layout(leftPos, topPos);
+            if (stashlink$beaconButtons.mouseClicked(event)) {
                 cir.setReturnValue(true);
             }
         }

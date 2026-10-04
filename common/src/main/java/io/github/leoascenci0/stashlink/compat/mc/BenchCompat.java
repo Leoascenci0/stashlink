@@ -14,6 +14,7 @@ import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.BeaconMenu;
 import net.minecraft.world.inventory.BlastFurnaceMenu;
 import net.minecraft.world.inventory.BrewingStandMenu;
 import net.minecraft.world.inventory.CartographyTableMenu;
@@ -62,7 +63,7 @@ public final class BenchCompat {
 
     /** Os tipos de estação que o mod conhece; o resto do mod pergunta por aqui e nunca usa as classes de menu do jogo. */
     public enum Station {
-        CRAFTING, FURNACE, STONECUTTER, LOOM, CARTOGRAPHY, GRINDSTONE, SMITHING, ANVIL, ENCHANTING, BREWING, OTHER
+        CRAFTING, FURNACE, STONECUTTER, LOOM, CARTOGRAPHY, GRINDSTONE, SMITHING, ANVIL, ENCHANTING, BREWING, BEACON, OTHER
     }
 
     public static Station stationOf(AbstractContainerMenu menu) {
@@ -86,6 +87,8 @@ public final class BenchCompat {
             return Station.ENCHANTING;
         } else if (menu instanceof BrewingStandMenu) {
             return Station.BREWING;
+        } else if (menu instanceof BeaconMenu) {
+            return Station.BEACON;
         }
         return Station.OTHER;
     }
@@ -176,6 +179,36 @@ public final class BenchCompat {
      * gasta. Pouco item fora do baú de cada vez (o que sobra volta ao fechar), e qualquer encantamento fica possível.
      */
     public static final int LAPIS_TARGET = 3;
+
+    /**
+     * Sinalizador: os ícones de pagamento que a tela do jogo desenha à esquerda do slot de pagamento (netherite,
+     * esmeralda, diamante, ouro, ferro), com a posição de cada um em relação a {@code leftPos}/{@code topPos}
+     * ({@code BeaconScreen}). O StashLink transforma esses mesmos ícones em botões, sem desenho novo. Mudou numa versão
+     * do jogo? Ajuste aqui.
+     */
+    public record BeaconIcon(ItemStack item, int x, int y) {
+    }
+
+    private static final int BEACON_ICON_Y = 109;
+
+    public static List<BeaconIcon> beaconIcons() {
+        return List.of(
+                new BeaconIcon(new ItemStack(Items.NETHERITE_INGOT), 20, BEACON_ICON_Y),
+                new BeaconIcon(new ItemStack(Items.EMERALD), 41, BEACON_ICON_Y),
+                new BeaconIcon(new ItemStack(Items.DIAMOND), 41 + 22, BEACON_ICON_Y),
+                new BeaconIcon(new ItemStack(Items.GOLD_INGOT), 42 + 44, BEACON_ICON_Y),
+                new BeaconIcon(new ItemStack(Items.IRON_INGOT), 42 + 66, BEACON_ICON_Y));
+    }
+
+    /** O slot de pagamento do sinalizador aberto, ou {@code null} se não é um sinalizador. */
+    public static Slot beaconPaymentSlot(AbstractContainerMenu menu) {
+        return menu instanceof BeaconMenu ? menu.getSlot(0) : null;
+    }
+
+    /** A estação usa o painel "Armazenamento"? O sinalizador não: o pagamento são os botões de ícone. */
+    public static boolean usesPanel(AbstractContainerMenu menu) {
+        return isStation(menu) && !hasRecipeBook(menu) && stationOf(menu) != Station.BEACON;
+    }
 
     /** O slot de lápis-lazúli da mesa de encantamento aberta, ou {@code null} se não é uma mesa de encantamento. */
     public static Slot lapisSlot(AbstractContainerMenu menu) {

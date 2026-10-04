@@ -31,9 +31,12 @@ public final class BenchResults {
     /** {@code recipeId} do botão de combustível das fornalhas: "ponha combustível do armazenamento no slot dele". */
     public static final int FUEL = -3;
 
+    /** {@code recipeId} dos botões de pagamento do sinalizador: "ponha 1 deste item no slot de pagamento". */
+    public static final int PAY = -4;
+
     /** Só estes {@code recipeId} chegam do cliente de verdade ({@code >= 0} é uma receita); o resto é ignorado. */
     public static boolean validRequestId(int recipeId) {
-        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == FUEL;
+        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == FUEL || recipeId == PAY;
     }
 
     private BenchResults() {
@@ -213,6 +216,28 @@ public final class BenchResults {
             menu.broadcastChanges();
         }
         BenchSync.markDirty(player);
+    }
+
+    /**
+     * Botão de pagamento do sinalizador: 1 do item pedido vai do armazenamento para o slot de pagamento (o slot só
+     * guarda 1). Só item que o slot aceita (minério de pagamento); outro pedido é ignorado. Se o slot já tem outro
+     * pagamento que veio do armazenamento, ele volta ao baú antes (trocar de ferro para esmeralda); pagamento do
+     * próprio jogador nunca é mexido. O que entra vai para o caderno: se o efeito não for confirmado, volta ao baú
+     * ao fechar (o jogo jogaria o item no chão).
+     */
+    public static void pay(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested) {
+        Slot slot = BenchCompat.beaconPaymentSlot(menu);
+        ItemStack model = requested.copyWithCount(1);
+        if (slot == null || !slot.mayPlace(model) || !FeatureGate.allow(player, Feature.BENCH_BEACON)) {
+            return;
+        }
+        if (slot.hasItem() && !ItemStack.isSameItemSameComponents(slot.getItem(), model)) {
+            BenchLedger.returnFromGrid(player, List.of(slot));
+            if (slot.hasItem()) {
+                return;   // o pagamento é do jogador (ou o baú encheu): não troca
+            }
+        }
+        place(player, menu, model, true);
     }
 
     /**
