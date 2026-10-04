@@ -719,3 +719,20 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Modo cliente: não se aplica.** Sem o mod no servidor não existe o gancho; o jogo base continua como é.
 - **Limites.** Só Fabric foi testado no harness (o NeoForge compila com o mesmo mixin comum); Ctrl + botão do meio
   (copiar com dados) só existe em criativo e não é tocado.
+
+## Item 21 — Shift + passar o mouse coleta
+
+- **Ideia:** em tela de baú/barril/shulker/ender chest (`LootAllService.isSupportedMenu`), com Shift **e o botão esquerdo** pressionados, cada
+  slot em que o mouse **entra** recebe um shift-clique (`Click.quickMove` via `ClientCompat.click`). É só clique
+  normal de inventário: o servidor decide o que cabe, então nada duplica nem some e funciona sem o mod no servidor.
+  Vale nos dois sentidos (o shift-clique do jogo já leva baú→mochila e mochila→baú).
+- **Peças:** `Feature.HOVER_COLLECT` (liga/desliga + cadeado, passa por `ClientFeatures.enabled`),
+  `mixin/HoverCollectScreenMixin` (injeta em `extractRenderState`, mixin à parte do `AbstractContainerScreenMixin`),
+  `client/HoverCollectClient` (condições e o clique) e `client/HoverCollectPass` (a "memória" da passagem; não conhece o
+  Minecraft e tem teste). `ClientCompat.isShiftDown` isola `Minecraft.hasShiftDown()` (era `Screen.hasShiftDown()`).
+- **Regras:** o slot sob o mouse na hora de apertar já leva o clique normal do jogo (por isso é "armado" sem clicar de novo); um clique por entrada em slot (parado em cima não repete; sair e voltar é nova passagem); no máximo 4
+  cliques por tick; 3 cliques seguidos que não moveram nada (destino cheio) param a passagem até soltar o Shift; nunca
+  com item no cursor, em espectador, em slot sem item, em slot que não aceita item nenhum (resultado) nem em slot da
+  mochila travado na config (`ClientPrefs.lockedSlots`). Telas fora de baú (inventário, criativo, bancadas) nunca agem.
+- **Detecção de "não coube":** o cliente aplica o shift-clique na hora (previsão); se o slot não mudou, não coube.
+

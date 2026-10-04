@@ -19,6 +19,7 @@
     "GhostSlotAccessor",
     "GrindstoneScreenMixin",
     "AbstractContainerScreenMixin",
+    "HoverCollectScreenMixin",
     "RecipeBookComponentMixin"
   ],
   "injectors": {
