@@ -107,12 +107,17 @@ public class OrganizeGameTests {
         Lab.open(p, chest, 1);
         organizeChest(p, 1);
         check(h, total(chest).equals(before), "a soma de itens mudou");
-        check(h, chest.getItem(0).is(Items.CALCITE) && chest.getItem(0).getCount() == 30, "calcita junta: " + chest.getItem(0));
-        check(h, chest.getItem(1).is(Items.DRIPSTONE_BLOCK) && chest.getItem(1).getCount() == 35, "pedra de gotejamento junta");
-        check(h, chest.getItem(2).is(Items.GOLDEN_CHESTPLATE) && chest.getItem(3).is(Items.GOLDEN_CHESTPLATE),
-                "armadura depois dos blocos; componentes diferentes ficam separados");
-        check(h, chest.getItem(4).is(Items.SWEET_BERRIES) && chest.getItem(4).getCount() == 64
-                && chest.getItem(5).getCount() == 3, "comida por último, stack cheio + resto");
+        // a ordem é a do criativo (a ordem exata entre calcita, pedra e frutinha é do jogo); aqui conta juntar e não deixar buraco
+        check(h, Lab.count(chest, Items.CALCITE) == 30 && slotOf(chest, Items.CALCITE) >= 0
+                && chest.getItem(slotOf(chest, Items.CALCITE)).getCount() == 30, "calcita junta em um stack");
+        check(h, chest.getItem(slotOf(chest, Items.DRIPSTONE_BLOCK)).getCount() == 35, "pedra de gotejamento junta");
+        int berries = slotOf(chest, Items.SWEET_BERRIES);
+        check(h, chest.getItem(berries).getCount() == 64 && chest.getItem(berries + 1).getCount() == 3,
+                "frutinha: stack cheio + resto, um depois do outro");
+        int first = slotOf(chest, Items.GOLDEN_CHESTPLATE);
+        check(h, chest.getItem(first + 1).is(Items.GOLDEN_CHESTPLATE) && !ItemStack.isSameItemSameComponents(chest.getItem(first),
+                chest.getItem(first + 1)) && first > slotOf(chest, Items.DRIPSTONE_BLOCK) && first > slotOf(chest, Items.CALCITE),
+                "armadura (combate) depois dos blocos naturais; componentes diferentes ficam separados");
         for (int slot = 6; slot < 27; slot++) {
             check(h, chest.getItem(slot).isEmpty(), "slot " + slot + " devia estar vazio");
         }
@@ -124,6 +129,91 @@ public class OrganizeGameTests {
         check(h, same(chest, once), "organizar duas vezes mexeu de novo");
         lab.cleanup();
         h.succeed();
+    }
+
+    /** Bug do Eliel: a pilha reservada tem de ser a que recebe o item, não uma pilha solta do mesmo item. */
+    @GameTest
+    public void chestOrganizeFillsTheReservedStackFirst(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 3);
+        chest.setItem(0, new ItemStack(Items.JUNGLE_PLANKS, 2));
+        chest.setItem(4, new ItemStack(Items.JUNGLE_PLANKS, 2));
+        chest.setItem(9, new ItemStack(Items.CALCITE, 5));
+        SlotLocks.toggle(chest, 0, new ItemStack(Items.JUNGLE_PLANKS));        // slot 0 reservado para tábua de selva
+        SlotLocks.toggle(chest, 13, new ItemStack(Items.BASALT));              // reservado e vazio, sem basalto: segue vazio
+        OrganizeLogic.Totals before = total(chest);
+
+        ServerPlayer p = player(lab);
+        Lab.open(p, chest, 1);
+        organizeChest(p, 1);
+        check(h, total(chest).equals(before), "a soma de itens mudou");
+        check(h, chest.getItem(0).is(Items.JUNGLE_PLANKS) && chest.getItem(0).getCount() == 4,
+                "a pilha reservada devia juntar as 4 tábuas: " + chest.getItem(0));
+        check(h, Lab.count(chest, Items.JUNGLE_PLANKS) == 4, "nenhuma tábua solta fora da reservada");
+        check(h, chest.getItem(13).isEmpty(), "reservado vazio sem o item continua vazio");
+        check(h, SlotLocks.lockedItem(chest, 0) == Items.JUNGLE_PLANKS && SlotLocks.lockedItem(chest, 13) == Items.BASALT,
+                "as reservas continuam");
+        lab.cleanup();
+        h.succeed();
+    }
+
+    /** A pilha reservada já está cheia: a tábua que sobra fica logo ao lado dela, e organizar de novo não muda nada. */
+    @GameTest
+    public void chestOrganizePutsTheLeftoverBesideTheFullReservedStack(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 3);
+        chest.setItem(0, new ItemStack(Items.JUNGLE_PLANKS, 64));
+        chest.setItem(4, new ItemStack(Items.JUNGLE_PLANKS, 1));
+        chest.setItem(5, new ItemStack(Items.CALCITE, 5));
+        chest.setItem(7, new ItemStack(Items.BASALT, 9));
+        SlotLocks.toggle(chest, 0, new ItemStack(Items.JUNGLE_PLANKS));
+        OrganizeLogic.Totals before = total(chest);
+
+        ServerPlayer p = player(lab);
+        Lab.open(p, chest, 1);
+        organizeChest(p, 1);
+        check(h, total(chest).equals(before), "a soma de itens mudou");
+        check(h, chest.getItem(0).getCount() == 64 && chest.getItem(1).is(Items.JUNGLE_PLANKS) && chest.getItem(1).getCount() == 1,
+                "a tábua que sobrou devia ficar logo depois da pilha reservada: " + chest.getItem(1));
+        List<ItemStack> once = OrganizeLogic.snapshot(chest);
+        organizeChest(p, 1);
+        check(h, OrganizeLogic.sameContents(chest, once), "organizar de novo não pode mudar nada");
+        lab.cleanup();
+        h.succeed();
+    }
+
+    /** O Organizar segue a ordem do inventário criativo: blocos, depois funcionais, ferramentas, combate, comida, ingredientes. */
+    @GameTest
+    public void chestOrganizeFollowsTheCreativeOrder(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 3);
+        net.minecraft.world.item.Item[] mixed = {Items.DIAMOND, Items.COOKED_BEEF, Items.DIAMOND_SWORD, Items.CRAFTING_TABLE,
+                Items.DIAMOND_PICKAXE, Items.STONE, Items.REDSTONE, Items.APPLE, Items.OAK_LOG, Items.BONE};
+        for (int i = 0; i < mixed.length; i++) {
+            chest.setItem(i * 2, new ItemStack(mixed[i], 3));
+        }
+        ServerPlayer p = player(lab);
+        Lab.open(p, chest, 1);
+        organizeChest(p, 1);
+        int stone = slotOf(chest, Items.STONE), table = slotOf(chest, Items.CRAFTING_TABLE), pick = slotOf(chest, Items.DIAMOND_PICKAXE);
+        int sword = slotOf(chest, Items.DIAMOND_SWORD), apple = slotOf(chest, Items.APPLE), diamond = slotOf(chest, Items.DIAMOND);
+        check(h, stone < table && table < pick && pick < sword && sword < apple && apple < diamond,
+                "ordem do criativo (pedra < bancada < picareta < espada < maçã < diamante): " + stone + "," + table + ","
+                        + pick + "," + sword + "," + apple + "," + diamond);
+        List<ItemStack> once = OrganizeLogic.snapshot(chest);
+        organizeChest(p, 1);
+        check(h, OrganizeLogic.sameContents(chest, once), "organizar de novo não pode mudar nada");
+        lab.cleanup();
+        h.succeed();
+    }
+
+    private static int slotOf(Container c, net.minecraft.world.item.Item item) {
+        for (int i = 0; i < c.getContainerSize(); i++) {
+            if (c.getItem(i).is(item)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @GameTest
@@ -142,7 +232,7 @@ public class OrganizeGameTests {
         organizeChest(p, 1);
         check(h, total(chest).equals(before), "a soma de itens mudou");
         check(h, chest.getItem(4).isEmpty(), "o slot reservado vazio continua vazio (nada de outro item entra)");
-        check(h, chest.getItem(9).is(Items.DRIPSTONE_BLOCK) && chest.getItem(9).getCount() == 3, "o slot reservado ocupado não é tocado");
+        check(h, chest.getItem(9).is(Items.DRIPSTONE_BLOCK) && chest.getItem(9).getCount() == 3, "o slot reservado ocupado continua com o item dele (e nada de outro entra)");
         check(h, chest.getItem(0).is(Items.CALCITE) && chest.getItem(0).getCount() == 12, "calcita juntou nos slots livres");
         check(h, SlotLocks.lockedItem(chest, 4) == Items.AMETHYST_BLOCK && SlotLocks.lockedItem(chest, 9) == Items.DRIPSTONE_BLOCK,
                 "as reservas continuam");
@@ -203,9 +293,10 @@ public class OrganizeGameTests {
         Lab.open(p, chest, 1);
         organizeChest(p, 1);
         check(h, total(chest).equals(before), "a soma de itens mudou");
-        check(h, chest.getItem(0).is(Items.CALCITE) && chest.getItem(2).is(Items.CALCITE) && chest.getItem(2).getCount() == 12
-                && chest.getItem(3).is(Items.MUD_BRICKS) && chest.getItem(5).is(Items.MUD_BRICKS) && chest.getItem(6).isEmpty(),
-                "calcita (3 stacks) e depois tijolos de lama (3 stacks), sem sobras");
+        // criativo: tijolos de lama (blocos de construção) vêm antes da calcita (natural); 3 stacks de cada, sem sobras
+        check(h, chest.getItem(0).is(Items.MUD_BRICKS) && chest.getItem(2).is(Items.MUD_BRICKS) && chest.getItem(3).is(Items.CALCITE)
+                && chest.getItem(5).is(Items.CALCITE) && chest.getItem(6).isEmpty(),
+                "tijolos de lama (3 stacks) e depois calcita (3 stacks), sem sobras");
         lab.cleanup();
         h.succeed();
     }

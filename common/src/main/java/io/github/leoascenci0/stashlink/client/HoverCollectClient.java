@@ -19,6 +19,8 @@ public final class HoverCollectClient {
     private static final HoverCollectPass PASS = new HoverCollectPass();
     /** O botão esquerdo está apertado (avisado pelo mixin da tela)? */
     private static boolean leftDown;
+    /** Quando (ms) o jogo entregou o último "arrastou com o botão apertado"; sem isso o botão não está de fato apertado. */
+    private static long lastDragMs;
     /** O botão já estava apertado no quadro anterior? */
     private static boolean wasLeftDown;
 
@@ -26,6 +28,17 @@ public final class HoverCollectClient {
     public static void setLeftDown(boolean down) {
         leftDown = down;
     }
+
+    /**
+     * A tela avisa: o mouse se moveu com um botão apertado. O jogo só manda isso enquanto o botão está de fato apertado, ao
+     * contrário do "soltou", que pode não chegar (outro mod trata o evento, soltar sobre um botão ou fora da janela).
+     */
+    public static void dragSeen() {
+        lastDragMs = System.currentTimeMillis();
+    }
+
+    /** Janela em que um "arrastou" ainda vale como prova de que o botão está apertado. */
+    private static final long DRAG_WINDOW_MS = 250;
 
     private HoverCollectClient() {
     }
@@ -46,6 +59,11 @@ public final class HoverCollectClient {
             PASS.reset();
             PASS.arm(hovered == null ? -1 : hovered.index);
             return;
+        }
+        // Entrar em outro slot exige mover o mouse, e mover com o botão apertado gera "arrastou". Sem isso (botão solto
+        // que o jogo não avisou), só passar o mouse com Shift não coleta nada.
+        if (System.currentTimeMillis() - lastDragMs > DRAG_WINDOW_MS) {
+            return;   // não zera o estado: segurar o botão parado e só depois arrastar tem de continuar valendo
         }
         // Fora de qualquer slot só "esquece" o slot anterior: voltar a ele depois é uma nova passagem.
         if (!PASS.shouldClick(hovered == null ? -1 : hovered.index, mc.level.getGameTime()) || hovered == null) {

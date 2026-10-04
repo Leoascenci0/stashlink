@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.organize;
 
+import io.github.leoascenci0.stashlink.compat.mc.OrganizeCompat;
 import io.github.leoascenci0.stashlink.quickstack.ItemCategory;
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,11 +12,11 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Arrumar <b>um</b> container (Item 20.1): junta os stacks parciais e ordena por categoria e nome. Sem rede nem
+ * Arrumar <b>um</b> container (Item 20.1): junta os stacks parciais e ordena como o inventário criativo. Sem rede nem
  * jogador, só {@link Container}: dá para testar de forma exaustiva.
  *
  * <p>Garantias: (1) a soma de cada item (mesmo item <i>e</i> componentes) não muda — conferida antes de gravar; (2) um
- * slot reservado para um item (Item 13) <b>não é tocado</b>: nem esvazia, nem recebe; (3) se algum slot não aceitar o que
+ * slot reservado para um item (Item 13) <b>nunca perde</b> o que tem nem recebe outro item, mas é completado com o item dele antes de o resto ser espalhado; (3) se algum slot não aceitar o que
  * o plano pôs nele ({@code canPlaceItem}), nada é gravado; (4) é idempotente: arrumar um container já arrumado não muda nada.
  */
 public final class OrganizeLogic {
@@ -28,12 +29,14 @@ public final class OrganizeLogic {
     }
 
     /**
-     * Ordem de exibição: primeiro o que não tem categoria (blocos, minérios, materiais), depois armaduras, ferramentas,
-     * armas, comida e poções; dentro de cada grupo, pelo nome do item (o id do jogo, igual em qualquer idioma). Empate
-     * (mesmo item com componentes diferentes) mantém a ordem em que já estavam, o que torna a arrumação idempotente.
+     * Ordem de exibição: a do <b>inventário criativo</b> do jogo (Blocos, Coloridos, Natural, Funcional, Redstone,
+     * Ferramentas, Combate, Comida, Ingredientes... e os itens de mods nas abas deles), que o jogador já conhece. O que não
+     * está em nenhuma aba vem depois, por categoria e pelo id do item (igual em qualquer idioma). Empate (mesmo item
+     * com componentes diferentes) mantém a ordem em que já estavam, o que torna a arrumação idempotente.
      */
     static final Comparator<ItemStack> ORDER = Comparator
-            .<ItemStack>comparingInt(stack -> {
+            .<ItemStack>comparingInt(stack -> OrganizeCompat.rank(stack.getItem()))
+            .thenComparingInt(stack -> {
                 ItemCategory category = ItemCategory.of(stack);
                 return category == null ? 0 : category.ordinal() + 1;
             })
@@ -106,18 +109,101 @@ public final class OrganizeLogic {
                 into.grow(stack.getCount());
             }
         }
+        // Slot reservado (Item 13) é a casa do item: antes de espalhar o resto, completa-o com o item dele (o mesmo que a N
+        // faz). Ele nunca perde o que tem nem recebe outro item.
+        java.util.Map<Integer, ItemStack> reserved = new java.util.HashMap<>();
+        for (int slot = 0; slot < size; slot++) {
+            net.minecraft.world.item.Item locked = SlotLocks.lockedItem(c, slot);
+            if (locked == null) {
+                continue;
+            }
+            ItemStack current = before.get(slot);
+            if (!current.isEmpty() && !current.is(locked)) {
+                continue;
+            }
+            ItemStack source = null;
+            for (ItemStack entry : pool) {
+                if (entry.is(locked) && (current.isEmpty() || ItemStack.isSameItemSameComponents(entry, current))) {
+                    source = entry;
+                    break;
+                }
+            }
+            if (source == null) {
+                continue;
+            }
+            ItemStack model = current.isEmpty() ? source : current;
+            int limit = Math.max(1, Math.min(c.getMaxStackSize(model), model.getMaxStackSize()));
+            int put = Math.min(limit - current.getCount(), source.getCount());
+            if (put <= 0) {
+                continue;
+            }
+            ItemStack placed = model.copyWithCount(current.getCount() + put);
+            if (!c.canPlaceItem(slot, placed)) {
+                continue;
+            }
+            reserved.put(slot, placed);
+            source.shrink(put);
+        }
+        pool.removeIf(ItemStack::isEmpty);
+
+        // O que não coube na pilha reservada (ex.: ela já está em 64) fica logo depois dela, nos primeiros slots livres
+        // seguintes, em vez de ir parar no meio dos outros itens. Só se couber inteiro; senão segue para a ordem normal.
+        List<Integer> open = new ArrayList<>(free);
+        java.util.Map<Integer, ItemStack> beside = new java.util.HashMap<>();
+        for (int slot = 0; slot < size; slot++) {
+            net.minecraft.world.item.Item locked = SlotLocks.lockedItem(c, slot);
+            if (locked == null) {
+                continue;
+            }
+            for (java.util.Iterator<ItemStack> it = pool.iterator(); it.hasNext(); ) {
+                ItemStack entry = it.next();
+                if (!entry.is(locked)) {
+                    continue;
+                }
+                int limit = Math.max(1, Math.min(c.getMaxStackSize(entry), entry.getMaxStackSize()));
+                int stacks = (entry.getCount() + limit - 1) / limit;
+                List<Integer> slots = new ArrayList<>();
+                for (int candidate : open) {
+                    if (candidate > slot && slots.size() < stacks) {
+                        slots.add(candidate);
+                    }
+                }
+                if (slots.size() < stacks) {
+                    continue;
+                }
+                java.util.Map<Integer, ItemStack> put = new java.util.HashMap<>();
+                int remaining = entry.getCount();
+                boolean accepted = true;
+                for (int target : slots) {
+                    ItemStack placed = entry.copyWithCount(Math.min(remaining, limit));
+                    if (!c.canPlaceItem(target, placed)) {
+                        accepted = false;
+                        break;
+                    }
+                    put.put(target, placed);
+                    remaining -= placed.getCount();
+                }
+                if (accepted) {
+                    beside.putAll(put);
+                    open.removeAll(slots);
+                    it.remove();
+                }
+            }
+        }
         pool.sort(ORDER);                                   // estável: empate fica na ordem dos slots
 
         List<ItemStack> after = new ArrayList<>(before);
+        reserved.forEach(after::set);
+        beside.forEach(after::set);
         int next = 0;
         for (ItemStack entry : pool) {
             int limit = Math.max(1, Math.min(c.getMaxStackSize(entry), entry.getMaxStackSize()));
             int remaining = entry.getCount();
             while (remaining > 0) {
-                if (next >= free.size()) {
+                if (next >= open.size()) {
                     return null;                            // não deveria acontecer (juntar só reduz stacks)
                 }
-                int slot = free.get(next++);
+                int slot = open.get(next++);
                 int put = Math.min(remaining, limit);
                 ItemStack placed = entry.copyWithCount(put);
                 if (!c.canPlaceItem(slot, placed)) {
@@ -127,8 +213,8 @@ public final class OrganizeLogic {
                 remaining -= put;
             }
         }
-        for (; next < free.size(); next++) {
-            after.set(free.get(next), ItemStack.EMPTY);
+        for (; next < open.size(); next++) {
+            after.set(open.get(next), ItemStack.EMPTY);
         }
         if (!sameTotals(before, after)) {
             return null;                                    // cinto de segurança: a soma tem de bater
