@@ -15,4 +15,12 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
+      # Primeiro só o jar (para baixar e testar no jogo mesmo se algum teste falhar), depois o build completo.
+      - run: ./gradlew assemble --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stashlink-jars
+          path: |
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
       - run: ./gradlew build --no-daemon
