@@ -664,6 +664,35 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   de baú/barril/shulker, inclusive baú do End; ali o clique só avisa que não dá. (4) Shulker colocada e depois "pega com
   bloco do meio" no criativo leva o botão (e o rótulo) por `collectComponents`; em sobrevivência vai pelo `getDrops`.
 
+## Item 16.2 — Painel das bancadas com a cara do livro de receitas (Eliel, 2026-10-03)
+
+- **Decisão: painel próprio com os mesmos widgets, não estender o livro.** `RecipeBookComponent` só sabe listar receitas
+  (`RecipeCollection`, abas por categoria, pacote do jogo para colocar a receita). Para tear, ferraria e bigorna, que não
+  têm receitas assim, seria gambiarra e frágil entre versões. `client/BenchPanel` usa o fundo do livro, `EditBox` de busca
+  (a lupa faz parte do foco), `ImageButton` de página e botões de 25 px com o sprite `slot_uncraftable` para o vermelho.
+- **Bancada e fornalhas não têm o painel**: já têm o livro do jogo, que o Item 16 liga ao armazenamento. O jogador pediu isso.
+- **Protocolo.** `BenchPoolSync.Entry(item, count, id, missing, tab, color)`: `id >= 0` é um resultado de receita,
+  `COLOR_PICK (-3)` é a escolha de cor do tear. `BenchPullRequest.recipeId`: `-1` põe no cursor (caminho antigo), `-2`
+  (`BenchResults.PLACE`) põe no slot da estação que aceita o item, `>= 0` monta a receita (o campo `item` leva o corante
+  escolhido no tear). O servidor refaz a lista e revalida; o cliente só pede.
+- **Receitas e "descoberto"** (`compat/mc/StationRecipes`): cortador de pedra e tear. Sem livro no jogo, "descoberto" = o
+  jogador já pegou, fabricou ou usou o item de entrada (estatísticas) ou o tem à mão. Montar confere antes se dá para
+  preencher **todos** os slots e só então mexe (nunca deixa a estação pela metade); tira do armazenamento, ou da mochila se
+  faltar, e registra no `BenchLedger` (volta ao baú se não for usado).
+- **Tear.** Abas Cores / Estandartes / Padrões (moldes). O servidor manda cada padrão com o banner em branco; o cliente
+  recolore a última camada com a cor escolhida. Padrões com molde só aparecem se o molde é conhecido.
+- **Abas** (`client/BenchTabs`, `BenchResults.slotTab`): bigorna = Livros / Equipamento (inclui etiqueta) / Materiais;
+  ferraria = o slot que aceita o item (Enfeites / Equipamento / Minérios); encantamento = Equipamento / Livros / Lápis;
+  poções = Garrafas / Ingredientes / Combustível (o pó de blaze conta como combustível).
+- **Posição.** `BenchPanel.stationLeft` centraliza painel + estação como um bloco. Duas peculiaridades do 26.3 tratadas:
+  a pedra de amolar desenha o fundo no centro e ignora `leftPos` (`GrindstoneScreenMixin`, `@ModifyVariable` com `ordinal = 2`);
+  encantamento e suporte de poções fazem o mesmo em vários pontos, então a `width` que enxergam passa a ser `2 * leftPos + imageWidth`;
+  o campo de nome da bigorna nasce depois, no centro da janela, e é realinhado a cada quadro.
+- **Armadilha do 26.3.** `MouseButtonEvent.button()`: esquerdo = 1, direito = 3. Foi o motivo de setas e cliques "mortos".
+- **Bancada:** `RecipeBookComponentMixin` (com `GhostSlotsAccessor`/`GhostSlotAccessor`) lê o ingrediente fantasma do slot
+  clicado e, se o jogador não o tem (mochila nem armazenamento), coloca a receita que o fabrica (só descobertas).
+- **Limites.** Só Fabric foi exercitado; abas na cartografia e a cor do banner de base ficam para depois.
+
 ## Item 19 — Botão do meio puxa o item do armazenamento
 
 - **Onde o jogo resolve o pick block.** Desde o 26.x, o cliente só manda `ServerboundPickItemFromBlockPacket(pos)`;

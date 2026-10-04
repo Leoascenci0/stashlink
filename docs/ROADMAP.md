@@ -405,6 +405,22 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   Painel vazio diz "Nada por perto que sirva aqui". Pedir/retirar item continua igual (servidor confere tudo).
 - **Testes:** 1 GameTest novo (`panelListsOnlyWhatTheStationAccepts`: tear, fornalha e bancada), 103 no total.
 
+### Item 16.2 — Painel das bancadas com a cara do livro de receitas ✅
+- **Branch:** `feat/bancadas-livro-de-receitas`
+- Pedido do Eliel (2026-10-03): o painel "Armazenamento" ao lado das estações com a **mesma tela do livro de receitas**
+  (busca, grade, setas de página), mostrando só o que serve na estação, e clicar já leva o necessário para os slots certos.
+- **Feito:** painel próprio com os widgets do livro (fundo, busca com lupa, botões de página, slots de 25 px, vermelho
+  para o que falta). Bancada e fornalhas ficam só com o livro do jogo. **Cortador de pedra** e **tear** listam
+  **resultados** (só de itens já descobertos; vermelho = falta material) e clicar monta a receita no servidor; tear tem abas
+  Cores / Estandartes / Padrões (moldes) com a cor escolhida pintando os banners. **Bigorna** (Livros, Equipamento,
+  Materiais de conserto; inclui etiqueta) e **mesa de ferraria** (Enfeites, Equipamento, Minérios), **encantamento** (Equipamento, Livros, Lápis-lazúli) e **suporte de poções** (Garrafas, Ingredientes, Combustível) têm abas; clicar num item
+  solto o põe no slot que o aceita. As duas telas ficam centralizadas como um bloco (inclui pedra de amolar e o campo de
+  nome da bigorna). **Bancada:** clicar num ingrediente fantasma que falta leva à receita que o fabrica.
+- **Achados:** no 26.3 o botão esquerdo do mouse é 1 e o direito é 3 (setas e cliques "não funcionavam"); a pedra de amolar,
+  o encantamento, o suporte de poções e o nome da bigorna ignoram `leftPos`; `@ModifyVariable` precisa do `ordinal` certo (crash ao carregar telas).
+- **Testes:** 108 GameTests (novos: cortador, tear, ferraria, encantamento/poções, colocar no slot certo). Visual conferido em jogo pelo Eliel.
+- **Fora do item:** abas na cartografia; escolher a cor do banner de base no tear.
+
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ✅
 - **Branch:** `feat/filtro-tecla-n`
 - Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,

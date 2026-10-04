@@ -87,7 +87,7 @@ public final class BenchCompat {
             return menu.slots.get(1).mayPlace(stack) || stack.isEnchantable();
         }
         if (menu instanceof AnvilMenu) {
-            return stack.isDamageableItem() || stack.is(Items.ENCHANTED_BOOK)
+            return stack.isDamageableItem() || stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.NAME_TAG)
                     || EnchantmentHelper.hasAnyEnchantments(stack) || repairsSomethingOf(player, stack);
         }
         return acceptedBySlots(menu, player, stack);

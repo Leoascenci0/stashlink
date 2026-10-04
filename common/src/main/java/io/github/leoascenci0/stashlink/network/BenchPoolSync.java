@@ -15,16 +15,40 @@ import java.util.List;
  * mostrar: o cliente nunca tira item por ela, só <i>pede</i> (e o servidor confere de novo).
  */
 public record BenchPoolSync(int containerId, List<Entry> entries) implements CustomPacketPayload {
-    /** Um tipo de item (ícone, quantidade 1) e quanto há. */
-    public record Entry(ItemStack item, int count) {
+    /**
+     * Um tipo de item (ícone, quantidade 1) e quanto há. Nas estações com receita ({@code id >= 0}, ex.: cortador de
+     * pedra) é um <b>resultado</b>: {@code item} é o que sai, {@code count} não é usado e {@code missing} diz que falta
+     * material (o painel pinta de vermelho, como o livro de receitas).
+     */
+    public record Entry(ItemStack item, int count, int id, boolean missing, int tab, int color) {
+        /** {@code id} de uma entrada que só escolhe uma cor de corante no painel (tear): não pede nada ao servidor. */
+        public static final int COLOR_PICK = -3;
+
+        public Entry(ItemStack item, int count) {
+            this(item, count, -1, false, 0, -1);
+        }
+
+        public Entry(ItemStack item, int count, int id, boolean missing) {
+            this(item, count, id, missing, 0, -1);
+        }
+
+        public boolean isColorPick() {
+            return id == COLOR_PICK;
+        }
+
+        public boolean isResult() {
+            return id >= 0;
+        }
+
         @Override
         public boolean equals(Object o) {
-            return o instanceof Entry e && e.count == count && ItemStack.isSameItemSameComponents(e.item, item);
+            return o instanceof Entry e && e.count == count && e.id == id && e.missing == missing && e.tab == tab
+                    && e.color == color && ItemStack.isSameItemSameComponents(e.item, item);
         }
 
         @Override
         public int hashCode() {
-            return 31 * count + item.getItem().hashCode();
+            return 31 * (31 * count + id) + item.getItem().hashCode();
         }
     }
 
@@ -36,6 +60,10 @@ public record BenchPoolSync(int containerId, List<Entry> entries) implements Cus
     private static final StreamCodec<RegistryFriendlyByteBuf, Entry> ENTRY_CODEC = StreamCodec.composite(
             ItemStack.STREAM_CODEC, Entry::item,
             ByteBufCodecs.VAR_INT, Entry::count,
+            ByteBufCodecs.VAR_INT, Entry::id,
+            ByteBufCodecs.BOOL, Entry::missing,
+            ByteBufCodecs.VAR_INT, Entry::tab,
+            ByteBufCodecs.VAR_INT, Entry::color,
             Entry::new);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, BenchPoolSync> STREAM_CODEC = StreamCodec.composite(

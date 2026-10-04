@@ -55,6 +55,14 @@ public final class BenchPullService {
             return;
         }
         LAST_REQUEST.put(player, now);
+        if (request.recipeId() >= 0) {
+            BenchResults.craft(player, menu, request.recipeId(), request.item());
+            return;
+        }
+        if (request.recipeId() == BenchResults.PLACE) {
+            BenchResults.place(player, menu, request.item(), request.one());
+            return;
+        }
 
         ItemStack model = request.item().copyWithCount(1);
         // Trocou de item no painel: o que está no cursor e veio do armazenamento volta ao baú de origem.

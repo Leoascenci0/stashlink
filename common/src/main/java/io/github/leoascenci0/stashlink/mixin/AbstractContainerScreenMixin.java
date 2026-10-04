@@ -95,8 +95,38 @@ public abstract class AbstractContainerScreenMixin {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         stashlink$benchPanel = BenchPanel.create(self.getMenu(), leftPos, topPos, imageWidth, self);
         if (stashlink$benchPanel != null) {
+            // As duas telas viram um bloco só, centralizado (como o livro de receitas da fornalha).
+            if (io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
+                leftPos = BenchPanel.stationLeft(self.width, imageWidth, leftPos);
+                // Encantamento e suporte de poções calculam o próprio x como (width - imageWidth) / 2 e ignoram leftPos
+                // (fundo, clique, desenho): a largura que eles enxergam passa a ser a que dá exatamente leftPos.
+                if (self.getMenu() instanceof net.minecraft.world.inventory.EnchantmentMenu
+                        || self.getMenu() instanceof net.minecraft.world.inventory.BrewingStandMenu) {
+                    self.width = 2 * leftPos + imageWidth;
+                }
+                stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
+            }
             for (AbstractWidget widget : stashlink$benchPanel.widgets()) {
                 ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
+            }
+        }
+    }
+
+    /**
+     * O campo de nome da bigorna é criado com o centro da janela e não com {@code leftPos} (peculiaridade do 26.3), então
+     * não acompanha a estação quando o painel a desloca: aqui ele volta para dentro do fundo dela, a cada quadro.
+     */
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    private void stashlink$keepAnvilNameFieldInPlace(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                                     CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (stashlink$benchPanel == null || !(self.getMenu() instanceof net.minecraft.world.inventory.AnvilMenu)) {
+            return;
+        }
+        for (net.minecraft.client.gui.components.events.GuiEventListener child : self.children()) {
+            if (child instanceof net.minecraft.client.gui.components.EditBox box && box.getWidth() == 103
+                    && box.getX() != leftPos + 62) {
+                box.setX(leftPos + 62);
             }
         }
     }
@@ -130,7 +160,7 @@ public abstract class AbstractContainerScreenMixin {
         if (stashlink$benchPanel != null) {
             stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
         }
-        if (stashlink$benchPanel != null && stashlink$benchPanel.mouseClicked(event.x(), event.y(), event.button())) {
+        if (stashlink$benchPanel != null && stashlink$benchPanel.mouseClicked(event)) {
             cir.setReturnValue(true);
         }
     }

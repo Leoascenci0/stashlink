@@ -15,6 +15,9 @@
   ],
   "client": [
     "ScreenInvoker",
+    "GhostSlotsAccessor",
+    "GhostSlotAccessor",
+    "GrindstoneScreenMixin",
     "AbstractContainerScreenMixin",
     "RecipeBookComponentMixin"
   ],

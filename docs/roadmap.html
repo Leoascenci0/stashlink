@@ -200,6 +200,10 @@ const ITEMS = [
    do:["Tear mostra banner, corante e molde; amolar, cartografia, ferreiro e poções seguem os slots do próprio jogo","Fornalha: combustível ou item que funde; cortador: itens com receita; encantamento: lápis ou encantável; bigorna: danificado, encantado ou material de conserto; bancada mostra tudo","Filtro no servidor (pacote menor, teto de 512 só para o que serve); retirar item continua conferido no servidor"],
    ok:"Cada estação lista só o que dá para usar nela; 103 GameTests; ainda não visto em jogo."}
 ,
+  {n:"16.2", phase:"Antes do 1.0", t:"Painel das bancadas com a cara do livro de receitas", b:"feat/bancadas-livro-de-receitas", f:["F10"], s:"done",
+   do:["Painel com busca, grade e setas de página do livro do jogo; bancada e fornalhas ficam só com o livro","Cortador e tear listam resultados já descobertos (vermelho = falta material) e clicar monta a receita; tear com abas Cores, Estandartes e Moldes","Bigorna, ferraria, encantamento e suporte de poções com abas; clicar num item solto o põe no slot certo; telas centralizadas; na bancada, clicar no ingrediente que falta leva à receita dele"],
+   ok:"Visto e aprovado em jogo pelo Eliel; 108 GameTests. Fora: abas na cartografia."}
+,
   {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"done",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste (92 GameTests, 6 mutações pegas; visual a conferir em jogo)."}
