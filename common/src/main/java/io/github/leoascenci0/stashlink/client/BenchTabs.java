@@ -50,19 +50,24 @@ final class BenchTabs {
                         new Tab(StationRecipes.sampleBanner(), "stashlink.bench.tab.banners"),
                         new Tab(new ItemStack(Items.FLOWER_BANNER_PATTERN), "stashlink.bench.tab.molds"));
             case ENCHANTING:
+                // Mesma ordem de BenchCompat.GEAR_TAB_*; o lápis-lazúli entra sozinho (sem aba).
                 return List.of(
-                        new Tab(new ItemStack(Items.DIAMOND_PICKAXE), "stashlink.bench.tab.gear"),
-                        new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books"),
-                        new Tab(new ItemStack(Items.LAPIS_LAZULI), "stashlink.bench.tab.lapis"));
+                        new Tab(armorIcon(), "stashlink.bench.tab.armor"),
+                        new Tab(new ItemStack(Items.IRON_PICKAXE), "stashlink.bench.tab.tools"),
+                        new Tab(new ItemStack(Items.IRON_SWORD), "stashlink.bench.tab.weapons"),
+                        new Tab(new ItemStack(Items.BOOK), "stashlink.bench.tab.books"));
             case BREWING:
                 return List.of(
                         new Tab(new ItemStack(Items.POTION), "stashlink.bench.tab.bottles"),
                         new Tab(new ItemStack(Items.NETHER_WART), "stashlink.bench.tab.ingredients"),
                         new Tab(new ItemStack(Items.BLAZE_POWDER), "stashlink.bench.tab.fuel"));
             case ANVIL:
+                // Mesma ordem de BenchCompat.GEAR_TAB_* e ANVIL_TAB_MATERIALS.
                 return List.of(
+                        new Tab(armorIcon(), "stashlink.bench.tab.armor"),
+                        new Tab(new ItemStack(Items.IRON_PICKAXE), "stashlink.bench.tab.tools"),
+                        new Tab(new ItemStack(Items.IRON_SWORD), "stashlink.bench.tab.weapons"),
                         new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books"),
-                        new Tab(armorIcon(), "stashlink.bench.tab.gear"),
                         new Tab(new ItemStack(Items.IRON_INGOT), "stashlink.bench.tab.materials"));
             case SMITHING:
                 return List.of(

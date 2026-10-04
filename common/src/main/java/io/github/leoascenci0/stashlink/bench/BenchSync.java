@@ -34,6 +34,8 @@ public final class BenchSync {
         List<BenchPoolSync.Entry> last = null;
         int lastRadius = BenchPoolSync.UNKNOWN_RADIUS;
         int age;
+        /** {@link BenchCompat#listKey} da última passada: mudou (item no 1º slot da bigorna) → reenvia já. */
+        int listKey;
         boolean dirty = true;
         boolean unsupported;
 
@@ -106,6 +108,12 @@ public final class BenchSync {
             STATES.put(player, state);
         }
         state.age++;
+        BenchLapis.tick(player, menu);   // lápis-lazúli automático no encantamento (também para cliente sem o mod)
+        int listKey = BenchCompat.listKey(menu);
+        if (listKey != state.listKey) {
+            state.listKey = listKey;
+            state.dirty = true;
+        }
         if (state.unsupported || (!state.dirty && state.age < REFRESH_TICKS)) {
             return;
         }
@@ -156,8 +164,18 @@ public final class BenchSync {
             return BenchResults.list(player);
         }
         List<BenchPoolSync.Entry> out = new ArrayList<>();
+        boolean autoLapis = FeatureGate.allowSilently(player, Feature.BENCH_LAPIS);
+        boolean bookFilter = FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
             if (!BenchCompat.relevant(menu, player, stack.item())) {
+                continue;
+            }
+            // Lápis automático ligado: o lápis não aparece no painel (o servidor o põe sozinho).
+            if (autoLapis && BenchCompat.isLapisFor(menu, stack.item())) {
+                continue;
+            }
+            // Bigorna: com um item no 1º slot, só os livros com encantamento que serve nele.
+            if (bookFilter && !BenchCompat.bookFits(menu, stack.item())) {
                 continue;
             }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,

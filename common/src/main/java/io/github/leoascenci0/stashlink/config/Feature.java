@@ -53,7 +53,11 @@ public enum Feature {
     /** Organizar o armazenamento: botão no baú, organizar o sistema todo (prévia/desfazer), busca e destaque (Item 20). */
     ORGANIZE("organize"),
     /** Botão de combustível nas fornalhas (fornalha, defumador, alto-forno): puxa carvão etc. do armazenamento (Item 16.3). */
-    BENCH_FUEL("bench_fuel");
+    BENCH_FUEL("bench_fuel"),
+    /** Mesa de encantamento: o lápis-lazúli do armazenamento entra sozinho no slot dele (Item 16.3). */
+    BENCH_LAPIS("bench_lapis"),
+    /** Bigorna: com um item no 1º slot, a aba Livros mostra só os livros que servem nele (Item 16.3). */
+    BENCH_BOOK_FILTER("bench_book_filter");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

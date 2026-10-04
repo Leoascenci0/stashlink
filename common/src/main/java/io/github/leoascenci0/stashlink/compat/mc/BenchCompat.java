@@ -30,6 +30,7 @@ import net.minecraft.world.inventory.StonecutterMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.RecipePropertySet;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
@@ -100,15 +101,25 @@ public final class BenchCompat {
     public static final int SMITHING_TAB_TOOLS = 2;
     public static final int SMITHING_TAB_MATERIALS = 3;
 
-    /** O que um item é para a bigorna; {@code tab} é a aba do painel. Um predicado só: o filtro e a aba nunca discordam. */
-    private enum AnvilKind {
-        BOOK(0), GEAR(1), MATERIAL(2);
+    /** Abas de equipamento, iguais no encantamento e na bigorna: armaduras, ferramentas, armas; depois livros. */
+    public static final int GEAR_TAB_ARMOR = 0;
+    public static final int GEAR_TAB_TOOLS = 1;
+    public static final int GEAR_TAB_WEAPONS = 2;
+    public static final int GEAR_TAB_BOOKS = 3;
+    /** Bigorna: a quinta aba, material de conserto. */
+    public static final int ANVIL_TAB_MATERIALS = 4;
 
-        final int tab;
-
-        AnvilKind(int tab) {
-            this.tab = tab;
+    /** Aba de um equipamento: armadura, arma ou, o resto (ferramentas, etiqueta, vara de pescar...), ferramentas. */
+    private static int gearTab(ItemStack stack) {
+        if (ItemKinds.isArmor(stack)) {
+            return GEAR_TAB_ARMOR;
         }
+        return ItemKinds.isWeapon(stack) ? GEAR_TAB_WEAPONS : GEAR_TAB_TOOLS;
+    }
+
+    /** O que um item é para a bigorna. Um predicado só: o filtro e a aba nunca discordam. */
+    private enum AnvilKind {
+        BOOK, GEAR, MATERIAL
     }
 
     private static AnvilKind anvilKind(ItemStack stack) {
@@ -117,6 +128,69 @@ public final class BenchCompat {
         }
         return stack.isDamageableItem() || EnchantmentHelper.hasAnyEnchantments(stack) || stack.is(Items.NAME_TAG)
                 ? AnvilKind.GEAR : AnvilKind.MATERIAL;
+    }
+
+    private static int anvilTab(ItemStack stack) {
+        return switch (anvilKind(stack)) {
+            case BOOK -> GEAR_TAB_BOOKS;
+            case GEAR -> gearTab(stack);
+            case MATERIAL -> ANVIL_TAB_MATERIALS;
+        };
+    }
+
+    /**
+     * Filtro de livros da bigorna: com um item (que não seja livro) no primeiro slot, o livro encantado só serve se ao
+     * menos um encantamento dele se aplica àquele item (a mesma pergunta que a bigorna do jogo faz). Sem item, ou com
+     * outro livro no slot, ou se não é livro: serve.
+     */
+    public static boolean bookFits(AbstractContainerMenu menu, ItemStack book) {
+        if (!(menu instanceof AnvilMenu) || !book.is(Items.ENCHANTED_BOOK)) {
+            return true;
+        }
+        ItemStack target = menu.getSlot(0).getItem();
+        if (target.isEmpty() || target.is(Items.ENCHANTED_BOOK) || target.is(Items.BOOK)) {
+            return true;
+        }
+        for (Holder<Enchantment> enchantment : EnchantmentHelper.getEnchantmentsForCrafting(book).keySet()) {
+            if (enchantment.value().canEnchant(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * O que, na estação, muda o que a lista deve mostrar (hoje: o item no primeiro slot da bigorna, que filtra os
+     * livros). Mudou → o servidor reenvia a lista já, sem esperar a reconferência periódica. 0 = nada.
+     */
+    public static int listKey(AbstractContainerMenu menu) {
+        if (menu instanceof AnvilMenu) {
+            ItemStack target = menu.getSlot(0).getItem();
+            return target.isEmpty() ? 0 : ItemStack.hashItemAndComponents(target) | 1;
+        }
+        return 0;
+    }
+
+    /**
+     * Quanto lápis-lazúli o abastecimento automático deixa no slot do encantamento: 3, o máximo que um encantamento
+     * gasta. Pouco item fora do baú de cada vez (o que sobra volta ao fechar), e qualquer encantamento fica possível.
+     */
+    public static final int LAPIS_TARGET = 3;
+
+    /** O slot de lápis-lazúli da mesa de encantamento aberta, ou {@code null} se não é uma mesa de encantamento. */
+    public static Slot lapisSlot(AbstractContainerMenu menu) {
+        return menu instanceof EnchantmentMenu ? menu.getSlot(1) : null;
+    }
+
+    /** O item do abastecimento automático (lápis-lazúli comum). */
+    public static ItemStack lapisModel() {
+        return new ItemStack(Items.LAPIS_LAZULI);
+    }
+
+    /** É o item do slot de lápis da mesa de encantamento aberta? (Com o abastecimento automático ele sai do painel.) */
+    public static boolean isLapisFor(AbstractContainerMenu menu, ItemStack stack) {
+        Slot slot = lapisSlot(menu);
+        return slot != null && slot.mayPlace(stack);
     }
 
     /**
@@ -145,9 +219,9 @@ public final class BenchCompat {
 
     /**
      * Aba de um item solto no painel: na mesa de ferraria, qual slot o aceita (molde, armadura, ferramenta/arma ou
-     * material); no
-     * encantamento, equipamento, livros ou lápis-lazúli; no suporte de poções, garrafas, ingrediente ou combustível;
-     * na bigorna, livros, equipamento ou material de conserto; nas outras, 0.
+     * material); no encantamento, armaduras, ferramentas, armas ou livros (o lápis, quando aparece, vai com os livros);
+     * no suporte de poções, garrafas, ingrediente ou combustível; na bigorna, armaduras, ferramentas, armas, livros ou material de
+     * conserto; nas outras, 0.
      */
     public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
         switch (stationOf(menu)) {
@@ -164,11 +238,11 @@ public final class BenchCompat {
                 }
             }
             case ENCHANTING -> {
-                // O slot 1 só aceita o lápis.
-                if (menu.getSlot(1).mayPlace(stack)) {
-                    return 2;
+                // O slot 1 só aceita o lápis; ele só aparece no painel com o abastecimento automático desligado.
+                if (menu.getSlot(1).mayPlace(stack) || stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK)) {
+                    return GEAR_TAB_BOOKS;
                 }
-                return stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK) ? 1 : 0;
+                return gearTab(stack);
             }
             case BREWING -> {
                 // Do combustível para as garrafas: o pó de blaze serve nos dois, e aqui conta como combustível.
@@ -179,7 +253,7 @@ public final class BenchCompat {
                 }
             }
             case ANVIL -> {
-                return anvilKind(stack).tab;
+                return anvilTab(stack);
             }
             default -> {
             }

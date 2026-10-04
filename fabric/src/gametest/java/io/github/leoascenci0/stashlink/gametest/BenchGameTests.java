@@ -320,8 +320,9 @@ public class BenchGameTests {
         for (BenchPoolSync.Entry e : BenchSync.snapshot(p)) {
             tabs.put(e.item().getItem(), e.tab());
         }
-        check(h, tabs.get(Items.LAPIS_LAZULI) == 2 && tabs.get(Items.BOOK) == 1 && tabs.get(Items.DIAMOND_PICKAXE) == 0,
-                "abas do encantamento: " + tabs);
+        // Lápis automático ligado (padrão): o lápis não aparece no painel; abas Armaduras/Ferramentas/Armas/Livros.
+        check(h, !tabs.containsKey(Items.LAPIS_LAZULI) && tabs.get(Items.BOOK) == BenchCompat.GEAR_TAB_BOOKS
+                && tabs.get(Items.DIAMOND_PICKAXE) == BenchCompat.GEAR_TAB_TOOLS, "abas do encantamento: " + tabs);
         p.containerMenu = new net.minecraft.world.inventory.BrewingStandMenu(2, p.getInventory());
         tabs.clear();
         for (BenchPoolSync.Entry e : BenchSync.snapshot(p)) {
@@ -1528,7 +1529,114 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
-    /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (livro 0, equipamento/etiqueta 1, material 2). */
+    /** Livro encantado com um encantamento só (guardado como no livro do jogo). */
+    private static ItemStack book(Lab lab, ResourceKey<net.minecraft.world.item.enchantment.Enchantment> key) {
+        ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+        var holder = lab.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(key);
+        net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(book, m -> m.set(holder, 1));
+        return book;
+    }
+
+    /** Bigorna: com uma espada no 1º slot, a lista mostra só livros que servem nela; sem item, todos; desligado, todos. */
+    @GameTest
+    public void anvilBooksFollowTheItemInTheFirstSlot(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        ItemStack sharpness = book(lab, net.minecraft.world.item.enchantment.Enchantments.SHARPNESS);
+        ItemStack protection = book(lab, net.minecraft.world.item.enchantment.Enchantments.PROTECTION);
+        chest.setItem(0, sharpness.copy());
+        chest.setItem(1, protection.copy());
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        net.minecraft.world.inventory.AnvilMenu menu = new net.minecraft.world.inventory.AnvilMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        java.util.function.Function<ItemStack, Boolean> listed = book -> BenchSync.snapshot(p).stream()
+                .anyMatch(e -> ItemStack.isSameItemSameComponents(e.item(), book));
+        check(h, listed.apply(sharpness) && listed.apply(protection), "sem item: todos os livros");
+        menu.getSlot(0).set(new ItemStack(Items.DIAMOND_SWORD));
+        check(h, listed.apply(sharpness) && !listed.apply(protection), "espada: só afiação, proteção some");
+        check(h, BenchCompat.listKey(menu) != 0, "o item no 1º slot muda a chave da lista (reenvio imediato)");
+        menu.getSlot(0).set(new ItemStack(Items.IRON_CHESTPLATE));
+        check(h, !listed.apply(sharpness) && listed.apply(protection), "peitoral: só proteção");
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(8, 1, List.of(), Feature.BENCH_BOOK_FILTER.bit(), 8));
+        check(h, listed.apply(sharpness) && listed.apply(protection), "filtro desligado: todos os livros");
+        menu.getSlot(0).set(ItemStack.EMPTY);
+        p.containerMenu = p.inventoryMenu;
+        clean(lab, h);
+    }
+
+    /**
+     * Lápis automático: abrir a mesa põe 3 lápis do baú no slot; gastar faz completar de novo; fechar devolve ao baú o
+     * que não foi gasto. Nada some, nada duplica: baú + slot + jogador = o que havia menos o gasto.
+     */
+    @GameTest
+    public void autoLapisFillsRefillsAndReturnsOnClose(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.LAPIS_LAZULI, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);   // raio curto: os testes de lápis rodam lado a lado e não podem pegar do baú do vizinho
+        net.minecraft.world.inventory.EnchantmentMenu menu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
+        p.containerMenu = menu;
+        net.minecraft.world.inventory.Slot lapis = menu.getSlot(1);
+        h.runAfterDelay(3, () -> {
+            check(h, lapis.getItem().is(Items.LAPIS_LAZULI) && lapis.getItem().getCount() == BenchCompat.LAPIS_TARGET
+                    && Lab.count(chest, Items.LAPIS_LAZULI) == 7, "abriu: 3 lápis no slot, 7 no baú: " + lapis.getItem());
+            lapis.set(new ItemStack(Items.LAPIS_LAZULI, 1));     // um encantamento de nível 2 gastou 2
+            h.runAfterDelay(15, () -> {
+                check(h, lapis.getItem().getCount() == BenchCompat.LAPIS_TARGET && Lab.count(chest, Items.LAPIS_LAZULI) == 5,
+                        "gastou 2: completou de novo (baú 5): " + lapis.getItem() + " baú=" + Lab.count(chest, Items.LAPIS_LAZULI));
+                p.doCloseContainer();                            // fechar: o que sobrou volta ao baú, não à mochila
+                check(h, Lab.count(chest, Items.LAPIS_LAZULI) == 8 && Lab.carried(p, Items.LAPIS_LAZULI) == 0,
+                        "fechou: 8 no baú (10 menos os 2 gastos), nada na mochila: baú=" + Lab.count(chest, Items.LAPIS_LAZULI)
+                                + " jogador=" + Lab.carried(p, Items.LAPIS_LAZULI));
+                clean(lab, h);
+            });
+        });
+    }
+
+    /** Lápis automático + sair do servidor com a mesa aberta: o lápis volta ao baú antes do save do jogador. */
+    @GameTest
+    public void autoLapisReturnsOnDisconnect(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.LAPIS_LAZULI, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 4, true);   // raio curto: os testes de lápis rodam lado a lado e não podem pegar do baú do vizinho
+        p.containerMenu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
+        h.runAfterDelay(3, () -> {
+            check(h, Lab.count(chest, Items.LAPIS_LAZULI) == 7, "abriu: 3 saíram do baú");
+            BenchSync.release(p);                                // logout / parada do servidor
+            check(h, p.containerMenu == p.inventoryMenu && Lab.count(chest, Items.LAPIS_LAZULI) == 10
+                    && Lab.carried(p, Items.LAPIS_LAZULI) == 0, "saiu: os 3 voltaram ao baú: baú="
+                    + Lab.count(chest, Items.LAPIS_LAZULI) + " jogador=" + Lab.carried(p, Items.LAPIS_LAZULI));
+            clean(lab, h);
+        });
+    }
+
+    /** Lápis automático desligado: nada sai do baú sozinho, e o lápis volta a aparecer no painel (aba Livros). */
+    @GameTest
+    public void autoLapisOffLeavesTheChestAlone(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        Lab.fill(chest, 0, Items.LAPIS_LAZULI, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(4, 1, List.of(), Feature.BENCH_LAPIS.bit(), 4));
+        net.minecraft.world.inventory.EnchantmentMenu menu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
+                ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
+        p.containerMenu = menu;
+        h.runAfterDelay(3, () -> {
+            check(h, menu.getSlot(1).getItem().isEmpty() && Lab.count(chest, Items.LAPIS_LAZULI) == 10, "desligado: nada mexeu");
+            check(h, BenchSync.snapshot(p).stream().anyMatch(e -> e.item().is(Items.LAPIS_LAZULI)
+                    && e.tab() == BenchCompat.GEAR_TAB_BOOKS), "desligado: o lápis aparece no painel, aba Livros");
+            p.containerMenu = p.inventoryMenu;
+            clean(lab, h);
+        });
+    }
+
+    /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (armadura, ferramenta/etiqueta, arma, livro, material). */
     @GameTest
     public void anvilFilterAndTabShareOnePredicate(GameTestHelper h) {
         Lab lab = new Lab(h);
@@ -1537,9 +1645,12 @@ public class BenchGameTests {
         net.minecraft.world.inventory.AnvilMenu menu = new net.minecraft.world.inventory.AnvilMenu(1, p.getInventory());
         p.containerMenu = menu;
         ItemStack[] stacks = {new ItemStack(Items.ENCHANTED_BOOK), new ItemStack(Items.DIAMOND_PICKAXE),
-                new ItemStack(Items.NAME_TAG), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.DIRT)};
-        int[] tabs = {0, 1, 1, 2, 2};
-        boolean[] relevant = {true, true, true, true, false};   // lingote conserta a picareta de ferro da mochila
+                new ItemStack(Items.NAME_TAG), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.DIRT),
+                new ItemStack(Items.IRON_CHESTPLATE), new ItemStack(Items.DIAMOND_SWORD)};
+        int[] tabs = {BenchCompat.GEAR_TAB_BOOKS, BenchCompat.GEAR_TAB_TOOLS, BenchCompat.GEAR_TAB_TOOLS,
+                BenchCompat.ANVIL_TAB_MATERIALS, BenchCompat.ANVIL_TAB_MATERIALS, BenchCompat.GEAR_TAB_ARMOR,
+                BenchCompat.GEAR_TAB_WEAPONS};
+        boolean[] relevant = {true, true, true, true, false, true, true};   // lingote conserta a picareta de ferro da mochila
         for (int i = 0; i < stacks.length; i++) {
             check(h, BenchCompat.slotTab(menu, stacks[i]) == tabs[i], "aba de " + stacks[i] + ": " + BenchCompat.slotTab(menu, stacks[i]));
             check(h, BenchCompat.relevant(menu, p, stacks[i]) == relevant[i], "filtro de " + stacks[i]);
