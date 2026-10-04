@@ -92,10 +92,15 @@ public final class BenchSync {
         }
     }
 
-    /** O que a estação aberta enxerga, pronto para o pacote. Público para os testes. */
+    /** O que a estação aberta enxerga e aceita (só o que serve nela), pronto para o pacote. Público para os testes. */
     public static List<BenchPoolSync.Entry> snapshot(ServerPlayer player) {
         List<BenchPoolSync.Entry> out = new ArrayList<>();
+        AbstractContainerMenu menu = player.containerMenu;
+        boolean filter = menu != player.inventoryMenu && BenchCompat.isStation(menu);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
+            if (filter && !BenchCompat.relevant(menu, player, stack.item())) {
+                continue;
+            }
             if (out.size() >= BenchPoolSync.MAX_ENTRIES) {
                 break;
             }

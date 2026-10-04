@@ -3,22 +3,30 @@ package io.github.leoascenci0.stashlink.compat.mc;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.BlastFurnaceMenu;
 import net.minecraft.world.inventory.BrewingStandMenu;
 import net.minecraft.world.inventory.CartographyTableMenu;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.FurnaceMenu;
 import net.minecraft.world.inventory.GrindstoneMenu;
 import net.minecraft.world.inventory.LoomMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.inventory.SmithingMenu;
+import net.minecraft.world.inventory.SmokerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.StonecutterMenu;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.RecipePropertySet;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -54,6 +62,65 @@ public final class BenchCompat {
     /** Estação que tem livro de receitas (o jogo coloca os ingredientes sozinho). */
     public static boolean hasRecipeBook(AbstractContainerMenu menu) {
         return menu instanceof RecipeBookMenu && isStation(menu);
+    }
+
+    /**
+     * O stack serve nesta estação? O painel "Armazenamento" só lista o que o jogador poderia pôr nela: no tear,
+     * banner, corante e molde; na pedra de amolar, o que tem dano ou encantamento; e assim por diante.
+     * A regra vem dos próprios slots da estação ({@code mayPlace}), então acompanha o jogo e itens de outros mods.
+     * Só a bancada (qualquer item pode ser ingrediente) aceita tudo; fornalha, cortador de pedra, encantamento
+     * e bigorna têm o slot de entrada livre no jogo (aceita qualquer coisa), por isso a conta é feita aqui; o slot 1
+     * dessas duas (combustível, lápis-lazúli) tem regra própria e é consultado direto.
+     */
+    public static boolean relevant(AbstractContainerMenu menu, Player player, ItemStack stack) {
+        if (menu instanceof CraftingMenu) {
+            return true;
+        }
+        if (menu instanceof AbstractFurnaceMenu) {
+            return menu.slots.get(1).mayPlace(stack) || player.level().recipeAccess()
+                    .propertySet(furnaceInput(menu)).test(stack);
+        }
+        if (menu instanceof StonecutterMenu) {
+            return player.level().recipeAccess().stonecutterRecipes().acceptsInput(stack);
+        }
+        if (menu instanceof EnchantmentMenu) {
+            return menu.slots.get(1).mayPlace(stack) || stack.isEnchantable();
+        }
+        if (menu instanceof AnvilMenu) {
+            return stack.isDamageableItem() || stack.is(Items.ENCHANTED_BOOK)
+                    || EnchantmentHelper.hasAnyEnchantments(stack) || repairsSomethingOf(player, stack);
+        }
+        return acceptedBySlots(menu, player, stack);
+    }
+
+    /** Algum slot da estação (fora o inventário do jogador) aceita este stack? */
+    private static boolean acceptedBySlots(AbstractContainerMenu menu, Player player, ItemStack stack) {
+        for (Slot slot : menu.slots) {
+            if (slot.container != player.getInventory() && slot.mayPlace(stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static ResourceKey<RecipePropertySet> furnaceInput(AbstractContainerMenu menu) {
+        if (menu instanceof SmokerMenu) {
+            return RecipePropertySet.SMOKER_INPUT;
+        }
+        if (menu instanceof BlastFurnaceMenu) {
+            return RecipePropertySet.BLAST_FURNACE_INPUT;
+        }
+        return RecipePropertySet.FURNACE_INPUT;
+    }
+
+    /** O stack é material de conserto de algo que o jogador carrega (ex.: diamante para a picareta)? */
+    private static boolean repairsSomethingOf(Player player, ItemStack material) {
+        for (ItemStack carried : player.getInventory().getNonEquipmentItems()) {
+            if (!carried.isEmpty() && carried.isDamageableItem() && carried.isValidRepairItem(material)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Identidade de um stack: mesmo item e mesmos componentes (a quantidade não conta). */

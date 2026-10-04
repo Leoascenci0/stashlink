@@ -87,7 +87,7 @@
   "stashlink.feature.bench.tip": "Crafting table, furnace and the other stations use nearby storage as if it were your backpack.",
   "stashlink.bench.used": "%s items taken from storage",
   "stashlink.bench.panel.title": "Storage",
-  "stashlink.bench.panel.empty": "Nothing nearby",
+  "stashlink.bench.panel.empty": "Nothing usable nearby",
   "stashlink.bench.panel.tip": "Click: take a stack. Right-click: take one.",
   "stashlink.feature.state_locked": "Locked",
   "stashlink.feature.locked_here": "This feature is locked on this server",

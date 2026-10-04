@@ -87,7 +87,7 @@
   "stashlink.feature.bench.tip": "Bancada, fornalha e demais estações usam o armazenamento por perto como se fosse a sua mochila.",
   "stashlink.bench.used": "%s itens vindos do armazenamento",
   "stashlink.bench.panel.title": "Armazenamento",
-  "stashlink.bench.panel.empty": "Nada por perto",
+  "stashlink.bench.panel.empty": "Nada por perto que sirva aqui",
   "stashlink.bench.panel.tip": "Clique: pega uma pilha. Botão direito: pega um.",
   "stashlink.feature.state_locked": "Trancada",
   "stashlink.feature.locked_here": "Esta função está trancada neste servidor",
