@@ -77,7 +77,7 @@
   "stashlink.feature.quick_stack.tip": "A tecla de guardar rápido leva a sua mochila para os containers por perto.",
   "stashlink.feature.loot_all": "Pegar tudo",
   "stashlink.feature.loot_all.tip": "A tecla de pegar tudo traz tudo do container aberto.",
-  "stashlink.feature.pull": "Trazer item (Litematica e botão do meio)",
+  "stashlink.feature.pull": "Puxar item",
   "stashlink.feature.pull.tip": "Traz o item que você precisa para a hotbar: ao construir com o Litematica ou ao clicar com o botão do meio num bloco cujo item está guardado por perto. Precisa de um slot livre na hotbar.",
   "stashlink.feature.slot_lock": "Reservar slots",
   "stashlink.feature.slot_lock.tip": "Alt+clique num slot de baú para reservá-lo para um item.",

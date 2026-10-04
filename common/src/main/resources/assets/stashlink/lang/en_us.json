@@ -77,7 +77,7 @@
   "stashlink.feature.quick_stack.tip": "The quick store key puts your backpack into nearby containers.",
   "stashlink.feature.loot_all": "Take all",
   "stashlink.feature.loot_all.tip": "The take-all key takes everything from the open container.",
-  "stashlink.feature.pull": "Bring item (Litematica, middle click)",
+  "stashlink.feature.pull": "Pull item",
   "stashlink.feature.pull.tip": "Bring the item you need to your hotbar: when building with Litematica, or when you middle-click a block whose item is stored nearby. Needs a free hotbar slot.",
   "stashlink.feature.slot_lock": "Reserve slots",
   "stashlink.feature.slot_lock.tip": "Alt+click a chest slot to reserve it for one item.",
