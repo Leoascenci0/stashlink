@@ -12,9 +12,17 @@ import java.util.List;
 /**
  * Servidor → cliente com o mod: "este é o armazenamento que a estação {@code containerId} enxerga". Alimenta o
  * painel "Armazenamento" e acende o livro de receitas. Só enviado a quem tem o mod. É só uma lista para
- * mostrar: o cliente nunca tira item por ela, só <i>pede</i> (e o servidor confere de novo).
+ * mostrar: o cliente nunca tira item por ela, só <i>pede</i> (e o servidor confere de novo). {@code radius} é o raio
+ * efetivo de baús e barris deste jogador (0 se "usar baús" está desligado), só para a mensagem de lista vazia.
  */
-public record BenchPoolSync(int containerId, List<Entry> entries) implements CustomPacketPayload {
+public record BenchPoolSync(int containerId, List<Entry> entries, int radius) implements CustomPacketPayload {
+    /** Sem raio conhecido (servidor antigo, testes): o painel usa a mensagem de vazio genérica. */
+    public static final int UNKNOWN_RADIUS = -1;
+
+    public BenchPoolSync(int containerId, List<Entry> entries) {
+        this(containerId, entries, UNKNOWN_RADIUS);
+    }
+
     /**
      * Um tipo de item (ícone, quantidade 1) e quanto há. Nas estações com receita ({@code id >= 0}, ex.: cortador de
      * pedra) é um <b>resultado</b>: {@code item} é o que sai, {@code count} não é usado e {@code missing} diz que falta
@@ -52,7 +60,7 @@ public record BenchPoolSync(int containerId, List<Entry> entries) implements Cus
         }
     }
 
-    /** Teto de tipos de item por pacote (o resto fica de fora; a lista vai em ordem alfabética do item). */
+    /** Teto de tipos de item por pacote o resto fica de fora, e o corte é depois de ordenar (ver BenchOrder). */
     public static final int MAX_ENTRIES = 512;
 
     /**
@@ -75,6 +83,7 @@ public record BenchPoolSync(int containerId, List<Entry> entries) implements Cus
     public static final StreamCodec<RegistryFriendlyByteBuf, BenchPoolSync> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.VAR_INT, BenchPoolSync::containerId,
             ENTRY_CODEC.apply(ByteBufCodecs.list(MAX_ENTRIES)), BenchPoolSync::entries,
+            ByteBufCodecs.VAR_INT, BenchPoolSync::radius,
             BenchPoolSync::new);
 
     @Override

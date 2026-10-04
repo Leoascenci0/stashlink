@@ -507,8 +507,8 @@ consentimento).
   o servidor confere (estação aberta com o mesmo `containerId`, função ligada, cursor livre ou do mesmo item, no máximo 1
   pedido por tick) e **põe no cursor**, tirando do container no mesmo passo. Depois é item de verdade na mão: colocar no
   slot, shift-clicar o resultado e fechar a tela são cliques normais do jogo. Por isso não existe item fantasma.
-- `bench/BenchSync` + `BenchPoolSync`: servidor → cliente com o mod: a lista (tipo + quantidade, até 512 tipos, em ordem de
-  nome) ao abrir a estação, quando o mod mexe no armazenamento e a cada 5 s. Cliente sem o mod nunca recebe, e a
+- `bench/BenchSync` + `BenchPoolSync`: servidor → cliente com o mod: a lista (tipo + quantidade, até 512 tipos, na ordem única de `BenchOrder`:
+  possíveis antes de faltantes, depois nome; o servidor corta no teto **depois** de ordenar, pelo id do registro, e o cliente reordena pelo nome localizado; leva também o raio efetivo para a mensagem "Nada no raio de N blocos") ao abrir a estação, quando o mod mexe no armazenamento e a cada 5 s. Cliente sem o mod nunca recebe, e a
   varredura não se repete para ele.
 - Cliente: `BenchPanel` (grade rolável com busca, à direita da estação), `BenchClient` (guarda a lista) e dois mixins:
   `AbstractContainerScreenMixin` (desenhar o painel, clique, rolagem, teclas da busca) e `RecipeBookComponentMixin`
@@ -539,7 +539,7 @@ fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na i
   não puxa e nada se perde.
 - Só itens **comuns** (sem dano, encantamento ou nome) alimentam o livro, como no jogo base; o painel mostra tudo, inclusive
   item encantado (para bigorna, ferreiro e amolar).
-- A lista do painel tem teto de 512 tipos de item por pacote; passando disso entram os primeiros em ordem de nome.
+- A lista do painel tem teto de 512 tipos de item por pacote; passando disso o corte é feito depois de ordenar (disponíveis primeiro, depois id do registro), então não depende da ordem da varredura. Painel: esquerdo = pilha, direito = um, Shift+esquerdo = máximo (para item solto e para receita; o servidor só distingue "um" de "o que cabe").
 - O raio é o do jogador (`PlayerPrefsStore.radius`, padrão 8, teto 64); o Item 15 só muda o teto.
 - Os mixins de cliente (`RecipeBookComponentMixin` e as novas partes de `AbstractContainerScreenMixin`) só se conferem no
   jogo: o `runClientGameTest` não roda nesta máquina.

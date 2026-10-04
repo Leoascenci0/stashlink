@@ -21,6 +21,8 @@ import java.util.function.Consumer;
  */
 public final class BenchClient {
     private static int poolContainerId = -1;
+    /** Raio efetivo de baús do jogador, como o servidor mandou (para a mensagem de lista vazia); -1 se desconhecido. */
+    private static int radius = BenchPoolSync.UNKNOWN_RADIUS;
     private static List<BenchPoolSync.Entry> pool = List.of();
     /** As cores do tear por id, montadas a cada lista nova (o painel pergunta isto a cada frame). */
     private static Map<Integer, BenchPoolSync.Entry> colorPicks = Map.of();
@@ -45,6 +47,7 @@ public final class BenchClient {
     /** Recebeu a lista do servidor (thread do cliente). */
     public static void apply(BenchPoolSync payload) {
         poolContainerId = payload.containerId();
+        radius = payload.radius();
         pool = List.copyOf(payload.entries());
         Map<Integer, BenchPoolSync.Entry> picks = new HashMap<>();
         for (BenchPoolSync.Entry entry : pool) {
@@ -59,6 +62,7 @@ public final class BenchClient {
     /** Saiu do servidor (ou entrou em outro): esquece a lista e a estação da conexão anterior. */
     public static void reset() {
         poolContainerId = -1;
+        radius = BenchPoolSync.UNKNOWN_RADIUS;
         pool = List.of();
         colorPicks = Map.of();
         version++;
@@ -72,6 +76,11 @@ public final class BenchClient {
     /** Id da estação a que a lista pertence (-1 se nenhuma); para testes. */
     public static int poolContainerId() {
         return poolContainerId;
+    }
+
+    /** Raio que o servidor diz que a estação enxerga, ou {@link BenchPoolSync#UNKNOWN_RADIUS}. */
+    public static int radius() {
+        return radius;
     }
 
     public static int version() {
@@ -108,9 +117,10 @@ public final class BenchClient {
                 io.github.leoascenci0.stashlink.bench.BenchResults.PLACE));
     }
 
-    /** "Monte esta receita": {@code choice} é o item que o jogador escolheu junto (o corante da cor, no tear). */
-    public static void requestRecipe(AbstractContainerMenu menu, BenchPoolSync.Entry entry, ItemStack choice) {
-        sender.accept(new BenchPullRequest(menu.containerId, choice.copyWithCount(1), false, entry.id()));
+    /** "Monte esta receita": {@code choice} é o item que o jogador escolheu junto (o corante da cor, no tear); {@code one}
+     * = um de cada ingrediente (botão direito) em vez de um stack. */
+    public static void requestRecipe(AbstractContainerMenu menu, BenchPoolSync.Entry entry, ItemStack choice, boolean one) {
+        sender.accept(new BenchPullRequest(menu.containerId, choice.copyWithCount(1), one, entry.id()));
     }
 
     /** O livro de receitas desta estação soma ao que conhece da mochila o que o armazenamento tem (itens comuns). */

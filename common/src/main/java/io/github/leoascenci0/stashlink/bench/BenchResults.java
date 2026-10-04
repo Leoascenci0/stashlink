@@ -38,7 +38,7 @@ public final class BenchResults {
         return StationRecipes.supports(menu);
     }
 
-    /** Os resultados conhecidos: os possíveis primeiro, depois os que faltam material (vermelho). */
+    /** Os resultados conhecidos (e as cores do tear), na ordem única de {@link BenchOrder}: possíveis antes dos vermelhos. */
     public static List<BenchPoolSync.Entry> list(ServerPlayer player) {
         List<ItemStack> have = available(player, BenchPool.of(player).contents());
         List<StationRecipes.Option> options = StationRecipes.options(player, player.containerMenu, have);
@@ -51,8 +51,7 @@ public final class BenchResults {
         }
         java.util.Set<Integer> seenOk = new java.util.HashSet<>();
         java.util.Set<Integer> seenMissing = new java.util.HashSet<>();
-        for (int i = 0; i < options.size() && ok.size() + missing.size() < BenchPoolSync.MAX_ENTRIES; i++) {
-            StationRecipes.Option option = options.get(i);
+        for (StationRecipes.Option option : options) {
             boolean can = option.needs().stream().allMatch(need -> have.stream().anyMatch(need));
             int key = key(option);
             // O mesmo resultado pode sair de mais de uma pedra (ex.: ardósia abissal talhada). Uma entrada só: a possível
@@ -65,7 +64,8 @@ public final class BenchResults {
         missing.removeIf(entry -> seenOk.contains(entry.id()));
         colors.addAll(ok);
         colors.addAll(missing);
-        return colors;
+        // Ordem única (BenchOrder): disponível antes de faltante, depois por nome; o corte do teto vem DEPOIS de ordenar.
+        return BenchOrder.sortedAndCapped(colors);
     }
 
     /**
@@ -97,7 +97,7 @@ public final class BenchResults {
     }
 
     /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
-    public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice) {
+    public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice, boolean one) {
         // Uma varredura só por clique: o pool, a lista do que há e o que sai dos baús vêm todos da mesma passada.
         BenchPool pool = BenchPool.of(player);
         List<BenchPool.Stack> stored = pool.contents();
@@ -136,7 +136,7 @@ public final class BenchResults {
             if (slot.hasItem()) {
                 continue;   // já tem um item que serve (talvez de uma receita anterior)
             }
-            if (!fillSlot(player, pool, stored, slot, needs.get(i))) {
+            if (!fillSlot(player, pool, stored, slot, needs.get(i), one)) {
                 BenchSync.markDirty(player);
                 return;
             }
@@ -148,11 +148,11 @@ public final class BenchResults {
 
     /** Põe em {@code slot} um item que satisfaz {@code need}: do armazenamento, ou da mochila se não houver lá. */
     private static boolean fillSlot(ServerPlayer player, BenchPool pool, List<BenchPool.Stack> stored, Slot slot,
-                                    java.util.function.Predicate<ItemStack> need) {
+                                    java.util.function.Predicate<ItemStack> need, boolean one) {
         for (BenchPool.Stack stack : stored) {
             ItemStack model = stack.item();
             if (need.test(model) && slot.mayPlace(model)) {
-                int want = Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model));
+                int want = one ? 1 : Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model));
                 int total = ItemSource.sum(pool.source().take(model, want));
                 if (total > 0) {
                     slot.set(model.copyWithCount(total));
@@ -165,7 +165,7 @@ public final class BenchResults {
         for (int i = 0; i < items.size(); i++) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty() && need.test(stack) && slot.mayPlace(stack)) {
-                int move = Math.min(stack.getCount(), slot.getMaxStackSize(stack));
+                int move = one ? 1 : Math.min(stack.getCount(), slot.getMaxStackSize(stack));
                 slot.set(stack.copyWithCount(move));
                 stack.shrink(move);
                 if (stack.isEmpty()) {

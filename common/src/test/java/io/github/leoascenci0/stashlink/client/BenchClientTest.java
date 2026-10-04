@@ -55,4 +55,41 @@ class BenchClientTest {
         assertNotNull(BenchClient.colorPick(14));
         assertNull(BenchClient.colorPick(3), "cor que não veio na lista");
     }
+
+    /** Item 16.3: o raio efetivo vem do servidor junto com a lista e some ao sair do servidor. */
+    @Test
+    void radiusComesWithTheListAndIsForgottenOnReset() {
+        assertEquals(BenchPoolSync.UNKNOWN_RADIUS, BenchClient.radius());
+        BenchClient.apply(new BenchPoolSync(7, List.of(), 12));
+        assertEquals(12, BenchClient.radius());
+        BenchClient.reset();
+        assertEquals(BenchPoolSync.UNKNOWN_RADIUS, BenchClient.radius());
+    }
+
+    /** Item 16.3: o pedido de receita leva o "um" do botão direito (antes ia sempre como pilha). */
+    @Test
+    void recipeRequestCarriesTheOneFlag() {
+        List<io.github.leoascenci0.stashlink.network.BenchPullRequest> sent = new java.util.ArrayList<>();
+        BenchClient.setSender(sent::add);
+        try {
+            net.minecraft.world.inventory.AbstractContainerMenu menu = new net.minecraft.world.inventory.AbstractContainerMenu(null, 3) {
+                @Override
+                public ItemStack quickMoveStack(net.minecraft.world.entity.player.Player player, int slot) {
+                    return ItemStack.EMPTY;
+                }
+
+                @Override
+                public boolean stillValid(net.minecraft.world.entity.player.Player player) {
+                    return true;
+                }
+            };
+            BenchPoolSync.Entry entry = new BenchPoolSync.Entry(new ItemStack(Items.TUFF), 0, 42, false);
+            BenchClient.requestRecipe(menu, entry, new ItemStack(Items.TUFF), true);
+            BenchClient.requestRecipe(menu, entry, new ItemStack(Items.TUFF), false);
+            assertTrue(sent.get(0).one() && !sent.get(1).one());
+            assertEquals(42, sent.get(0).recipeId());
+        } finally {
+            BenchClient.setSender(request -> { });
+        }
+    }
 }

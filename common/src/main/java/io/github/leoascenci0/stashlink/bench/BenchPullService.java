@@ -56,7 +56,7 @@ public final class BenchPullService {
         }
         LAST_REQUEST.put(player, now);
         if (request.recipeId() >= 0) {
-            BenchResults.craft(player, menu, request.recipeId(), request.item());
+            BenchResults.craft(player, menu, request.recipeId(), request.item(), request.one());
             return;
         }
         if (request.recipeId() == BenchResults.PLACE) {

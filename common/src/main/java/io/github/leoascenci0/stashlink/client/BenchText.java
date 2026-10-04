@@ -1,0 +1,82 @@
+package io.github.leoascenci0.stashlink.client;
+
+import net.minecraft.network.chat.Component;
+
+import java.util.List;
+
+/**
+ * Os textos do painel das bancadas num lugar só (chaves {@code stashlink.bench.*} nos dois idiomas, sem texto de
+ * reserva no código: se a chave faltar, o teste de idiomas acusa). Só montagem de texto, sem tela: dá para testar.
+ */
+final class BenchText {
+    static final String EMPTY_RADIUS = "stashlink.bench.panel.empty.radius";
+    static final String EMPTY = "stashlink.bench.panel.empty";
+    static final String NO_MATCH = "stashlink.bench.panel.nomatch";
+    static final String COUNT = "stashlink.bench.panel.count";
+    static final String ITEM_TIP = "stashlink.bench.panel.tip";
+    static final String RESULT_TIP = "stashlink.bench.panel.result.tip";
+    static final String RESULT_MISSING = "stashlink.bench.panel.result.missing";
+    static final String COLOR_TIP = "stashlink.bench.panel.color.tip";
+    static final String COLOR_NONE = "stashlink.bench.panel.color.none";
+    static final String TITLE = "stashlink.bench.panel.title";
+
+    private BenchText() {
+    }
+
+    /**
+     * Lista vazia: com busca, "nenhum item combina"; sem busca, "nada no raio de N blocos" (o raio efetivo que o
+     * servidor mandou, não o preferido do jogador). Sem raio conhecido, a mensagem genérica.
+     */
+    static Component empty(boolean searching, int radius) {
+        if (searching) {
+            return Component.translatable(NO_MATCH);
+        }
+        return radius >= 0 ? Component.translatable(EMPTY_RADIUS, radius) : Component.translatable(EMPTY);
+    }
+
+    /** "No baú: N": a contagem do item no armazenamento, no tooltip. Uma função só para todas as estações. */
+    static Component inStorage(int count) {
+        return Component.translatable(COUNT, count);
+    }
+
+    /** As linhas extras do tooltip de um item solto, de um resultado ou de uma cor. */
+    static List<Component> itemLines(int count) {
+        return List.of(inStorage(count), Component.translatable(ITEM_TIP));
+    }
+
+    static Component resultLine(boolean missing) {
+        return Component.translatable(missing ? RESULT_MISSING : RESULT_TIP);
+    }
+
+    static Component colorLine(boolean missing) {
+        return Component.translatable(missing ? COLOR_NONE : COLOR_TIP);
+    }
+
+    /** Quanto o clique pede: esquerdo = uma pilha, direito = um, Shift+esquerdo = o máximo (que cabe). */
+    enum Amount {
+        ONE, STACK, MAX
+    }
+
+    /** Numeração de botão do 26.3 (ver {@code AbstractContainerScreen.getContainerClickButton}): esquerdo = 1, direito = 3. */
+    static final int LEFT = 1;
+    static final int RIGHT = 3;
+
+    /** O que o botão pede, ou {@code null} se o painel não trata esse botão (o meio, por exemplo, segue para o jogo). */
+    static Amount amountFor(int button, boolean shift) {
+        if (button == RIGHT) {
+            return Amount.ONE;
+        }
+        if (button == LEFT) {
+            return shift ? Amount.MAX : Amount.STACK;
+        }
+        return null;
+    }
+
+    /**
+     * No servidor só existe "um" ou "o que cabe": o teto de um slot ou do cursor é uma pilha, então pilha e máximo
+     * dão o mesmo resultado (o Shift existe para o gesto ser o mesmo do resto do mod e do jogo).
+     */
+    static boolean one(Amount amount) {
+        return amount == Amount.ONE;
+    }
+}

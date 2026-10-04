@@ -13,8 +13,8 @@ import java.util.List;
  * separam o que serve em seções. O servidor marca cada entrada com o número da aba ({@code Entry.tab}).
  */
 final class BenchTabs {
-    /** Uma aba: o ícone do botão, o nome (chave de tradução) e o texto de reserva. */
-    record Tab(ItemStack icon, String key, String fallback) {
+    /** Uma aba: o ícone do botão e o nome (chave de tradução, sem texto de reserva no código). */
+    record Tab(ItemStack icon, String key) {
     }
 
     private BenchTabs() {
@@ -25,29 +25,29 @@ final class BenchTabs {
         switch (BenchCompat.stationOf(menu)) {
             case LOOM:
                 return List.of(
-                        new Tab(StationRecipes.sampleDye(), "stashlink.bench.tab.colors", "Colors"),
-                        new Tab(StationRecipes.sampleBanner(), "stashlink.bench.tab.banners", "Banners"),
-                        new Tab(new ItemStack(Items.FLOWER_BANNER_PATTERN), "stashlink.bench.tab.molds", "Patterns (molds)"));
+                        new Tab(StationRecipes.sampleDye(), "stashlink.bench.tab.colors"),
+                        new Tab(StationRecipes.sampleBanner(), "stashlink.bench.tab.banners"),
+                        new Tab(new ItemStack(Items.FLOWER_BANNER_PATTERN), "stashlink.bench.tab.molds"));
             case ENCHANTING:
                 return List.of(
-                        new Tab(new ItemStack(Items.DIAMOND_PICKAXE), "stashlink.bench.tab.gear", "Equipment"),
-                        new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books", "Books"),
-                        new Tab(new ItemStack(Items.LAPIS_LAZULI), "stashlink.bench.tab.lapis", "Lapis lazuli"));
+                        new Tab(new ItemStack(Items.DIAMOND_PICKAXE), "stashlink.bench.tab.gear"),
+                        new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books"),
+                        new Tab(new ItemStack(Items.LAPIS_LAZULI), "stashlink.bench.tab.lapis"));
             case BREWING:
                 return List.of(
-                        new Tab(new ItemStack(Items.POTION), "stashlink.bench.tab.bottles", "Bottles and potions"),
-                        new Tab(new ItemStack(Items.NETHER_WART), "stashlink.bench.tab.ingredients", "Ingredients"),
-                        new Tab(new ItemStack(Items.BLAZE_POWDER), "stashlink.bench.tab.fuel", "Fuel"));
+                        new Tab(new ItemStack(Items.POTION), "stashlink.bench.tab.bottles"),
+                        new Tab(new ItemStack(Items.NETHER_WART), "stashlink.bench.tab.ingredients"),
+                        new Tab(new ItemStack(Items.BLAZE_POWDER), "stashlink.bench.tab.fuel"));
             case ANVIL:
                 return List.of(
-                        new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books", "Books"),
-                        new Tab(new ItemStack(Items.IRON_CHESTPLATE), "stashlink.bench.tab.gear", "Equipment"),
-                        new Tab(new ItemStack(Items.IRON_INGOT), "stashlink.bench.tab.materials", "Repair materials"));
+                        new Tab(new ItemStack(Items.ENCHANTED_BOOK), "stashlink.bench.tab.books"),
+                        new Tab(new ItemStack(Items.IRON_CHESTPLATE), "stashlink.bench.tab.gear"),
+                        new Tab(new ItemStack(Items.IRON_INGOT), "stashlink.bench.tab.materials"));
             case SMITHING:
                 return List.of(
-                        new Tab(new ItemStack(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE), "stashlink.bench.tab.trims", "Trims"),
-                        new Tab(new ItemStack(Items.DIAMOND_CHESTPLATE), "stashlink.bench.tab.gear", "Equipment"),
-                        new Tab(new ItemStack(Items.NETHERITE_INGOT), "stashlink.bench.tab.ores", "Materials"));
+                        new Tab(new ItemStack(Items.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE), "stashlink.bench.tab.trims"),
+                        new Tab(new ItemStack(Items.DIAMOND_CHESTPLATE), "stashlink.bench.tab.gear"),
+                        new Tab(new ItemStack(Items.NETHERITE_INGOT), "stashlink.bench.tab.smithing_materials"));
             default:
                 return List.of();
         }
