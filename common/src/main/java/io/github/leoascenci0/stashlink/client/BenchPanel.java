@@ -31,11 +31,16 @@ public final class BenchPanel {
     private static final int WIDTH = PAD * 2 + COLS * CELL + 4;
     private static final int HEIGHT = PAD + SEARCH_H + 2 + ROWS * CELL + PAD;
 
-    private static final int BACKGROUND = 0xE0101010;
-    private static final int BORDER = 0xFF555555;
-    private static final int SLOT = 0xFF373737;
+    // Mesmas cores da interface da bancada do jogo: painel cinza claro com chanfro, slots afundados.
+    private static final int BACKGROUND = 0xFFC6C6C6;
+    private static final int LIGHT = 0xFFFFFFFF;
+    private static final int SHADOW = 0xFF555555;
+    private static final int OUTLINE = 0xFF000000;
+    private static final int SLOT = 0xFF8B8B8B;
+    private static final int SLOT_DARK = 0xFF373737;
     private static final int HOVER = 0x80FFFFFF;
-    private static final int THUMB = 0xFFAAAAAA;
+    private static final int THUMB = 0xFF555555;
+    private static final int TEXT = 0xFF404040;
 
     private final AbstractContainerMenu menu;
     private final EditBox search;
@@ -134,14 +139,23 @@ public final class BenchPanel {
         }
         Font font = Minecraft.getInstance().font;
         graphics.fill(x, y, x + WIDTH, y + HEIGHT, BACKGROUND);
-        graphics.outline(x, y, WIDTH, HEIGHT, BORDER);
+        graphics.fill(x, y, x + WIDTH - 1, y + 1, LIGHT);
+        graphics.fill(x, y, x + 1, y + HEIGHT - 1, LIGHT);
+        graphics.fill(x + 1, y + HEIGHT - 1, x + WIDTH, y + HEIGHT, SHADOW);
+        graphics.fill(x + WIDTH - 1, y + 1, x + WIDTH, y + HEIGHT, SHADOW);
+        graphics.outline(x - 1, y - 1, WIDTH + 2, HEIGHT + 2, OUTLINE);
         // O campo de busca já foi desenhado com os outros componentes da tela, mas o fundo do painel o cobriu.
         search.extractRenderState(graphics, mouseX, mouseY, delta);
 
         List<BenchPoolSync.Entry> list = entries();
         if (list.isEmpty()) {
-            graphics.centeredText(font, Component.translatableWithFallback("stashlink.bench.panel.empty",
-                    "Nothing usable nearby"), x + WIDTH / 2, gridY() + ROWS * CELL / 2 - 4, 0xFFAAAAAA);
+            // Texto longo quebra em linhas dentro do painel (antes vazava para fora dele).
+            int ty = gridY() + 6;
+            for (var line : font.split(Component.translatableWithFallback("stashlink.bench.panel.empty",
+                    "Nothing usable nearby"), WIDTH - PAD * 2)) {
+                graphics.text(font, line, x + PAD, ty, TEXT, false);
+                ty += font.lineHeight + 2;
+            }
             return;
         }
         BenchPoolSync.Entry hovered = null;
@@ -152,15 +166,15 @@ public final class BenchPanel {
                 int index = (scrollRows + row) * COLS + col;
                 int cx = gridX() + col * CELL;
                 int cy = gridY() + row * CELL;
-                graphics.fill(cx, cy, cx + CELL - 1, cy + CELL - 1, SLOT);
+                drawSlot(graphics, cx, cy);
                 if (index >= list.size()) {
                     continue;
                 }
                 BenchPoolSync.Entry entry = list.get(index);
                 graphics.fakeItem(entry.item(), cx + 1, cy + 1);
                 graphics.itemDecorations(font, entry.item(), cx + 1, cy + 1, shortCount(entry.count()));
-                if (mouseX >= cx && mouseX < cx + CELL - 1 && mouseY >= cy && mouseY < cy + CELL - 1) {
-                    graphics.fill(cx, cy, cx + CELL - 1, cy + CELL - 1, HOVER);
+                if (mouseX >= cx && mouseX < cx + CELL && mouseY >= cy && mouseY < cy + CELL) {
+                    graphics.fill(cx + 1, cy + 1, cx + CELL - 1, cy + CELL - 1, HOVER);
                     hovered = entry;
                     hx = mouseX;
                     hy = mouseY;
@@ -182,6 +196,15 @@ public final class BenchPanel {
                     "Click: take a stack. Right-click: take one."));
             graphics.setComponentTooltipForNextFrame(font, lines, hx, hy);
         }
+    }
+
+    /** Um slot afundado como os do jogo: borda escura em cima/esquerda, clara embaixo/direita. */
+    private static void drawSlot(GuiGraphicsExtractor graphics, int cx, int cy) {
+        graphics.fill(cx, cy, cx + CELL, cy + CELL, SLOT);
+        graphics.fill(cx, cy, cx + CELL - 1, cy + 1, SLOT_DARK);
+        graphics.fill(cx, cy, cx + 1, cy + CELL - 1, SLOT_DARK);
+        graphics.fill(cx + 1, cy + CELL - 1, cx + CELL, cy + CELL, LIGHT);
+        graphics.fill(cx + CELL - 1, cy + 1, cx + CELL, cy + CELL, LIGHT);
     }
 
     /** "1,2k" em vez de "1234": cabe no slot. Abaixo de mil mostra o número; um só não mostra nada, como o jogo. */
