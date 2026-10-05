@@ -9,8 +9,9 @@ leitura das correções. Esta sessão só traz **correções pequenas com teste*
 dupe** (a W copiava itens de telas falsas de outros mods): o
 reabastecimento da mão a partir de balde, tigela ou garrafa vazia apagava o recipiente vazio. Também corrigimos três
 caminhos em que um cliente adulterado passava por um cadeado, dois vazamentos de memória e um caso raro de chunk
-carregado à força. A maior lacuna era de processo: o CI **não rodava os GameTests** (o `build` não os inclui), então
-os 100+ testes de servidor só rodavam na máquina de quem lembrava. Agora rodam em todo PR.
+carregado à força. Os GameTests rodam no CI dentro do `build` (`check → :fabric:runGameTest`): 171 testes, todos verdes
+neste PR. Ao rodá-los com os testes novos apareceu um problema dos próprios testes (raio padrão alcançando o teste
+vizinho), corrigido no item 7.
 
 ## Achados
 
@@ -25,8 +26,7 @@ contornável ou falha visível; **baixa** = robustez, memória, texto.
 | 4 | 4 Bancadas | Pedido forjado de cursor (`recipeId = -1`) ignorava os filtros do painel (ex.: combustível com a aba trancada) | média | `bench/BenchPullService.java:70` | **corrigido** (usa `BenchSync.listed`, a mesma regra do painel) + `BenchGameTests.cursorRequestRespectsTheFuelLock` |
 | 5 | 1 Rede / 7 Config | Botão "recebe com a N" não passava por `FeatureGate` (mudava o baú com a N trancada) | média | `quickstack/QuickStackReceiveService.java:52` | **corrigido** + `ReviewGameTests.receivesButtonRespectsTheQuickStackLock` |
 | 6 | 9 Dados | Baú rotulado sozinho e depois emendado com outro: o holograma sumia e cada metade mostrava um nome | média | `label/Labels.java:30`, `label/HologramService.java:96` | **corrigido** + `LabelGameTests.chestLabeledAloneKeepsItsLabelWhenItBecomesDouble` |
-| 7 | 8 Build | CI não rodava os GameTests (`./gradlew build` não inclui `runGameTest`) | média | `.github/workflows/build.yml` | **corrigido** (passo `:fabric:runGameTest`) |
-| 7b | 8 Build | Ao rodar no CI, os GameTests sem raio fixo usavam o padrão do servidor (16 desde o Item 15) e a N de um teste guardava itens no baú do teste vizinho (`raceFuzz` e `twoPlayersQuickStackSameChest` falhavam juntos, conforme a ordem) | média (teste instável, não bug do mod) | `fabric/src/gametest/.../Lab.java:66` | **corrigido** (jogador simulado nasce com raio 8; quem precisa de outro raio já define) |
+| 7 | 8 Build | No CI, os GameTests sem raio fixo usavam o padrão do servidor (16 desde o Item 15) e a N de um teste guardava itens no baú do teste vizinho (`raceFuzz` e `twoPlayersQuickStackSameChest` falhavam juntos, conforme a ordem) | média (teste instável, não bug do mod) | `fabric/src/gametest/.../Lab.java:66` | **corrigido** (jogador simulado nasce com raio 8; quem precisa de outro raio já define) |
 | 8 | 3 Fontes | Baú duplo na borda de um chunk não carregado: ler a outra metade carregava o chunk à força | média (tranco de tick, raro) | `source/NearbyContainers.java:126` | **corrigido** (`getChunkNow` antes) — sem teste automático: o GameTest não controla quais chunks estão carregados |
 | 9 | 9 Dados | `SlotLockSync` segurava o jogador na memória para sempre se ele saísse com um baú aberto (valor forte num `WeakHashMap`) | baixa | `slotlock/SlotLockSync.java:31` | **corrigido** (referência fraca ao menu) — sem teste: depende do coletor de lixo |
 | 10 | 1/7/9 | Preferências por jogador nunca saíam da memória | baixa | `config/PlayerPrefsStore.java:15` | **corrigido** (`StashLink.onPlayerLeave` nos dois loaders; o cliente reenvia ao entrar) |
@@ -73,9 +73,22 @@ com shulker do inventário cheia; Organizar e travar slot em tela falsa de outro
 Medido pelo GameTest `StashLinkGameTests` (289 containers, raio 32; linha `[STASHLINK-PERF]` no log do CI, passo
 `:fabric:runGameTest`). Teto do projeto: 5 ms por operação e 0,05 ms parado.
 
-| Medição | Antes | Depois |
-|---------|-------|--------|
-| (preenchido com o log do CI deste PR) | — | — |
+Valores em microssegundos, média / pior de 100 repetições, no runner do GitHub (máquina compartilhada: o "pior" varia
+muito de uma execução para outra por causa de JIT e coletor de lixo).
+
+| Operação | Antes (`main`, CI de `cefa146`) | Depois (este PR, CI de `2477e56`) |
+|----------|-------------------------------|-----------------------------------|
+| find | 371 / 1394 | 692 / 4035 |
+| findAll | 181 / 553 | 319 / 3119 |
+| quickStack (N) | 2090 / 8086 | 1654 / 4730 |
+| refill (pior caso) | 414 / 1069 | 236 / 733 |
+| pull (item ausente) | 736 / 4135 | 500 / 2569 |
+| idleTick | 1 | 0 |
+
+Todas as médias continuam abaixo de 5 ms (5000 µs). As diferenças entre as colunas são ruído do runner (umas subiram,
+outras desceram, sem mudança no caminho medido); uma segunda execução no mesmo CI deu, por exemplo, quickStack
+2801 / 107149, com um pico isolado de 107 ms no pior caso. Isso mostra que o "pior" no CI não serve como medida fina,
+e por isso o Item 25 pede `spark` num servidor de verdade.
 
 **Nenhuma otimização entrou nesta revisão.** A regra é "sem ganho medido, não entra", e este ambiente não consegue
 rodar o jogo (rede bloqueada para os repositórios do Fabric/NeoForge). As correções não mexem no caminho quente; a única

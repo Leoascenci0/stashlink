@@ -676,7 +676,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Revisão completa feita (2026-10-05, `docs/REVISAO-1.0.md`):** 9 áreas revisadas; corrigidos com teste 1 perda de item
   (balde/tigela/garrafa vazia no reabastecimento), 1 dupe (W em tela falsa de outro mod), shulker dentro de shulker colocada, 3 cadeados contornáveis por
   pacote forjado, rótulo de baú duplo, chunk carregado à força, 2 vazamentos de memória, 2 mixins frágeis e botões fora
-  da tela; o CI passou a rodar os GameTests. Achados maiores viraram os Itens 23–25 (depois da 1.0).
+  da tela, e testes que se misturavam com o vizinho. Achados maiores viraram os Itens 23–25 (depois da 1.0).
   Falta (Eliel): GIFs, ícone novo, tag `v1.0.0` e publicação.
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
