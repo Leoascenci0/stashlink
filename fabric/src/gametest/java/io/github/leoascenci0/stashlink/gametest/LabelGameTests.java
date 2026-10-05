@@ -14,6 +14,7 @@ import io.github.leoascenci0.stashlink.platform.Services;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -27,7 +28,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -249,6 +253,33 @@ public class LabelGameTests {
         sync(lab);
         check(h, holos(lab, pos).isEmpty() && EnderLabels.of(lab.level).get(lab.level, pos).isEmpty(), "limpar apaga do mundo");
         lab.level.removeBlock(pos, false);
+        sync(lab);
+        h.succeed();
+    }
+
+    /** Revisão 1.0: baú rotulado sozinho e depois emendado com outro não perde o nome nem o holograma. */
+    @GameTest
+    public void chestLabeledAloneKeepsItsLabelWhenItBecomesDouble(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        BlockPos left = abs(lab, 2, 2, 2);
+        BlockPos right = abs(lab, 3, 2, 2);
+        BlockState base = Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.NORTH);
+        lab.level.setBlock(right, base, 3);
+        ServerPlayer p = player(lab, 4, 2, 4);
+        check(h, set(p, right, "Sozinho", "antes"), "gravou no baú simples");
+        sync(lab);
+        // Coloca a outra metade: vira baú duplo (a block entity da metade rotulada continua a mesma).
+        lab.level.setBlock(right, base.setValue(ChestBlock.TYPE, ChestType.RIGHT), 3);
+        lab.level.setBlock(left, base.setValue(ChestBlock.TYPE, ChestType.LEFT), 3);
+        check(h, Labels.get(lab.level.getBlockEntity(left)).name().equals("Sozinho")
+                && Labels.get(lab.level.getBlockEntity(right)).name().equals("Sozinho"),
+                "as duas metades mostram o mesmo nome: " + Labels.get(lab.level.getBlockEntity(left)));
+        sync(lab);
+        sync(lab);                                                           // 2º ciclo: a âncora entrou na vigia
+        List<Display.TextDisplay> list = holos(lab, left);
+        check(h, list.size() == 1, "um holograma no baú duplo, achei " + list.size());
+        lab.level.removeBlock(left, false);
+        lab.level.removeBlock(right, false);
         sync(lab);
         h.succeed();
     }

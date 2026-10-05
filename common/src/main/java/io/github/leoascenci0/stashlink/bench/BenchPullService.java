@@ -69,6 +69,10 @@ public final class BenchPullService {
         }
 
         ItemStack model = request.item().copyWithCount(1);
+        // Só o que o painel mostraria (mesmos filtros e cadeados): o cliente do mod nunca pede outra coisa.
+        if (!BenchSync.listed(menu, player, model)) {
+            return;
+        }
         // Trocou de item no painel: o que está no cursor e veio do armazenamento volta ao baú de origem.
         if (!menu.getCarried().isEmpty() && !ItemStack.isSameItemSameComponents(menu.getCarried(), model)) {
             BenchLedger.returnCursor(player);

@@ -65,7 +65,7 @@ public class StashLinkNeoForge {
         // Sair com a estação aberta (ou parar o servidor) devolve o emprestado ao baú antes do save do jogador.
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedOutEvent event) -> {
             if (event.getEntity() instanceof ServerPlayer player) {
-                BenchSync.release(player);
+                StashLink.onPlayerLeave(player);
             }
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> BenchSync.releaseAll(event.getServer()));

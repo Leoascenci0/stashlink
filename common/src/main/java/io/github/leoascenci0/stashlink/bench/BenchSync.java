@@ -11,6 +11,7 @@ import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -159,6 +160,34 @@ public final class BenchSync {
         return PlayerPrefsStore.includeChests(player) ? PlayerPrefsStore.radius(player) : 0;
     }
 
+    /**
+     * O painel desta estação mostraria este item? O servidor usa a mesma regra ao atender um pedido, para um
+     * cliente adulterado não pegar o que o painel esconde (ex.: combustível com a aba trancada).
+     */
+    public static boolean listed(AbstractContainerMenu menu, ServerPlayer player, ItemStack item) {
+        return listed(menu, player, item, FeatureGate.allowSilently(player, Feature.BENCH_LAPIS),
+                FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER),
+                FeatureGate.allowSilently(player, Feature.BENCH_FUEL));
+    }
+
+    private static boolean listed(AbstractContainerMenu menu, ServerPlayer player, ItemStack item,
+                                  boolean autoLapis, boolean bookFilter, boolean fuelTab) {
+        if (!BenchCompat.relevant(menu, player, item)) {
+            return false;
+        }
+        // Lápis automático ligado: o lápis não aparece no painel (o servidor o põe sozinho).
+        if (autoLapis && BenchCompat.isLapisFor(menu, item)) {
+            return false;
+        }
+        // Fornalhas: a aba Combustível é uma função própria (desligada, o combustível não aparece).
+        if (!fuelTab && BenchCompat.furnaceKind(menu) != null
+                && BenchCompat.slotTab(menu, player, item) == BenchCompat.fuelTab(menu)) {
+            return false;
+        }
+        // Bigorna: com um item no 1º slot, só os livros com encantamento que serve nele.
+        return !bookFilter || BenchCompat.bookFits(menu, item);
+    }
+
     private static List<BenchPoolSync.Entry> build(ServerPlayer player) {
         AbstractContainerMenu menu = player.containerMenu;
         if (BenchResults.supports(menu)) {
@@ -169,20 +198,7 @@ public final class BenchSync {
         boolean bookFilter = FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER);
         boolean fuelTab = FeatureGate.allowSilently(player, Feature.BENCH_FUEL);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
-            if (!BenchCompat.relevant(menu, player, stack.item())) {
-                continue;
-            }
-            // Lápis automático ligado: o lápis não aparece no painel (o servidor o põe sozinho).
-            if (autoLapis && BenchCompat.isLapisFor(menu, stack.item())) {
-                continue;
-            }
-            // Fornalhas: a aba Combustível é uma função própria (desligada, o combustível não aparece).
-            if (!fuelTab && BenchCompat.furnaceKind(menu) != null
-                    && BenchCompat.slotTab(menu, player, stack.item()) == BenchCompat.fuelTab(menu)) {
-                continue;
-            }
-            // Bigorna: com um item no 1º slot, só os livros com encantamento que serve nele.
-            if (bookFilter && !BenchCompat.bookFits(menu, stack.item())) {
+            if (!listed(menu, player, stack.item(), autoLapis, bookFilter, fuelTab)) {
                 continue;
             }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,

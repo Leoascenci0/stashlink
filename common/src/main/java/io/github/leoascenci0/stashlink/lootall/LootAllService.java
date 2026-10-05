@@ -8,12 +8,15 @@ import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.PlayerEnderChestContainer;
 import net.minecraft.world.inventory.ShulkerBoxMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +50,15 @@ public final class LootAllService {
         return menu instanceof ChestMenu || menu instanceof ShulkerBoxMenu;
     }
 
+    /**
+     * Container de armazenamento de verdade (bloco no mundo, baú duplo ou baú do End)? Telas de outros mods (lojas,
+     * kits, seletores) também usam {@link ChestMenu}, mas sobre um container "de mentira" cujos itens são só
+     * vitrine: puxar deles daria item de graça (Revisão 1.0).
+     */
+    public static boolean isWorldStorage(Container c) {
+        return c instanceof BlockEntity || c instanceof CompoundContainer || c instanceof PlayerEnderChestContainer;
+    }
+
     private static void process(ServerPlayer player) {
         AbstractContainerMenu menu = player.containerMenu;
         if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu || !isSupportedMenu(menu)
@@ -68,6 +80,9 @@ public final class LootAllService {
         List<Container> containers = new ArrayList<>();
         for (Slot slot : menu.slots) {
             if (slot.container != inventory && !containers.contains(slot.container)) {
+                if (!isWorldStorage(slot.container)) {
+                    return;   // tela de outro mod: o W não mexe
+                }
                 containers.add(slot.container);
             }
         }

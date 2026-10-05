@@ -626,6 +626,25 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Revisão 1.0: pedido forjado de cursor respeita os mesmos filtros do painel (aqui: aba Combustível trancada). */
+    @GameTest
+    public void cursorRequestRespectsTheFuelLock(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        Lab.fill(chest, 0, Items.COAL, 10);
+        FurnaceMenu menu = new FurnaceMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        // Trancar e pedir no mesmo tick: os testes rodam lado a lado e o clean() dos outros destranca tudo.
+        StashLinkConfig.setFeatureLocked(Feature.BENCH_FUEL, true);
+        BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.COAL), false));
+        check(h, menu.getCarried().isEmpty() && Lab.count(chest, Items.COAL) == 10,
+                "combustível trancado: o carvão não vem ao cursor: " + menu.getCarried());
+        p.containerMenu = p.inventoryMenu;
+        clean(lab, h);
+    }
+
     @GameTest
     public void panelPutsOneStackOnTheCursor(GameTestHelper h) {
         Lab lab = new Lab(h);
@@ -1701,8 +1720,15 @@ public class BenchGameTests {
             StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);
             BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PAY));
             check(h, menu.getSlot(0).getItem().isEmpty() && Lab.count(chest, Items.DIAMOND) == 3, "trancado: nada sai");
-            p.containerMenu = p.inventoryMenu;
-            clean(lab, h);
+            h.runAfterDelay(2, () -> {
+                // Revisão 1.0: pedido forjado "pôr no slot" (PLACE) também respeita o cadeado do sinalizador.
+                StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);
+                BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PLACE));
+                check(h, menu.getSlot(0).getItem().isEmpty() && Lab.count(chest, Items.DIAMOND) == 3,
+                        "trancado: PLACE também não põe pagamento: " + menu.getSlot(0).getItem());
+                p.containerMenu = p.inventoryMenu;
+                clean(lab, h);
+            });
         });
     }
 

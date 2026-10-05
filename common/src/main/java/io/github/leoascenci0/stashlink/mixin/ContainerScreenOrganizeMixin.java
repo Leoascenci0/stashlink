@@ -35,7 +35,8 @@ public abstract class ContainerScreenOrganizeMixin {
             return;
         }
         int containerId = self.getMenu().containerId;
-        int x = leftPos + imageWidth + 3;
+        // Janela estreita (GUI 4): encosta na borda direita em vez de sair da tela.
+        int x = Math.max(0, Math.min(leftPos + imageWidth + 3, self.width - 56 - 2));
         ScreenInvoker invoker = (ScreenInvoker) (Object) this;
         Button organize = Button.builder(Component.translatableWithFallback("stashlink.organize.button", "Organize"),
                 b -> OrganizeClient.organizeChest(containerId)).bounds(x, topPos + 4, 56, 14).build();

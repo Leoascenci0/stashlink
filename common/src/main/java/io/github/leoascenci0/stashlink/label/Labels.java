@@ -28,7 +28,21 @@ public final class Labels {
         return be instanceof LabelHolder || be instanceof EnderChestBlockEntity;
     }
 
+    /**
+     * O rótulo do bloco. Baú duplo: o da âncora, ou o da outra metade se a âncora não tem (baú rotulado sozinho e
+     * depois emendado com outro: sem isso o nome sumia do holograma e o editor mostrava nomes diferentes).
+     */
     public static Label get(BlockEntity be) {
+        List<BlockEntity> parts = group(be);
+        if (parts.size() < 2) {
+            return own(be);
+        }
+        boolean anchor = isAnchor(be);
+        Label first = own(anchor ? be : parts.get(1));
+        return first.isEmpty() ? own(anchor ? parts.get(1) : be) : first;
+    }
+
+    private static Label own(BlockEntity be) {
         if (be instanceof LabelHolder holder) {
             return holder.stashlink$label();
         }
@@ -43,7 +57,8 @@ public final class Labels {
         List<BlockEntity> out = new ArrayList<>();
         out.add(be);
         BlockPos other = partner(be);
-        if (other != null && be.getLevel() != null) {
+        // Só com o chunk da outra metade carregado: ler o rótulo nunca carrega chunk.
+        if (other != null && be.getLevel() != null && be.getLevel().isLoaded(other)) {
             BlockEntity second = be.getLevel().getBlockEntity(other);
             if (second != null && second.getType() == be.getType()) {
                 out.add(second);

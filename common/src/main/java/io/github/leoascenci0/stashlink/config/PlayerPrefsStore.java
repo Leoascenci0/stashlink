@@ -21,6 +21,11 @@ public final class PlayerPrefsStore {
         PREFS.put(player, prefs.sanitized());
     }
 
+    /** O jogador saiu: as preferências eram só da sessão (sem isto o mapa crescia a cada jogador novo). */
+    public static void remove(UUID player) {
+        PREFS.remove(player);
+    }
+
     private static PlayerPrefs of(ServerPlayer player) {
         return PREFS.getOrDefault(player.getUUID(), PlayerPrefs.NONE);
     }

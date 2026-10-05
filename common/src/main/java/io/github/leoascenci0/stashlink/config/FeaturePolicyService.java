@@ -58,11 +58,18 @@ public final class FeaturePolicyService {
         if (target == null) {
             return;
         }
+        if (StashLinkConfig.isFeatureLocked(target) == request.locked()) {
+            send(player);   // já estava assim: só corrige a tela de quem pediu
+            return;
+        }
         apply(player.level().getServer(), target, request.locked());
     }
 
     /** Tranca/destranca, grava e avisa todos. Usado pelo pedido da tela e pelo comando. */
     public static void apply(MinecraftServer server, Feature feature, boolean locked) {
+        if (StashLinkConfig.isFeatureLocked(feature) == locked) {
+            return;   // já está assim: não regrava o arquivo nem avisa todos (pedido repetido não vira escrita em disco)
+        }
         StashLinkConfig.setFeatureLocked(feature, locked);
         StashLinkConfig.save();
         broadcast(server);

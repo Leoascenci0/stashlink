@@ -34,9 +34,11 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 ### Segurança e desempenho
 - Toda mudança de item é feita e validada no servidor (distância, permissões e claims).
 - Testado em servidor com 2 jogadores, 289 containers e Carpet, sem duplicação nos cenários testados; varredura bem abaixo de 5 ms por operação com raio 32.
+- Revisão completa antes da publicação (`docs/REVISAO-1.0.md`): corrigido o reabastecimento que apagava o balde, a tigela ou a garrafa vazia, e fechados três atalhos pelos quais um cliente adulterado passava por um cadeado.
 
 ### Limites conhecidos
 - Modo cliente (servidor sem o mod) e a troca de slot do Litematica ainda sem teste em jogo.
 - NeoForge sem testes automáticos (os testes rodam no Fabric; o código é o mesmo).
 - Slot reservado não vale para funil nem para mods que mexem direto no container, e só funciona com o mod no servidor e no cliente.
 - O nome do baú usa só os símbolos que a fonte do jogo tem; emojis coloridos (📦) são descartados.
+- Com JEI, EMI ou REI, o painel das bancadas pode ficar por baixo da lista deles (compatibilidade planejada).

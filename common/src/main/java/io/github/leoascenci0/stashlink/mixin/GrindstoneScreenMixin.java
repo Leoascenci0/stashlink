@@ -25,7 +25,7 @@ public abstract class GrindstoneScreenMixin extends AbstractContainerScreen<Grin
      * {@code ordinal = 2}: os inteiros do método são, em ordem, mouseX (0), mouseY (1) e {@code xo} (2). Com 0 nenhuma
      * escrita era encontrada e o jogo caía ao carregar a tela.
      */
-    @ModifyVariable(method = "extractBackground", at = @At("STORE"), ordinal = 2)
+    @ModifyVariable(method = "extractBackground", at = @At("STORE"), ordinal = 2, require = 0)
     private int stashlink$backgroundFollowsLeftPos(int centered) {
         return this.leftPos;
     }
