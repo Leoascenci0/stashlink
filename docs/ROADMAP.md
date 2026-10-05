@@ -664,6 +664,14 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   `chestsReach32AndShulkersAreNeverBenchStorage` (baú a 20 entra com 32, baú a 40 não, e no padrão 16 o baú a 20 sai); a
   medição de desempenho (`StashLinkGameTests`, 289 containers) passou a rodar com raio 32.
 
+### Item 16.4 — Painel das bancadas também mostra a mochila ✅
+- **Branch:** `feat/painel-bancada-com-mochila` (pedido do Eliel, 2026-10-05, ao ver "Nada no raio de 0 blocos" na fornalha).
+- **Feito:** o painel lista **mochila + armazenamento** somados por tipo, mesmo com "Usar baús como fonte" desligado (esse era o
+  "raio 0": o ajuste estava em Não). O clique tira **da mochila primeiro**; o baú só completa o que faltar. O que sai da mochila
+  é do jogador e **não entra no caderno de emprestados** (nunca volta a baú). Rótulo do tooltip: "Disponível" (era "No baú").
+- **Limites conhecidos:** poções (suporte) e as listas de receita (cortador, tear...) continuam contando só o armazenamento; o
+  livro de receitas desconta a mochila da soma para não contar em dobro.
+
 ### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`
 - Último item do plano: só entra depois dos Itens 13–21 **e 23–25** (ordem nova do Eliel, 2026-10-05: o 22 só fecha depois do 25). Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).

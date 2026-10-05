@@ -126,7 +126,7 @@
   "stashlink.feature.bench_fuel.tip": "In the furnace, smoker and blast furnace, the Fuel tab (lava bucket) lists coal and other fuels from nearby storage; clicking puts it in the fuel slot.",
   "stashlink.bench.panel.empty": "Nothing usable nearby",
   "stashlink.bench.panel.tip": "Click: stack. Right-click: one. Shift+click: maximum.",
-  "stashlink.bench.panel.count": "In storage: %s",
+  "stashlink.bench.panel.count": "Available: %s",
   "stashlink.bench.panel.empty.radius": "Nothing within %s blocks",
   "stashlink.feature.state_locked": "Locked",
   "stashlink.feature.locked_here": "This feature is locked on this server",

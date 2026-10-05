@@ -126,7 +126,7 @@
   "stashlink.feature.bench_fuel.tip": "Na fornalha, no defumador e no alto-forno, a aba Combustível (balde de lava) lista carvão e outros combustíveis do armazenamento por perto; clicar põe no slot de combustível.",
   "stashlink.bench.panel.empty": "Nada por perto que sirva aqui",
   "stashlink.bench.panel.tip": "Clique: pilha. Botão direito: um. Shift+clique: máximo.",
-  "stashlink.bench.panel.count": "No baú: %s",
+  "stashlink.bench.panel.count": "Disponível: %s",
   "stashlink.bench.panel.empty.radius": "Nada no raio de %s blocos",
   "stashlink.feature.state_locked": "Trancada",
   "stashlink.feature.locked_here": "Esta função está trancada neste servidor",

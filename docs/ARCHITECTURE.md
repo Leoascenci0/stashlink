@@ -626,6 +626,17 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach32AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
   ajuste e deixar as shulkers servirem foram pegos.
 
+## Item 16.4 — o painel das bancadas lista a mochila (Eliel, 2026-10-05)
+
+- **Por quê:** com baús desligados (ou longe) o painel ficava vazio mesmo com itens na mochila; "Nada no raio de 0 blocos" era o
+  ajuste "Usar baús como fonte" em Não (`BenchSync.radiusFor` devolve 0).
+- **Como:** `BenchPool.listing()` = `backpackContents()` + `contents()`. Só o **painel de itens soltos** e o clique (`BenchResults.place`,
+  `BenchPullService`) usam isso. `contents()`/`plainCounts()` continuam só armazenamento: o jogo já conta a mochila ao craftar.
+- **Caderno (`BenchLedger`) só registra o que veio do armazenamento.** Mochila primeiro (`takeFromBackpack`), baú completa. Se a
+  mochila entrasse no caderno, ao fechar o mod devolveria itens próprios do jogador ao baú.
+- **Cliente:** `BenchClient.addTo` desconta a mochila do menu da contagem do livro de receitas (lista traz mochila + baú).
+- Testes: `panelListsTheBackpackAndTakesFromItFirst`; `furnaceKeepsBorrowedItemAndNeverTakesTheOwnersOwn` atualizado (mochila primeiro).
+
 ## Item 17 — Escolher o que cada baú recebe com a tecla N
 
 - **Dois filtros, duas perguntas.** (a) *Este baú aceita receber com a N?* — é do **baú** (botão na tela dele). (b) *Este

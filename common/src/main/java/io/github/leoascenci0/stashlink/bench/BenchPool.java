@@ -119,6 +119,58 @@ public final class BenchPool {
         return list;
     }
 
+    /**
+     * Os itens soltos da mochila e da barra (nunca o conteúdo de shulkers, nem armadura/mão), somados por tipo.
+     * Servem só ao painel das estações: o jogo já enxerga a mochila ao craftar, então {@link #contents()} e
+     * {@link #plainCounts()} continuam sendo só o armazenamento (senão o livro de receitas contaria duas vezes).
+     */
+    public List<Stack> backpackContents() {
+        Map<BenchCompat.Key, Stack> sums = new LinkedHashMap<>();
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (!stack.isEmpty()) {
+                sums.merge(BenchCompat.keyOf(stack), new Stack(stack.copyWithCount(1), stack.getCount()),
+                        (a, b) -> new Stack(a.item(), a.count() + b.count()));
+            }
+        }
+        return new ArrayList<>(sums.values());
+    }
+
+    /** A lista do painel: mochila + armazenamento, somados por tipo (a mochila entra mesmo com "usar baús" desligado). */
+    public List<Stack> listing() {
+        Map<BenchCompat.Key, Stack> sums = new LinkedHashMap<>();
+        for (List<Stack> part : List.of(backpackContents(), contents())) {
+            for (Stack s : part) {
+                sums.merge(BenchCompat.keyOf(s.item()), s, (a, b) -> new Stack(a.item(), a.count() + b.count()));
+            }
+        }
+        List<Stack> list = new ArrayList<>(sums.values());
+        list.sort(Comparator.<Stack, String>comparing(s -> BuiltInRegistries.ITEM.getKey(s.item().getItem()).toString())
+                .thenComparing(Comparator.comparingInt(Stack::count).reversed()));
+        return list;
+    }
+
+    /**
+     * Tira até {@code n} da mochila (slot a slot, do primeiro ao último). Sai da mochila sem passar pelo caderno de
+     * emprestados: é item do próprio jogador, não volta a baú nenhum.
+     */
+    public int takeFromBackpack(ItemStack model, int n) {
+        int taken = 0;
+        List<ItemStack> backpack = player.getInventory().getNonEquipmentItems();
+        for (int i = 0; i < backpack.size() && taken < n; i++) {
+            ItemStack stack = backpack.get(i);
+            if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, model)) {
+                continue;
+            }
+            int move = Math.min(stack.getCount(), n - taken);
+            stack.shrink(move);
+            if (stack.isEmpty()) {
+                backpack.set(i, ItemStack.EMPTY);
+            }
+            taken += move;
+        }
+        return taken;
+    }
+
     /** Só os itens comuns (os que o livro de receitas aceita), por quantidade. */
     public Map<Item, Integer> plainCounts() {
         Map<Item, Integer> out = new LinkedHashMap<>();
