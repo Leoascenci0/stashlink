@@ -11,7 +11,7 @@
   "stashlink.loot_all.empty": "The container is empty",
   "stashlink.config.title": "StashLink settings",
   "stashlink.config.radius.name": "Chests and workbenches",
-  "stashlink.config.radius.tip": "How far chests, barrels and workbenches reach (max 16)",
+  "stashlink.config.radius.tip": "How far chests, barrels and workbenches reach (default 16, max 32)",
   "stashlink.config.shulker_radius.name": "Shulkers",
   "stashlink.config.shulker_radius.tip": "How far placed shulker boxes reach (max 64)",
   "stashlink.config.blocks": "%s blocks",

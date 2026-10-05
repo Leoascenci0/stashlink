@@ -327,7 +327,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 ### Item 16 — Bancadas usam o armazenamento como inventário ✅
 - **Branch:** `feat/bancada-com-armazenamento`
 - Ideia: a bancada passa a enxergar os **containers próximos como se fossem o inventário do jogador**, para craftar
-  sem carregar os materiais. **Mesmo raio dos baús: 16 blocos** (2026-10-03), podendo subir com o Item 15 (conduíte, até 32). Shulkers colocadas têm raio próprio (padrão 32, a tela sobe até 64).
+  sem carregar os materiais. **Mesmo raio dos baús:** padrão 16, até 32 na tela de config (Item 15, 2026-10-05). Shulkers colocadas têm raio próprio (padrão 32, a tela sobe até 64).
 - **Outras bancadas também (ideia do Eliel, 2026-10-03):** o mesmo vale, com o **mesmo raio e as mesmas fontes**, para
   as demais estações: fornalha, defumador (smoker), alto-forno, mesa de ferreiro, cortador de pedra (stonecutter),
   tear, mesa de cartografia, pedra de amolar, bigorna, mesa de encantamento e suporte de poções. A investigação lista
@@ -351,7 +351,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 16"):** decisões do Eliel (2026-10-03): **todas as estações**; o livro
   de receitas acende + aviso na barra; mochila primeiro e baú só se faltar; (revisto em 2026-10-03: só baús e barris, nunca shulkers, e vale "usar baús como fonte").
   A função tem liga/desliga + cadeado (nova `Feature.BENCH`). Duas peças sobre as mesmas
-  fontes e o mesmo raio do jogador (`PlayerPrefsStore.radius`, o Item 15 só sobe o teto):
+  fontes e o mesmo raio do jogador (`PlayerPrefsStore.radius`; o Item 15 subiu o teto para 32):
   1. **Livro de receitas** (bancada, fornalha, defumador, alto-forno): um mixin em `ServerPlaceRecipe.placeRecipe` traz do
      armazenamento **só o que falta na mochila**, o jogo monta a receita sem mudar, e a sobra volta à origem. Com shift
      (máximo) também. O cliente com o mod soma o armazenamento na conta do livro (acende o que dá para fazer).
@@ -639,7 +639,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   `HoverCollectScreenMixin` + `HoverCollectClient` (cliente) + `HoverCollectPass` (regra de "um clique por passagem",
   testada). Só clique normal de inventário; só em baú/barril/shulker/ender chest; nunca em slot de resultado.
 
-### Item 15 — Raio de até 32 blocos com conduíte (conduit) perto do estoque ⬜
+### Item 15 — Raio de baús e bancadas até 32 blocos (sem conduíte) ✅
 - **Branch:** `feat/raio-32-conduite`
 - **Ordem:** penúltimo item do plano, logo antes da publicação (Item 22). Ordem escolhida pelo Eliel: 17, 19, 20, 21, 15, 22.
 - Ideia: o teto do raio de **baús, barris e bancadas** é **16** (`HARD_MAX_RADIUS`; decisão do Eliel, 2026-10-03: o 64 antigo
@@ -655,6 +655,14 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   descarregados continuam fora; nunca forçar carregar chunk). Ler o raio sempre por `PlayerPrefsStore.radius`.
 - **Pronto quando:** com conduíte perto o raio dos baús sobe até 32, sem ele fica em 16, e a medição com 289+ containers segue
   bem abaixo de 5 ms por operação.
+- **Decisão do Eliel (2026-10-05): a ideia do conduíte foi descartada** ("vai dar menos trabalho"). Ficou só o ajuste na tela
+  de config: raio de baús, barris e bancadas com **padrão 16** e **máximo 32** (`HARD_MAX_RADIUS = 32`, `DEFAULT_RADIUS = 16`).
+  O dono do servidor ainda pode baixar o teto em `maxRadius`. Shulkers seguem com raio próprio (padrão 32, até 64).
+- **Feito:** `StashLinkConfig` (teto 32, padrão 16, campo `configVersion` = 2 no arquivo: arquivo antigo que ainda tem os
+  padrões de antes, teto 16 e raio 8, passa sozinho a 32 e 16; valor escolhido pelo dono fica), textos da tela nos dois idiomas
+  ("padrão 16, máximo 32"). Testes: 4 unitários novos em `StashLinkConfigTest`; o GameTest da bancada virou
+  `chestsReach32AndShulkersAreNeverBenchStorage` (baú a 20 entra com 32, baú a 40 não, e no padrão 16 o baú a 20 sai); a
+  medição de desempenho (`StashLinkGameTests`, 289 containers) passou a rodar com raio 32.
 
 ### Item 22 — Release 1.0 (publicação) ⬜
 - **Branch:** `chore/publicar-1.0`

@@ -222,7 +222,7 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Política de concorrência.** O servidor roda tudo numa thread, então não há corrida de dados; a invariante "soma de
   itens não muda" se mantém. Só a tecla N pula baú aberto por outro jogador; reabastecer e pedir item podem tirar de
   baú aberto por outro (como um funil). Baú com bloco em cima ainda é fonte (limite documentado).
-- **Desempenho** (289 containers, raio 16, 100 repetições, média/pior em µs): find 181/1438, findAll 75/231,
+- **Desempenho** (289 containers, raio 16 — desde o Item 15 o harness mede com 32 —, 100 repetições, média/pior em µs): find 181/1438, findAll 75/231,
   N 297/1770, reabastecer 226/7833 (pior caso = JIT frio), pedir item ausente 403/2263, tick parado ~0. Orçamento:
   média < 5 ms (10% de um tick de 50 ms). Mede custo por operação, não TPS global; fecha o "sem queda de TPS com
   200+ containers" do Item 6.
@@ -540,7 +540,7 @@ fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na i
 - Só itens **comuns** (sem dano, encantamento ou nome) alimentam o livro, como no jogo base; o painel mostra tudo, inclusive
   item encantado (para bigorna, ferreiro e amolar).
 - A lista do painel tem teto de 512 tipos de item por pacote; passando disso o corte é feito depois de ordenar (disponíveis primeiro, depois id do registro), então não depende da ordem da varredura. Painel: esquerdo = pilha, direito = um, Shift+esquerdo = máximo (para item solto e para receita; o servidor só distingue "um" de "o que cabe").
-- O raio é o do jogador (`PlayerPrefsStore.radius`, padrão 8, teto 64); o Item 15 só muda o teto.
+- O raio é o do jogador (`PlayerPrefsStore.radius`, padrão 16, teto 32 desde o Item 15).
 - Os mixins de cliente (`RecipeBookComponentMixin` e as novas partes de `AbstractContainerScreenMixin`) só se conferem no
   jogo: o `runClientGameTest` não roda nesta máquina.
 - **Suspeita (ServerPlayerMixin na lista "server"):** no Fabric a lista `"server"` do arquivo de mixins vale só para o
@@ -558,12 +558,24 @@ fornalha). Funil, dispenser e dropper ficam de fora de propósito (decidido na i
 ## Raios por tipo de container (Eliel, 2026-10-03)
 
 O raio único de até 64 estava desbalanceado (a bancada alcançava baús a 50 blocos). Agora são dois:
-- **Baús, barris e bancadas:** teto duro 16 (`StashLinkConfig.HARD_MAX_RADIUS`), padrão 8. O Item 15 (conduíte) vai subir o teto para 32.
+- **Baús, barris e bancadas:** teto duro 32 (`StashLinkConfig.HARD_MAX_RADIUS`), padrão 16 (`DEFAULT_RADIUS`), desde o Item 15 (ver abaixo).
 - **Shulkers colocadas:** raio próprio, padrão 32 (`StashLinkConfig.shulkerRadius`), a tela deixa subir até 64 (`HARD_MAX_SHULKER_RADIUS`);
   o servidor pode baixar o teto em `maxShulkerRadius`. É uma preferência por jogador (`PlayerPrefs.shulkerRadius`, quinto campo do pacote).
 - `NearbyContainers.collect` varre os chunks do maior raio e confere cada tipo com o seu. A bancada usa as mesmas fontes e os mesmos raios:
   não existe raio só de bancada.
-- Teste: `chestsReach16AndShulkersReach32` (baú a 6 entra; baú a 20 não; shulker a 30 entra; a 40 não, com raio pedido 50).
+- Teste: `chestsReach32AndShulkersAreNeverBenchStorage` (com raio pedido 50, que vira 32: baús a 6 e a 20 entram, baú a 40 não,
+  shulker nenhuma; no padrão 16 o baú a 20 sai).
+
+## Item 15 — raio de baús e bancadas até 32 (Eliel, 2026-10-05)
+
+O plano era liberar 32 blocos só com um conduíte ativo perto do estoque. O Eliel descartou a ideia ("vai dar menos trabalho"):
+o teto do código passou a 32 (`HARD_MAX_RADIUS`) e o padrão a 16 (`DEFAULT_RADIUS`), escolhidos na tela de config (slider) ou por
+`/stashlink radius`. O dono do servidor ainda baixa o teto em `maxRadius`, e o cadeado do ajuste continua valendo.
+- **Arquivo antigo:** o `stashlink.json` grava os padrões, então quem já tinha o mod ficaria preso em 16 (o `maxRadius: 16`
+  gravado). O arquivo ganhou `configVersion` (2). Sem ele (arquivo de antes), `maxRadius` 16 vira 32 e `sourceRadius` 8 vira 16;
+  qualquer outro valor é escolha do dono e fica. O arquivo gravado depois já sai com a versão 2, então um 16 escolhido depois não muda.
+- **Custo:** a varredura já olhava os chunks do raio das shulkers (32 por padrão), então raio 32 para baús não aumenta os chunks
+  lidos; só mais containers passam no filtro de distância. A medição de 289 containers passou a rodar com raio 32.
 - **Cadeado nos ajustes (Eliel, 2026-10-03):** os três ajustes da aba Ajustes (raio de baús/bancadas, raio de shulkers, usar baús)
   ganharam o mesmo cadeado das funções. São entradas do enum `Feature` marcadas como `isSetting()` (sem liga/desliga, só cadeado),
   então reaproveitam a máscara, o pacote `SetFeatureLockRequest`, o `/stashlink feature radius|shulker_radius|chests lock|unlock` e a
@@ -611,7 +623,7 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **"Usar baús como fonte" vale para a bancada**: com o ajuste em Não, ela não enxerga armazenamento nenhum (painel "Nada por perto").
   Antes a função ignorava esse ajuste porque tinha o próprio liga/desliga; agora vale o ajuste e o liga/desliga.
 - Devolver itens emprestados (caderno) continua possível mesmo se o ajuste for desligado no meio: o item volta a quem o emprestou.
-- Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach16AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
+- Testes: `chestsOffBlocksTheBench`, `shulkersNeverServeTheBench`, `chestsReach32AndShulkersAreNeverBenchStorage`. Mutação: ignorar o
   ajuste e deixar as shulkers servirem foram pegos.
 
 ## Item 17 — Escolher o que cada baú recebe com a tecla N

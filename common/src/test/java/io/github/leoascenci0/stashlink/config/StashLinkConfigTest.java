@@ -75,9 +75,50 @@ class StashLinkConfigTest {
 
     @Test
     void serverCapLimitsRadiusFromFile() {
-        StashLinkConfig.fromJson("{\"sourceRadius\":50,\"maxRadius\":16}");
+        StashLinkConfig.fromJson("{\"configVersion\":2,\"sourceRadius\":50,\"maxRadius\":16}");
         assertEquals(16, StashLinkConfig.sourceRadius);
         assertEquals(16, StashLinkConfig.effectiveRadius());
+    }
+
+    /** Item 15: padrão 16, teto do código 32 (sem conduíte). */
+    @Test
+    void defaultRadiusIs16AndCodeCapIs32() {
+        assertEquals(16, StashLinkConfig.DEFAULT_RADIUS);
+        assertEquals(32, StashLinkConfig.HARD_MAX_RADIUS);
+        StashLinkConfig.fromJson("{\"configVersion\":2}");
+        assertEquals(16, StashLinkConfig.sourceRadius);
+        assertEquals(32, StashLinkConfig.radiusCap());
+        StashLinkConfig.maxRadius = StashLinkConfig.HARD_MAX_RADIUS;
+        assertTrue(StashLinkConfig.trySetRadius(32));
+        assertFalse(StashLinkConfig.trySetRadius(33));
+    }
+
+    /** Arquivo de antes do Item 15 com os padrões antigos (teto 16, raio 8) ganha os novos (32 e 16). */
+    @Test
+    void oldFileWithOldDefaultsIsUpgraded() {
+        StashLinkConfig.fromJson("{\"sourceRadius\":8,\"maxRadius\":16}");
+        assertEquals(32, StashLinkConfig.maxRadius);
+        assertEquals(16, StashLinkConfig.sourceRadius);
+    }
+
+    /** Arquivo antigo com valores escolhidos pelo dono do servidor: nada muda. */
+    @Test
+    void oldFileWithChosenValuesIsKept() {
+        StashLinkConfig.fromJson("{\"sourceRadius\":5,\"maxRadius\":12}");
+        assertEquals(12, StashLinkConfig.maxRadius);
+        assertEquals(5, StashLinkConfig.sourceRadius);
+    }
+
+    /** O arquivo gravado agora já diz a versão nova, então "16" escolhido depois não volta a virar 32. */
+    @Test
+    void savedFileCarriesTheNewVersion() {
+        StashLinkConfig.maxRadius = 16;
+        StashLinkConfig.sourceRadius = 8;
+        String json = StashLinkConfig.toJson();
+        assertTrue(json.contains("\"configVersion\": 2"), json);
+        StashLinkConfig.fromJson(json);
+        assertEquals(16, StashLinkConfig.maxRadius);
+        assertEquals(8, StashLinkConfig.sourceRadius);
     }
 
     @Test
