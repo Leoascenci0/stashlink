@@ -122,6 +122,11 @@ public final class NearbyContainers {
         double distSq = distSq(player, pos);
         if (state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
             BlockPos otherPos = ChestBlock.getConnectedBlockPos(pos, state);
+            // A outra metade pode estar num chunk que não está carregado: aí o baú fica de fora (ler a block entity
+            // ou o bloco de lá carregaria o chunk à força).
+            if (level.getChunkSource().getChunkNow(otherPos.getX() >> 4, otherPos.getZ() >> 4) == null) {
+                return;
+            }
             // A metade que não veio no mapa deste chunk pode estar em outro chunk; também precisa estar liberada.
             if (!(level.getBlockEntity(otherPos) instanceof ChestBlockEntity other) || !usable(other)) {
                 return;

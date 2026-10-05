@@ -239,6 +239,10 @@ public final class BenchResults {
             if (BenchCompat.isFuelSlot(menu, slot) && !FeatureGate.allow(player, Feature.BENCH_FUEL)) {
                 break;
             }
+            // Pagamento do sinalizador: mesmo cadeado do botão de pagamento, também para pedido "pôr no slot".
+            if (slot == BenchCompat.beaconPaymentSlot(menu) && !FeatureGate.allow(player, Feature.BENCH_BEACON)) {
+                break;
+            }
             ItemStack inside = slot.getItem();
             if (!inside.isEmpty() && !ItemStack.isSameItemSameComponents(inside, model)) {
                 continue;

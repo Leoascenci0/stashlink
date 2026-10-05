@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink.quickstack;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.ReceivesRequest;
 import io.github.leoascenci0.stashlink.platform.Services;
@@ -46,6 +48,10 @@ public final class QuickStackReceiveService {
         if (!player.isAlive() || player.isSpectator() || menu == player.inventoryMenu
                 || menu.containerId != request.containerId() || !LootAllService.isSupportedMenu(menu)
                 || !menu.stillValid(player)) {
+            return;
+        }
+        // O botão é parte da tecla N: com ela trancada ou desligada, o servidor não muda nada (Revisão 1.0).
+        if (!FeatureGate.allow(player, Feature.QUICK_STACK)) {
             return;
         }
         Container container = storageOf(player, menu);

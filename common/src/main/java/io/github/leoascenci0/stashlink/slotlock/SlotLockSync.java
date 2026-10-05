@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.lang.ref.WeakReference;
 
 /**
  * Mantém o cliente com o mod sabendo quais slots do container aberto estão reservados. A cada tick, para cada
@@ -26,7 +27,11 @@ import java.util.WeakHashMap;
  * a quem registrou o pacote) e enxerga o slot simplesmente vazio.
  */
 public final class SlotLockSync {
-    private record Sent(AbstractContainerMenu menu, List<SlotLocksSync.Entry> entries, boolean receives) {
+    /**
+     * O menu fica numa referência fraca: o menu segura o inventário e o jogador, e um valor forte num WeakHashMap
+     * impediria a chave (o jogador) de ser coletada (quem saía com o baú aberto ficava na memória; Revisão 1.0).
+     */
+    private record Sent(WeakReference<AbstractContainerMenu> menu, List<SlotLocksSync.Entry> entries, boolean receives) {
     }
 
     /** Por identidade do jogador: relogar cria outro objeto e o antigo é coletado sozinho. */
@@ -54,12 +59,12 @@ public final class SlotLockSync {
         List<SlotLocksSync.Entry> now = snapshot(player, menu);
         Sent last = SENT.get(player);
         boolean receives = receives(player, menu);
-        boolean same = last != null && last.menu() == menu
+        boolean same = last != null && last.menu().get() == menu
                 ? last.entries().equals(now) && last.receives() == receives : now.isEmpty() && receives;
         if (same) {
             return;
         }
-        SENT.put(player, new Sent(menu, now, receives));
+        SENT.put(player, new Sent(new WeakReference<>(menu), now, receives));
         Services.PLATFORM.sendIfSupported(player, new SlotLocksSync(menu.containerId, now, receives));
     }
 

@@ -135,9 +135,12 @@ public abstract class RecipeBookComponentMixin {
     }
 
     /** Depois de contar a mochila e a grade, antes de marcar o que dá para fazer: soma o armazenamento. */
+    // require = 0: se outro mod ou uma versão nova mudar o método, o livro só deixa de somar o armazenamento
+    // (a montagem da receita continua no servidor); o jogo não cai ao abrir a bancada.
     @Inject(method = "updateStackedContents",
             at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/screens/recipebook/RecipeBookComponent;selectMatchingRecipes()V"))
+                    target = "Lnet/minecraft/client/gui/screens/recipebook/RecipeBookComponent;selectMatchingRecipes()V"),
+            require = 0)
     private void stashlink$countStorage(CallbackInfo ci) {
         BenchClient.addTo(stackedContents, menu);
     }

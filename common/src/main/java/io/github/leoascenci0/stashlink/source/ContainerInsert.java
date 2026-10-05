@@ -4,6 +4,7 @@ import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 
 /**
  * Guardar itens num {@link Container} qualquer, em dois passos: primeiro <b>simular</b> ({@link #capacity}: quanto
@@ -16,6 +17,11 @@ public final class ContainerInsert {
 
     /** O slot aceita o item? O container concorda e o slot não está reservado para outro item (Item 13). */
     private static boolean accepts(Container c, int slot, ItemStack stack) {
+        // Shulker colocada nunca recebe shulker (nem nada que não cabe em item de container): o jogo não deixa pela
+        // GUI, mas o canPlaceItem do bloco não confere; sem isto, uma reserva de slot levava shulker para dentro.
+        if (c instanceof ShulkerBoxBlockEntity && !stack.getItem().canFitInsideContainerItems()) {
+            return false;
+        }
         return c.canPlaceItem(slot, stack) && SlotLocks.mayPlace(c, slot, stack);
     }
 

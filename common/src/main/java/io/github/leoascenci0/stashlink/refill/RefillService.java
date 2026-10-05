@@ -104,22 +104,24 @@ public final class RefillService {
         if (refill.isEmpty()) {
             return;
         }
-        // Mão com o recipiente vazio (balde, tigela, garrafa): guarda no inventário para abrir espaço.
-        ItemStack leftover = player.getItemInHand(hand);
+        // Mão com o recipiente vazio (balde, tigela, garrafa): o item novo entra na mão primeiro e só depois o
+        // recipiente vai para o inventário. Na ordem contrária o inventário podia guardar o recipiente na própria mão
+        // (juntando, ou por ser o primeiro slot vazio) e o item novo por cima o apagava (Revisão 1.0). Com a mão
+        // ocupada pelo item novo (sempre outro item), o recipiente só pode ir para outro slot.
+        ItemStack leftover = player.getItemInHand(hand).copy();
+        // O servidor sincroniza o slot alterado com o cliente no próximo envio de inventário do jogador.
+        player.setItemInHand(hand, refill);
         if (!leftover.isEmpty()) {
             ItemStack toStore = leftover.copy();
             if (!player.getInventory().add(toStore) || !toStore.isEmpty()) {
-                // Sem lugar: desfaz, nada some (o recipiente continua na mão, o estoque volta à shulker).
+                // Sem lugar: desfaz, nada some (o recipiente volta à mão, o estoque volta à shulker).
                 // Se o inventário guardou só parte do stack, a mão fica só com o que sobrou (senão duplicaria).
-                leftover.setCount(toStore.getCount());
+                player.setItemInHand(hand, toStore);
                 ItemStack rest = sources.give(refill);
                 if (!rest.isEmpty()) {
                     McCompat.placeBackInInventory(player, rest);
                 }
-                return;
             }
         }
-        // O servidor sincroniza o slot alterado com o cliente no próximo envio de inventário do jogador.
-        player.setItemInHand(hand, refill);
     }
 }

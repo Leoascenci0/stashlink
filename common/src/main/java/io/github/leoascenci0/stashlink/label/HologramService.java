@@ -13,8 +13,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,6 +82,7 @@ public final class HologramService {
         // quando o cadeado abre).
         boolean shown = !StashLinkConfig.isFeatureLocked(Feature.LABEL);
         Map<Key, Desired> desired = new HashMap<>();
+        List<BlockEntity> anchors = new ArrayList<>();
         synchronized (TRACKED) {
         for (Iterator<BlockEntity> it = TRACKED.iterator(); it.hasNext(); ) {
             BlockEntity be = it.next();
@@ -97,8 +100,13 @@ public final class HologramService {
             } else if (shown && Labels.isAnchor(be)) {
                 desired.put(new Key(level.dimension().identifier().toString(), be.getBlockPos().asLong()),
                         new Desired(level, Labels.hologramPos(be), label));
+            } else if (shown) {
+                // Metade rotulada que não é a âncora (ex.: baú emendado depois do rótulo): a âncora passa a ser
+                // vigiada e mostra o holograma no próximo ciclo.
+                anchors.addAll(Labels.group(be));
             }
         }
+        TRACKED.addAll(anchors);
 
         }
 

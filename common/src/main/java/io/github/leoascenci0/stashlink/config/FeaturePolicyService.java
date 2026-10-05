@@ -63,6 +63,9 @@ public final class FeaturePolicyService {
 
     /** Tranca/destranca, grava e avisa todos. Usado pelo pedido da tela e pelo comando. */
     public static void apply(MinecraftServer server, Feature feature, boolean locked) {
+        if (StashLinkConfig.isFeatureLocked(feature) == locked) {
+            return;   // já está assim: não regrava o arquivo nem avisa todos (pedido repetido não vira escrita em disco)
+        }
         StashLinkConfig.setFeatureLocked(feature, locked);
         StashLinkConfig.save();
         broadcast(server);

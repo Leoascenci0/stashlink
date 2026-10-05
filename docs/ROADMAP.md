@@ -673,7 +673,41 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   descrição do mod em `gradle.properties` (antes era o texto do modelo e apareceria na lista de mods). Em `docs/publicacao/`:
   página da loja (en e pt), prompt do ícone e sugestões de nome, e o prompt da revisão completa, que roda **antes** da tag.
   Falta (Eliel): revisão completa, GIFs, ícone novo, tag `v1.0.0` e publicação.
+- **Revisão completa feita (2026-10-05, `docs/REVISAO-1.0.md`):** 9 áreas revisadas; corrigidos com teste 1 perda de item
+  (balde/tigela/garrafa vazia no reabastecimento), shulker dentro de shulker colocada, 3 cadeados contornáveis por
+  pacote forjado, rótulo de baú duplo, chunk carregado à força, 2 vazamentos de memória, 2 mixins frágeis e botões fora
+  da tela; o CI passou a rodar os GameTests. Achados maiores viraram os Itens 23–25 (depois da 1.0).
+  Falta (Eliel): GIFs, ícone novo, tag `v1.0.0` e publicação.
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
+
+## Depois do 1.0 (achados da revisão, `docs/REVISAO-1.0.md`)
+
+### Item 23 — Endurecer os pedidos ao servidor ⬜
+- **Branch:** `fix/pedidos-servidor`
+- **Telas falsas de outros mods:** W, Organizar, travar slot e Shift + passar aceitam qualquer `ChestMenu`. Mods que
+  montam menus (lojas, seletores) com um container "de mentira" seriam tratados como baú. Exigir que o container do
+  menu seja de um bloco de verdade (baú, barril, shulker, baú do End) — `LootAllService.isSupportedMenu`.
+- **Anti-flood** nos pedidos que ainda não têm: travar slot, rótulo (editar/gravar), botão N, preferências; bancada
+  com 2–3 ticks entre pedidos que varrem o raio.
+- `stashlink.json` quebrado: guardar cópia `.bak` antes de sobrescrever; versão futura do arquivo não é rebaixada.
+- **Pronto quando:** GameTest com menu de container falso (W não tira nada) e com rajada de pedidos (o servidor só
+  atende no ritmo do limite).
+
+### Item 24 — Compatibilidade com JEI, EMI e REI ⬜
+- **Branch:** `feat/compat-jei-emi-rei`
+- O painel "Armazenamento" das bancadas e os botões ao lado do baú não avisam esses mods de que ocupam aquele espaço
+  (zona de exclusão), então a lista de itens deles pode ficar por baixo. Plugin opcional por mod (só carrega se o mod
+  existir, como o Litematica), e parar de mexer em `Screen.width` se a zona resolver.
+- **Pronto quando:** com cada um dos três instalado, painel e lista não se sobrepõem em GUI 2 e 3.
+
+### Item 25 — Desempenho e acabamento das bancadas e rótulos ⬜
+- **Branch:** `perf/bancadas-rotulos`
+- Medir antes (`spark` ou o harness de 289 containers): bancada aberta com baús cheios refaz a varredura a cada 100
+  ticks mesmo sem mudança; N/Organizar com mod de claims; fontes só em baús com muitos jogadores. Só otimizar o que o
+  número mostrar.
+- Rótulos de baú do End: apagar quando o baú some e percorrer só os carregados.
+- Bigorna: ferramenta sempre no 1º slot, mesmo clicando no material primeiro.
+- **Pronto quando:** números antes/depois no PR; bigorna com GameTest da ordem.
 
 ## Como usar este roadmap
 

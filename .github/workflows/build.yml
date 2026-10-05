@@ -24,3 +24,5 @@ jobs:
             fabric/build/libs/*.jar
             neoforge/build/libs/*.jar
       - run: ./gradlew build --no-daemon
+      # GameTests (servidor de verdade, jogadores simulados): não fazem parte do `build`, então rodam à parte.
+      - run: ./gradlew :fabric:runGameTest --no-daemon
