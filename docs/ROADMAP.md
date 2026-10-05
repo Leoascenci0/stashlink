@@ -671,6 +671,8 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   é do jogador e **não entra no caderno de emprestados** (nunca volta a baú). Rótulo do tooltip: "Disponível" (era "No baú").
 - **Limites conhecidos:** poções (suporte) e as listas de receita (cortador, tear...) continuam contando só o armazenamento; o
   livro de receitas desconta a mochila da soma para não contar em dobro.
+- **Correção de layout (print do Eliel, mesmo dia):** janela de ~382 unidades de GUI deixava só 29 de folga (o código pedia 30) e
+  a estação não se movia: o painel ficava por cima da fornalha. `BenchPanel.stationLeft` agora encosta o painel na margem quando a estação cabe.
 
 ### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`
