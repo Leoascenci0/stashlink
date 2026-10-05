@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.BrewingCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
@@ -34,6 +35,8 @@ public final class BenchSync {
         List<BenchPoolSync.Entry> last = null;
         int lastRadius = BenchPoolSync.UNKNOWN_RADIUS;
         int age;
+        /** {@link BenchCompat#listKey} da última passada: mudou (item no 1º slot da bigorna) → reenvia já. */
+        int listKey;
         boolean dirty = true;
         boolean unsupported;
 
@@ -106,6 +109,12 @@ public final class BenchSync {
             STATES.put(player, state);
         }
         state.age++;
+        BenchLapis.tick(player, menu);   // lápis-lazúli automático no encantamento (também para cliente sem o mod)
+        int listKey = BenchCompat.listKey(menu);
+        if (listKey != state.listKey) {
+            state.listKey = listKey;
+            state.dirty = true;
+        }
         if (state.unsupported || (!state.dirty && state.age < REFRESH_TICKS)) {
             return;
         }
@@ -156,12 +165,35 @@ public final class BenchSync {
             return BenchResults.list(player);
         }
         List<BenchPoolSync.Entry> out = new ArrayList<>();
+        boolean autoLapis = FeatureGate.allowSilently(player, Feature.BENCH_LAPIS);
+        boolean bookFilter = FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER);
+        boolean fuelTab = FeatureGate.allowSilently(player, Feature.BENCH_FUEL);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
             if (!BenchCompat.relevant(menu, player, stack.item())) {
                 continue;
             }
+            // Lápis automático ligado: o lápis não aparece no painel (o servidor o põe sozinho).
+            if (autoLapis && BenchCompat.isLapisFor(menu, stack.item())) {
+                continue;
+            }
+            // Fornalhas: a aba Combustível é uma função própria (desligada, o combustível não aparece).
+            if (!fuelTab && BenchCompat.furnaceKind(menu) != null
+                    && BenchCompat.slotTab(menu, player, stack.item()) == BenchCompat.fuelTab(menu)) {
+                continue;
+            }
+            // Bigorna: com um item no 1º slot, só os livros com encantamento que serve nele.
+            if (bookFilter && !BenchCompat.bookFits(menu, stack.item())) {
+                continue;
+            }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,
-                    BenchResults.slotTab(menu, stack.item()), -1));
+                    BenchResults.slotTab(menu, player, stack.item()), -1));
+        }
+        // Suporte de poções: a aba de garrafas vira a lista de poções que dá para fazer (BenchBrewing); as outras
+        // abas (ingredientes, combustível) continuam com os itens soltos.
+        if (BrewingCompat.isBrewing(menu) && FeatureGate.allowSilently(player, Feature.BENCH_BREWING)
+                && !BrewingCompat.graph(player.level()).edges().isEmpty()) {
+            out.removeIf(entry -> entry.tab() == 0);
+            out.addAll(BenchBrewing.list(player));
         }
         // Ordem única (BenchOrder); o corte do teto é depois de ordenar.
         return BenchOrder.sortedAndCapped(out);

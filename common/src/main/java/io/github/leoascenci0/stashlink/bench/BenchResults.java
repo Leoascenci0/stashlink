@@ -1,7 +1,10 @@
 package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
+import io.github.leoascenci0.stashlink.compat.mc.BrewingCompat;
 import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,9 +29,12 @@ public final class BenchResults {
     /** {@code recipeId} do pedido comum do painel: "ponha um stack deste item no meu cursor". */
     public static final int CURSOR = -1;
 
+    /** {@code recipeId} dos botões de pagamento do sinalizador: "ponha 1 deste item no slot de pagamento". */
+    public static final int PAY = -4;
+
     /** Só estes {@code recipeId} chegam do cliente de verdade ({@code >= 0} é uma receita); o resto é ignorado. */
     public static boolean validRequestId(int recipeId) {
-        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR;
+        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == PAY;
     }
 
     private BenchResults() {
@@ -74,12 +80,17 @@ public final class BenchResults {
      * outra receita. Sempre {@code >= 0} (os negativos têm significado próprio).
      */
     static int key(StationRecipes.Option option) {
-        return ItemStack.hashItemAndComponents(option.icon()) & Integer.MAX_VALUE;
+        return keyOf(option.icon());
+    }
+
+    /** A chave estável de um resultado pelo item que ele produz (também as poções do suporte). */
+    static int keyOf(ItemStack result) {
+        return ItemStack.hashItemAndComponents(result) & Integer.MAX_VALUE;
     }
 
     /** Aba de um item solto (ver {@link BenchCompat#slotTab}). */
-    public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
-        return BenchCompat.slotTab(menu, stack);
+    public static int slotTab(AbstractContainerMenu menu, ServerPlayer player, ItemStack stack) {
+        return BenchCompat.slotTab(menu, player, stack);
     }
 
     /** O que o jogador tem à mão para esta estação: o armazenamento já varrido ({@code stored}) e a mochila. */
@@ -98,6 +109,13 @@ public final class BenchResults {
 
     /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
     public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice, boolean one) {
+        if (BrewingCompat.isBrewing(menu)) {
+            // Suporte de poções: a "receita" é a poção escolhida; monta o próximo passo do caminho até ela.
+            if (FeatureGate.allow(player, Feature.BENCH_BREWING)) {
+                BenchBrewing.brew(player, menu, id, one);
+            }
+            return;
+        }
         // Uma varredura só por clique: o pool, a lista do que há e o que sai dos baús vêm todos da mesma passada.
         BenchPool pool = BenchPool.of(player);
         List<BenchPool.Stack> stored = pool.contents();
@@ -178,15 +196,48 @@ public final class BenchResults {
     }
 
     /**
+     * Botão de pagamento do sinalizador: 1 do item pedido vai do armazenamento para o slot de pagamento (o slot só
+     * guarda 1). Só item que o slot aceita (minério de pagamento); outro pedido é ignorado. Se o slot já tem outro
+     * pagamento que veio do armazenamento, ele volta ao baú antes (trocar de ferro para esmeralda); pagamento do
+     * próprio jogador nunca é mexido. O que entra vai para o caderno: se o efeito não for confirmado, volta ao baú
+     * ao fechar (o jogo jogaria o item no chão).
+     */
+    public static void pay(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested) {
+        Slot slot = BenchCompat.beaconPaymentSlot(menu);
+        ItemStack model = requested.copyWithCount(1);
+        if (slot == null || !slot.mayPlace(model) || !FeatureGate.allow(player, Feature.BENCH_BEACON)) {
+            return;
+        }
+        // Só troca se o novo pagamento existe no armazenamento: senão o slot ficaria vazio à toa.
+        boolean available = BenchPool.of(player).contents().stream()
+                .anyMatch(s -> s.count() > 0 && ItemStack.isSameItemSameComponents(s.item(), model));
+        if (!available) {
+            BenchSync.markDirty(player);
+            return;
+        }
+        if (slot.hasItem() && !ItemStack.isSameItemSameComponents(slot.getItem(), model)) {
+            BenchLedger.returnFromGrid(player, List.of(slot));
+            if (slot.hasItem()) {
+                return;   // o pagamento é do jogador (ou o baú encheu): não troca
+            }
+        }
+        place(player, menu, model, true);
+    }
+
+    /**
      * Clicou num item solto do painel: vai para o primeiro slot <b>da estação</b> que o aceita (corante no slot do
      * corante, banner no do banner...), do armazenamento. Um stack, ou um só com o botão direito.
      */
     public static void place(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested, boolean one) {
         ItemStack model = requested.copyWithCount(1);
         BenchPool pool = BenchPool.of(player);
-        for (Slot slot : BenchCompat.placementOrder(menu)) {
+        for (Slot slot : BenchCompat.placementOrder(menu, player, model)) {
             if (slot.container == player.getInventory() || !slot.mayPlace(model)) {
                 continue;
+            }
+            // Aba Combustível das fornalhas: função própria, com cadeado próprio.
+            if (BenchCompat.isFuelSlot(menu, slot) && !FeatureGate.allow(player, Feature.BENCH_FUEL)) {
+                break;
             }
             ItemStack inside = slot.getItem();
             if (!inside.isEmpty() && !ItemStack.isSameItemSameComponents(inside, model)) {

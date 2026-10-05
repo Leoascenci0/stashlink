@@ -51,7 +51,17 @@ public enum Feature {
     /** Shift + passar o mouse coleta (ou guarda) o item do slot, sem clicar (Item 21). */
     HOVER_COLLECT("hover_collect"),
     /** Organizar o armazenamento: botão no baú, organizar o sistema todo (prévia/desfazer), busca e destaque (Item 20). */
-    ORGANIZE("organize");
+    ORGANIZE("organize"),
+    /** Botão de combustível nas fornalhas (fornalha, defumador, alto-forno): puxa carvão etc. do armazenamento (Item 16.3). */
+    BENCH_FUEL("bench_fuel"),
+    /** Mesa de encantamento: o lápis-lazúli do armazenamento entra sozinho no slot dele (Item 16.3). */
+    BENCH_LAPIS("bench_lapis"),
+    /** Bigorna: com um item no 1º slot, a aba Livros mostra só os livros que servem nele (Item 16.3). */
+    BENCH_BOOK_FILTER("bench_book_filter"),
+    /** Sinalizador: os ícones de pagamento viram botões que puxam o minério do armazenamento (Item 16.3). */
+    BENCH_BEACON("bench_beacon"),
+    /** Suporte de poções: lista as poções possíveis e monta o próximo passo com um clique (Item 16.3). */
+    BENCH_BREWING("bench_brewing");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

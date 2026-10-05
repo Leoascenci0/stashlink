@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
+import io.github.leoascenci0.stashlink.client.BenchBeaconButtons;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
 import io.github.leoascenci0.stashlink.client.ReceivePanel;
@@ -47,6 +48,11 @@ public abstract class AbstractContainerScreenMixin {
     /** Painel "Armazenamento" das estações (Item 16); só existe em tela de estação. */
     @Unique
     private BenchPanel stashlink$benchPanel;
+
+
+    /** Ícones de pagamento clicáveis do sinalizador (Item 16.3); só existe no sinalizador. */
+    @Unique
+    private BenchBeaconButtons stashlink$beaconButtons;
 
 
     /** O lápis de rótulo ao lado do título, em baú/barril/shulker (só se o servidor tem o mod e se mirava um bloco). */
@@ -112,6 +118,35 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
+    /** Os ícones de pagamento clicáveis do sinalizador. */
+    @Inject(method = "init", at = @At("TAIL"))
+    private void stashlink$addBeaconButtons(CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        stashlink$beaconButtons = BenchBeaconButtons.create(self.getMenu());
+    }
+
+    /** Desenha os botões do sinalizador. */
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void stashlink$drawBeaconButtons(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                          CallbackInfo ci) {
+        if (stashlink$beaconButtons != null) {
+            stashlink$beaconButtons.layout(leftPos, topPos);
+            stashlink$beaconButtons.draw(graphics, mouseX, mouseY);
+        }
+    }
+
+    /** Clique num ícone do sinalizador: pede ao servidor; o clique não chega ao jogo. */
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void stashlink$clickBeaconButtons(MouseButtonEvent event, boolean doubleClick,
+                                           CallbackInfoReturnable<Boolean> cir) {
+        if (stashlink$beaconButtons != null) {
+            stashlink$beaconButtons.layout(leftPos, topPos);
+            if (stashlink$beaconButtons.mouseClicked(event)) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
     /**
      * O campo de nome da bigorna é criado com o centro da janela e não com {@code leftPos} (peculiaridade do 26.3), então
      * não acompanha a estação quando o painel a desloca: aqui ele volta para dentro do fundo dela, a cada quadro.
@@ -135,6 +170,37 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void stashlink$drawBenchPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
                                           CallbackInfo ci) {
+        stashlink$drawPanel(graphics, mouseX, mouseY, delta);
+    }
+
+    /**
+     * Telas com livro de receitas (as fornalhas): no 26.3 o {@code extractRenderState} delas não chama o desta classe,
+     * só o {@code extractContents}. O painel é desenhado aqui nelas (e só nelas, para nunca desenhar duas vezes), e o
+     * botão do livro (20x18, o único botão de imagem desse tamanho) some, já que o livro fica fechado.
+     */
+    @Inject(method = "extractContents", at = @At("TAIL"))
+    private void stashlink$drawBenchPanelOverRecipeBookScreens(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+                                                               float delta, CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (!(self instanceof net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen<?>)) {
+            return;
+        }
+        if (stashlink$benchPanel != null && BenchCompat.hidesRecipeBook(self.getMenu())
+                && io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
+            for (GuiEventListener child : self.children()) {
+                if (child instanceof net.minecraft.client.gui.components.ImageButton button
+                        && button.getWidth() == BenchCompat.RECIPE_BUTTON_WIDTH
+                        && button.getHeight() == BenchCompat.RECIPE_BUTTON_HEIGHT) {
+                    button.visible = false;
+                    button.active = false;
+                }
+            }
+        }
+        stashlink$drawPanel(graphics, mouseX, mouseY, delta);
+    }
+
+    @Unique
+    private void stashlink$drawPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (stashlink$benchPanel != null) {
             stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
             stashlink$benchPanel.draw(graphics, mouseX, mouseY, delta);

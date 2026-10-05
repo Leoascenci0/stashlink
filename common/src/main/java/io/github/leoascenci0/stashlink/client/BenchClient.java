@@ -108,6 +108,17 @@ public final class BenchClient {
         return false;
     }
 
+    /** Quantos deste item (mesmo item e componentes) a lista do servidor diz que há no armazenamento; 0 se nenhum. */
+    public static int countOf(ItemStack stack) {
+        int total = 0;
+        for (BenchPoolSync.Entry entry : pool) {
+            if (!entry.isResult() && !entry.isColorPick() && ItemStack.isSameItemSameComponents(entry.item(), stack)) {
+                total += entry.count();
+            }
+        }
+        return total;
+    }
+
     public static List<BenchPoolSync.Entry> pool() {
         return pool;
     }
@@ -115,6 +126,12 @@ public final class BenchClient {
     public static void request(AbstractContainerMenu menu, BenchPoolSync.Entry entry, boolean one) {
         sender.accept(new BenchPullRequest(menu.containerId, entry.item().copyWithCount(1), one,
                 io.github.leoascenci0.stashlink.bench.BenchResults.PLACE));
+    }
+
+    /** Botão de pagamento do sinalizador: 1 de {@code payment} no slot de pagamento (o servidor confere tudo). */
+    public static void requestPayment(AbstractContainerMenu menu, ItemStack payment) {
+        sender.accept(new BenchPullRequest(menu.containerId, payment.copyWithCount(1), true,
+                io.github.leoascenci0.stashlink.bench.BenchResults.PAY));
     }
 
     /** "Monte esta receita": {@code choice} é o item que o jogador escolheu junto (o corante da cor, no tear); {@code one}

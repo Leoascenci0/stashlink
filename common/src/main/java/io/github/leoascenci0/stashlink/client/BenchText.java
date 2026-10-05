@@ -16,6 +16,8 @@ final class BenchText {
     static final String ITEM_TIP = "stashlink.bench.panel.tip";
     static final String RESULT_TIP = "stashlink.bench.panel.result.tip";
     static final String RESULT_MISSING = "stashlink.bench.panel.result.missing";
+    static final String POTION_TIP = "stashlink.bench.panel.potion.tip";
+    static final String POTION_MISSING = "stashlink.bench.panel.potion.missing";
     static final String COLOR_TIP = "stashlink.bench.panel.color.tip";
     static final String COLOR_NONE = "stashlink.bench.panel.color.none";
     static final String TITLE = "stashlink.bench.panel.title";
@@ -46,6 +48,11 @@ final class BenchText {
 
     static Component resultLine(boolean missing) {
         return Component.translatable(missing ? RESULT_MISSING : RESULT_TIP);
+    }
+
+    /** Poção do suporte: o clique monta só o próximo passo (garrafas + ingrediente + pó de blaze se faltar). */
+    static Component potionLine(boolean missing) {
+        return Component.translatable(missing ? POTION_MISSING : POTION_TIP);
     }
 
     static Component colorLine(boolean missing) {

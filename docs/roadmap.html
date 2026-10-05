@@ -204,6 +204,10 @@ const ITEMS = [
    do:["Painel com busca, grade e setas de página do livro do jogo; bancada e fornalhas ficam só com o livro","Cortador e tear listam resultados já descobertos (vermelho = falta material) e clicar monta a receita; tear com abas Cores, Estandartes e Moldes","Bigorna, ferraria, encantamento e suporte de poções com abas; clicar num item solto o põe no slot certo; telas centralizadas; na bancada, clicar no ingrediente que falta leva à receita dele"],
    ok:"Visto e aprovado em jogo pelo Eliel; 108 GameTests. Fora: abas na cartografia."}
 ,
+  {n:"16.3", phase:"Antes do 1.0", t:"Revisão e melhorias das bancadas", b:"claude/cool-archimedes-5ibnld", f:["F10"], s:"done",
+   do:["Fases 1 e 2: devolução ao baú ao fechar/sair, anti-flood, cliques padronizados (esquerdo pilha, direito 1, Shift máximo) e ordem única","Fornalha, defumador e alto-forno com painel e abas fixas (Comida, Blocos, Minérios, Combustível com balde de lava); ferreiro com Armaduras e Ferramentas e armas","Encantamento com lápis-lazúli automático (volta ao baú ao fechar); bigorna mostra só os livros que servem no item do 1º slot","Sinalizador: os ícones de pagamento viram botões; suporte de poções lista todas as poções e monta um passo por clique"],
+   ok:"Aprovado em jogo pelo Eliel; build do GitHub verde com os GameTests novos."}
+,
   {n:17, phase:"Antes do 1.0", t:"Escolher o que cada baú recebe com a tecla N", b:"feat/filtro-tecla-n", f:["F4","F11"], s:"done",
    do:["Botão no baú: recebe ou não itens com a N","Na tela de config, categorias com botão e emoji (🛡️ Armadura, ferramentas, armas, comida, poções...); blocos comuns ficam de fora","Valores guardados no baú e por jogador, validados no servidor"],
    ok:"Baú com N desligada nunca recebe nada e categoria desligada nunca é guardada; tudo persiste (92 GameTests, 6 mutações pegas; visual a conferir em jogo)."}
