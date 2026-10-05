@@ -69,6 +69,9 @@ public class ReviewGameTests {
             }
         }
         p.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.DIRT, 64));   // a mão secundária também é lugar livre
+        // O jogador simulado herda "construção infinita" do criativo do GameTest; com ela o Inventory.add aceita e
+        // descarta o que não cabe. Em sobrevivência de verdade isso não existe.
+        p.getAbilities().instabuild = false;
         p.getInventory().setItem(hand, new ItemStack(Items.WATER_BUCKET));
         RefillService.tickPlayer(p);
         p.getInventory().setItem(hand, new ItemStack(Items.BUCKET));       // usou o balde
