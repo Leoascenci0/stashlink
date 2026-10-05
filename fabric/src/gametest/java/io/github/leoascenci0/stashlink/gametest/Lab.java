@@ -67,6 +67,10 @@ final class Lab {
         new EmbeddedChannel(connection);
         server.getPlayerList().placeNewPlayer(connection, p, cookie);
         p.setPos(helper.absoluteVec(new Vec3(x, y, z)));
+        // Raio 8 por padrão (baús e shulkers): os testes rodam lado a lado no mesmo mundo, e com o padrão do servidor
+        // (16 baús, 32 shulkers) a N de um teste guardava itens no baú do teste vizinho. Quem precisa de outro raio
+        // chama prefs()/PlayerPrefsStore.set depois, e isso substitui este.
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(8, PlayerPrefs.UNSET, List.of(), 0, 8));
         return p;
     }
 
