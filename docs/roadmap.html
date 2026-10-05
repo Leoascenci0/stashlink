@@ -123,13 +123,13 @@ footer{color:var(--muted);font-size:.85rem}
 const FEATURES = [
   {id:"F1", name:"Shulker direto do inventário", d:"Quando o item da mão acaba, puxa mais de dentro das shulkers."},
   {id:"F2", name:"Integração Litematica", d:"Clicar na preview constrói usando os materiais das shulkers."},
-  {id:"F3", name:"Raio de fontes", d:"Baús e barris (até 16 blocos) e shulkers (até 64) no chão também servem de fonte."},
+  {id:"F3", name:"Raio de fontes", d:"Baús e barris (padrão 16, até 32 blocos) e shulkers (até 64) no chão também servem de fonte."},
   {id:"F4", name:"Tecla N: guardar tudo", d:"Manda itens para baús próximos que já têm aquele item."},
   {id:"F5", name:"Tecla W: puxar tudo", d:"Dentro de um baú, traz para o inventário tudo o que couber."},
   {id:"F6", name:"Config, tela e comandos", d:"Raio, teclas e exclusões por tela ou /stashlink."},
   {id:"F7", name:"Slot travado com item", d:"Reserva um slot do baú para um item, mostrando só uma prévia."},
   {id:"F8", name:"Nome do armazenamento", d:"Nome com emojis e resumo do conteúdo, visível sem abrir."},
-  {id:"F9", name:"Raio 32 com conduíte", d:"Um conduíte perto do estoque libera raio de até 32 blocos para baús e bancadas."},
+  {id:"F9", name:"Raio até 32", d:"Baús e bancadas alcançam até 32 blocos pela tela de config (padrão 16); a ideia do conduíte foi descartada."},
   {id:"F10", name:"Bancada com armazenamento", d:"Craftar usando os baús próximos como inventário."},
   {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."},
   {id:"F12", name:"Botão do meio puxa o item", d:"Mirando um bloco, traz o item do baú no raio para a hotbar."},
@@ -232,9 +232,9 @@ const ITEMS = [
    do:["Com Shift pressionado, cada slot por onde o mouse passa recebe um shift-clique, uma vez por passagem","Usa cliques de inventário: funciona em servidor sem o mod; vale baú→mochila e mochila→baú","Limite de cliques por tick; nunca em slot de resultado; opção na config; para com a mochila cheia"],
    ok:"Passar o mouse com Shift coleta só o que passou; nada duplica nem some, nem com latência alta."}
 ,
-  {n:15, phase:"Antes do 1.0", t:"Raio de até 32 blocos com conduíte", b:"feat/raio-32-conduite", f:["F3","F9"], s:"todo",
-   do:["Penúltimo item do plano, antes da publicação","Teto do raio de baús, barris e bancadas sobe de 16 para 32 quando há um conduit (o bloco submerso, ativo com a estrutura de prismarina) perto do estoque","Sem conduíte, o teto continua 16; shulkers têm raio próprio (padrão 32, até 64) e não dependem do conduíte","Varredura medida de novo no harness; chunk descarregado continua fora"],
-   ok:"Com conduíte perto o raio dos baús chega a 32, sem ele fica em 16, e a carga segue abaixo de 5 ms por operação."}
+  {n:15, phase:"Antes do 1.0", t:"Raio de baús e bancadas até 32 blocos", b:"feat/raio-32-conduite", f:["F3","F9"], s:"done",
+   do:["Penúltimo item do plano, antes da publicação","Ideia do conduíte descartada pelo Eliel (2026-10-05): ficou só o ajuste na tela de config","Raio de baús, barris e bancadas: padrão 16, a tela sobe até 32; o servidor ainda pode baixar o teto (maxRadius)","Arquivo de config antigo com os padrões de antes (16/8) é atualizado sozinho para 32/16","Shulkers seguem com raio próprio (padrão 32, até 64); varredura medida de novo no harness com raio 32"],
+   ok:"O raio dos baús vai até 32 na tela de config (padrão 16) e a medição com 289 containers segue abaixo de 5 ms por operação."}
 ,
   {n:22, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"todo",
    do:["Só depois dos Itens 13–21","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–21 e os limites conhecidos"],

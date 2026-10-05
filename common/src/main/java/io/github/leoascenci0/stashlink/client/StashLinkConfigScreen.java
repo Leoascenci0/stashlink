@@ -292,7 +292,7 @@ public class StashLinkConfigScreen extends Screen {
             // Cada ajuste tem um cadeado ao lado, como as funções: trancado, o valor do servidor vale para todos.
             RadiusSlider chestSlider = new RadiusSlider(x, y, local, false, isLocked(Feature.RADIUS));
             chestSlider.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.radius.tip",
-                    "How far chests, barrels and workbenches reach (max 16)")));
+                    "How far chests, barrels and workbenches reach (default 16, max 32)")));
             addRenderableWidget(chestSlider);
             addSettingLock(Feature.RADIUS, x, y);
             y += ROW;
@@ -457,7 +457,7 @@ public class StashLinkConfigScreen extends Screen {
     /** Slider de 0 até o teto (local: o do jogo; servidor: o do código, e o servidor limita), passos de 1 bloco. */
     private static final class RadiusSlider extends AbstractSliderButton {
         private final boolean local;
-        /** {@code true}: raio das shulkers colocadas (vai até 64); {@code false}: baús, barris e bancadas (até 16). */
+        /** {@code true}: raio das shulkers colocadas (vai até 64); {@code false}: baús, barris e bancadas (até 32). */
         private final boolean shulker;
         /** Trancado pelo servidor (num servidor): o valor dele vale e o slider fica desligado. */
         private final boolean serverLocked;

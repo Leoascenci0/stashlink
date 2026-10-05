@@ -196,23 +196,36 @@ public class BenchGameTests {
 
     /** Baús e barris: teto 16 (mesmo com raio pedido 50). Shulkers nunca entram na bancada, perto ou longe. */
     @GameTest
-    public void chestsReach16AndShulkersAreNeverBenchStorage(GameTestHelper h) {
+    public void chestsReach32AndShulkersAreNeverBenchStorage(GameTestHelper h) {
         Lab lab = new Lab(h);
-        Lab.fill(lab.chest(24, 2, 4), 0, Items.AMETHYST_SHARD, 5);                      // a 20 blocos: além dos 16 dos baús
+        Lab.fill(lab.chest(24, 2, 4), 0, Items.AMETHYST_SHARD, 5);                      // a 20 blocos: dentro dos 32 (Item 15)
+        Lab.fill(lab.chest(44, 2, 8), 0, Items.FLINT, 5);                               // a ~40 blocos: além dos 32 dos baús
         Lab.fill(lab.block(Blocks.SHULKER_BOX, 34, 2, 4), 0, Items.CLAY_BALL, 5); // a 30 blocos: dentro dos 32 das shulkers
         Lab.fill(lab.block(Blocks.SHULKER_BOX, 44, 2, 4), 0, Items.BRICK, 5); // a 40 blocos: fora
         Lab.fill(lab.chest(10, 2, 4), 0, Items.QUARTZ, 5);                 // a 6 blocos: dentro
         ServerPlayer p = lab.player(4, 2, 4);
-        // raio pedido 50 para baús (vira 16) e shulker no padrão do servidor (32)
+        // raio pedido 50 para baús (vira 32) e shulker no padrão do servidor (32)
         PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(50, 1, List.of()));
+        check(h, PlayerPrefsStore.radius(p) == 32, "raio pedido 50 devia virar o teto 32: " + PlayerPrefsStore.radius(p));
         List<BenchPoolSync.Entry> seen = BenchSync.snapshot(p);
         List<Item> items = new ArrayList<>();
         for (BenchPoolSync.Entry e : seen) {
             items.add(e.item().getItem());
         }
-        check(h, items.contains(Items.QUARTZ) && !items.contains(Items.CLAY_BALL)
-                && !items.contains(Items.AMETHYST_SHARD) && !items.contains(Items.BRICK),
-                "devia ver só o baú a 6 (nem o baú a 20, nem shulker nenhuma): " + items);
+        check(h, items.contains(Items.QUARTZ) && items.contains(Items.AMETHYST_SHARD) && !items.contains(Items.FLINT)
+                && !items.contains(Items.CLAY_BALL) && !items.contains(Items.BRICK),
+                "devia ver só os baús a 6 e a 20 (nem o baú a 40, nem shulker nenhuma): " + items);
+        // Sem preferência, vale o padrão de 16: o baú a 20 sai.
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(PlayerPrefs.UNSET, 1, List.of()));
+        check(h, PlayerPrefsStore.radius(p) == StashLinkConfig.effectiveRadius(), "sem preferência vale o padrão do servidor");
+        if (StashLinkConfig.effectiveRadius() < 20) {
+            List<Item> near = new ArrayList<>();
+            for (BenchPoolSync.Entry e : BenchSync.snapshot(p)) {
+                near.add(e.item().getItem());
+            }
+            check(h, near.contains(Items.QUARTZ) && !near.contains(Items.AMETHYST_SHARD),
+                    "no padrão (16) o baú a 20 fica de fora: " + near);
+        }
         clean(lab, h);
     }
 

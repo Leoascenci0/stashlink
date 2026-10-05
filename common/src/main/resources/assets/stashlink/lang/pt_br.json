@@ -11,7 +11,7 @@
   "stashlink.loot_all.empty": "O container está vazio",
   "stashlink.config.title": "Configurações do StashLink",
   "stashlink.config.radius.name": "Baús e bancadas",
-  "stashlink.config.radius.tip": "Até onde chegam baús, barris e bancadas (máximo 16)",
+  "stashlink.config.radius.tip": "Até onde chegam baús, barris e bancadas (padrão 16, máximo 32)",
   "stashlink.config.shulker_radius.name": "Shulkers",
   "stashlink.config.shulker_radius.tip": "Até onde chegam as shulkers colocadas (máximo 64)",
   "stashlink.config.blocks": "%s blocos",

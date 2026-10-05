@@ -22,8 +22,20 @@ import java.util.TreeSet;
  * comando nem tela passam dele, e {@link #HARD_MAX_RADIUS} é o teto do código, que nem o arquivo passa.
  */
 public final class StashLinkConfig {
-    /** Teto duro, imposto pelo código: nenhum arquivo, comando ou pedido de cliente passa disto (performance). */
-    public static final int HARD_MAX_RADIUS = 16;
+    /**
+     * Teto duro de baús, barris e bancadas, imposto pelo código: nenhum arquivo, comando ou pedido de cliente passa
+     * disto (performance). Item 15 (Eliel, 2026-10-05): padrão 16, a tela sobe até 32, sem exigir conduíte.
+     */
+    public static final int HARD_MAX_RADIUS = 32;
+
+    /** Raio padrão de baús, barris e bancadas. */
+    public static final int DEFAULT_RADIUS = 16;
+
+    /**
+     * Versão do formato do arquivo. 2 (Item 15): o teto passou de 16 para 32 e o padrão de 8 para 16; arquivos
+     * antigos que ainda têm os valores padrão de antes são atualizados ao carregar (ver {@link #fromJson}).
+     */
+    static final int CONFIG_VERSION = 2;
 
     /** Teto duro do raio das shulkers colocadas (maior que o de baús: são poucas e não pesam). */
     public static final int HARD_MAX_SHULKER_RADIUS = 64;
@@ -35,7 +47,7 @@ public final class StashLinkConfig {
     public static final int INVENTORY_SLOTS = 36;
 
     /** Raio (em blocos) em volta do jogador onde containers colocados servem de fonte. 0 desliga. */
-    public static int sourceRadius = 8;
+    public static int sourceRadius = DEFAULT_RADIUS;
 
     /** Teto do raio definido pelo servidor: só editável no arquivo, nunca por comando/tela. */
     public static int maxRadius = HARD_MAX_RADIUS;
@@ -131,7 +143,9 @@ public final class StashLinkConfig {
 
     /** Formato do arquivo. Campos ausentes/inválidos caem no padrão em {@link #apply}. */
     private static final class Data {
-        int sourceRadius = 8;
+        /** Ausente = arquivo de antes do Item 15 (versão 1). */
+        int configVersion = 1;
+        int sourceRadius = DEFAULT_RADIUS;
         int maxRadius = HARD_MAX_RADIUS;
         int shulkerRadius = 32;
         int maxShulkerRadius = HARD_MAX_SHULKER_RADIUS;
@@ -143,6 +157,7 @@ public final class StashLinkConfig {
     /** Texto JSON com os valores atuais. */
     public static String toJson() {
         Data d = new Data();
+        d.configVersion = CONFIG_VERSION;
         d.sourceRadius = sourceRadius;
         d.maxRadius = maxRadius;
         d.shulkerRadius = shulkerRadius;
@@ -161,6 +176,16 @@ public final class StashLinkConfig {
         Data d = GSON.fromJson(json, Data.class);
         if (d == null) {
             throw new JsonSyntaxException("arquivo vazio");
+        }
+        if (d.configVersion < 2) {
+            // Antes do Item 15 o teto era 16 e o padrão 8, e o arquivo grava os padrões. Quem não mexeu neles
+            // ganha os novos (32 e 16); um valor escolhido pelo dono do servidor (qualquer outro) fica como está.
+            if (d.maxRadius == 16) {
+                d.maxRadius = HARD_MAX_RADIUS;
+            }
+            if (d.sourceRadius == 8) {
+                d.sourceRadius = DEFAULT_RADIUS;
+            }
         }
         maxRadius = clamp(d.maxRadius, 0, HARD_MAX_RADIUS);
         sourceRadius = clamp(d.sourceRadius, 0, maxRadius);

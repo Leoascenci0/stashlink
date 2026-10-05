@@ -352,7 +352,7 @@ public class StashLinkGameTests {
         Lab.fill(all.get(all.size() - 1), 0, Items.DIAMOND, 64);
 
         ServerPlayer p = lab.player(GRID / 2.0, 2, GRID / 2.0);
-        Lab.prefs(p, 16, true);
+        Lab.prefs(p, 32, true);   // Item 15: mede no teto novo (32), o pior caso de varredura
         long[] worst = new long[1];
         int reps = 100;
 
@@ -367,7 +367,7 @@ public class StashLinkGameTests {
         List<ServerPlayer> pool = new ArrayList<>();
         for (int i = 0; i < 3 * reps; i++) {
             ServerPlayer q = lab.player(GRID / 2.0, 2, GRID / 2.0);
-            Lab.prefs(q, 16, true);
+            Lab.prefs(q, 32, true);
             pool.add(q);
         }
         int[] next = {0};
@@ -408,7 +408,7 @@ public class StashLinkGameTests {
         long idle = time(() -> RefillService.tickPlayer(p), 10000, worst);
 
         String report = String.format(
-                "[STASHLINK-PERF] 289 containers, raio 16, %d repeticoes (media/pior, microsegundos): "
+                "[STASHLINK-PERF] 289 containers, raio 32, %d repeticoes (media/pior, microsegundos): "
                         + "find=%d/%d findAll=%d/%d quickStack(N)=%d/%d refill(pior caso)=%d/%d pull(item ausente)=%d/%d idleTick=%d",
                 reps, find / 1000, findWorst / 1000, findAll / 1000, findAllWorst / 1000, quick / 1000, quickWorst / 1000,
                 refill / 1000, refillWorst / 1000, pull / 1000, pullWorst / 1000, idle / 1000);
