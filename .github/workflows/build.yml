@@ -17,16 +17,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       # Primeiro só o jar (para baixar e testar no jogo mesmo se algum teste falhar), depois o build completo.
       - run: ./gradlew assemble --no-daemon
-      # TEMPORÁRIO (Item 16.3): como a tela da fornalha (livro de receitas) desenha no 26.3; remover antes do merge.
-      - name: diag tela
-        if: always()
-        continue-on-error: true
-        run: |
-          j=$(find ~/.gradle -name "minecraft_26.3_client.jar" | head -1); echo "== $j"
-          mkdir -p /tmp/y && cd /tmp/y && unzip -o -q "$j" 'net/minecraft/client/gui/screens/inventory/*' 'net/minecraft/client/gui/screens/recipebook/*' 'net/minecraft/client/gui/components/ImageButton.class'
-          for c in AbstractRecipeBookScreen AbstractContainerScreen AbstractFurnaceScreen; do echo "--- $c"; javap -p net/minecraft/client/gui/screens/inventory/$c.class | grep -v lambda; done
-          echo "--- AbstractRecipeBookScreen code"; javap -p -c net/minecraft/client/gui/screens/inventory/AbstractRecipeBookScreen.class | grep -e "^  [a-z].*(" -e "invoke" | head -120
-          echo "--- RecipeBookComponent"; javap -p net/minecraft/client/gui/screens/recipebook/RecipeBookComponent.class | grep -i -e visible -e toggle -e "boolean" | head -30
       - uses: actions/upload-artifact@v4
         with:
           name: stashlink-jars

@@ -166,31 +166,41 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    /**
-     * Fornalhas com o painel: o botão do livro de receitas (20x18, o único botão de imagem desse tamanho na tela) some,
-     * já que o livro fica fechado. É criado depois do {@code init} desta classe, por isso a conferência é a cada quadro.
-     */
-    @Inject(method = "extractRenderState", at = @At("HEAD"))
-    private void stashlink$hideRecipeBookButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
-                                                CallbackInfo ci) {
-        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        if (stashlink$benchPanel == null || !BenchCompat.hidesRecipeBook(self.getMenu())
-                || !io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
-            return;
-        }
-        for (GuiEventListener child : self.children()) {
-            if (child instanceof net.minecraft.client.gui.components.ImageButton button
-                    && button.getWidth() == BenchCompat.RECIPE_BUTTON_WIDTH && button.getHeight() == BenchCompat.RECIPE_BUTTON_HEIGHT) {
-                button.visible = false;
-                button.active = false;
-            }
-        }
-    }
-
     /** Desenha o painel por cima de tudo (depois dos slots), com a dica do item sob o mouse. */
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void stashlink$drawBenchPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
                                           CallbackInfo ci) {
+        stashlink$drawPanel(graphics, mouseX, mouseY, delta);
+    }
+
+    /**
+     * Telas com livro de receitas (as fornalhas): no 26.3 o {@code extractRenderState} delas não chama o desta classe,
+     * só o {@code extractContents}. O painel é desenhado aqui nelas (e só nelas, para nunca desenhar duas vezes), e o
+     * botão do livro (20x18, o único botão de imagem desse tamanho) some, já que o livro fica fechado.
+     */
+    @Inject(method = "extractContents", at = @At("TAIL"))
+    private void stashlink$drawBenchPanelOverRecipeBookScreens(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+                                                               float delta, CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (!(self instanceof net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen<?>)) {
+            return;
+        }
+        if (stashlink$benchPanel != null && BenchCompat.hidesRecipeBook(self.getMenu())
+                && io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
+            for (GuiEventListener child : self.children()) {
+                if (child instanceof net.minecraft.client.gui.components.ImageButton button
+                        && button.getWidth() == BenchCompat.RECIPE_BUTTON_WIDTH
+                        && button.getHeight() == BenchCompat.RECIPE_BUTTON_HEIGHT) {
+                    button.visible = false;
+                    button.active = false;
+                }
+            }
+        }
+        stashlink$drawPanel(graphics, mouseX, mouseY, delta);
+    }
+
+    @Unique
+    private void stashlink$drawPanel(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (stashlink$benchPanel != null) {
             stashlink$benchPanel.layout(leftPos, topPos, imageWidth);
             stashlink$benchPanel.draw(graphics, mouseX, mouseY, delta);
