@@ -41,9 +41,28 @@ final class BenchTabs {
         return new ItemStack(Items.GOLDEN_SWORD);
     }
 
+    private static Tab food() {
+        return new Tab(new ItemStack(Items.PORKCHOP), "stashlink.bench.tab.food");
+    }
+
+    private static Tab ores() {
+        return new Tab(new ItemStack(Items.IRON_ORE), "stashlink.bench.tab.ores");
+    }
+
+    private static Tab fuel() {
+        return new Tab(new ItemStack(Items.LAVA_BUCKET), "stashlink.bench.tab.fuel");
+    }
+
     /** Abas da estação, ou lista vazia (uma lista só, sem abas). */
     static List<Tab> of(AbstractContainerMenu menu) {
         switch (BenchCompat.stationOf(menu)) {
+            case FURNACE:
+                // Mesma ordem de BenchCompat.FURNACE_TAB_* / SMOKER_TAB_* / BLAST_TAB_*. Combustível: só o balde de lava.
+                return switch (BenchCompat.furnaceKind(menu)) {
+                    case SMOKER -> List.of(food(), fuel());
+                    case BLAST -> List.of(ores(), fuel());
+                    default -> List.of(food(), new Tab(new ItemStack(Items.STONE), "stashlink.bench.tab.blocks"), ores(), fuel());
+                };
             case LOOM:
                 return List.of(
                         new Tab(StationRecipes.sampleDye(), "stashlink.bench.tab.colors"),

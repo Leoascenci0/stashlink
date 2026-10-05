@@ -128,12 +128,6 @@ public final class BenchClient {
                 io.github.leoascenci0.stashlink.bench.BenchResults.PLACE));
     }
 
-    /** Botão de combustível da fornalha: {@code shown} é só o ícone (o servidor escolhe o combustível de novo). */
-    public static void requestFuel(AbstractContainerMenu menu, ItemStack shown, boolean one) {
-        sender.accept(new BenchPullRequest(menu.containerId, shown.copyWithCount(1), one,
-                io.github.leoascenci0.stashlink.bench.BenchResults.FUEL));
-    }
-
     /** Botão de pagamento do sinalizador: 1 de {@code payment} no slot de pagamento (o servidor confere tudo). */
     public static void requestPayment(AbstractContainerMenu menu, ItemStack payment) {
         sender.accept(new BenchPullRequest(menu.containerId, payment.copyWithCount(1), true,

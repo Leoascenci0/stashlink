@@ -167,6 +167,7 @@ public final class BenchSync {
         List<BenchPoolSync.Entry> out = new ArrayList<>();
         boolean autoLapis = FeatureGate.allowSilently(player, Feature.BENCH_LAPIS);
         boolean bookFilter = FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER);
+        boolean fuelTab = FeatureGate.allowSilently(player, Feature.BENCH_FUEL);
         for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
             if (!BenchCompat.relevant(menu, player, stack.item())) {
                 continue;
@@ -175,12 +176,17 @@ public final class BenchSync {
             if (autoLapis && BenchCompat.isLapisFor(menu, stack.item())) {
                 continue;
             }
+            // Fornalhas: a aba Combustível é uma função própria (desligada, o combustível não aparece).
+            if (!fuelTab && BenchCompat.furnaceKind(menu) != null
+                    && BenchCompat.slotTab(menu, player, stack.item()) == BenchCompat.fuelTab(menu)) {
+                continue;
+            }
             // Bigorna: com um item no 1º slot, só os livros com encantamento que serve nele.
             if (bookFilter && !BenchCompat.bookFits(menu, stack.item())) {
                 continue;
             }
             out.add(new BenchPoolSync.Entry(stack.item(), stack.count(), -1, false,
-                    BenchResults.slotTab(menu, stack.item()), -1));
+                    BenchResults.slotTab(menu, player, stack.item()), -1));
         }
         // Suporte de poções: a aba de garrafas vira a lista de poções que dá para fazer (BenchBrewing); as outras
         // abas (ingredientes, combustível) continuam com os itens soltos.

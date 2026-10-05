@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchClient;
+import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.GhostSlots;
@@ -22,6 +23,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Cliente (Item 16): o livro de receitas só sabe o que há na mochila, então pinta de vermelho o que dá para fazer
@@ -52,6 +54,17 @@ public abstract class RecipeBookComponentMixin {
 
     @Shadow
     public abstract boolean isVisible();
+
+    /**
+     * Fornalhas (Item 16.3): com o painel do StashLink valendo, o livro de receitas do jogo fica sempre fechado (o painel
+     * ocupa o lugar dele, com abas fixas e combustível). Sem o mod no servidor ou com a função desligada, nada muda.
+     */
+    @Inject(method = "isVisible", at = @At("HEAD"), cancellable = true)
+    private void stashlink$closedWhenPanelReplacesIt(CallbackInfoReturnable<Boolean> cir) {
+        if (BenchCompat.hidesRecipeBook(menu) && BenchClient.expectedFor(menu)) {
+            cir.setReturnValue(false);
+        }
+    }
 
     @Shadow
     private boolean tryPlaceRecipe(RecipeCollection collection, RecipeDisplayId recipe, boolean useMaxItems) {

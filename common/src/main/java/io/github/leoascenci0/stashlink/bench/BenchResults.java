@@ -29,15 +29,12 @@ public final class BenchResults {
     /** {@code recipeId} do pedido comum do painel: "ponha um stack deste item no meu cursor". */
     public static final int CURSOR = -1;
 
-    /** {@code recipeId} do botão de combustível das fornalhas: "ponha combustível do armazenamento no slot dele". */
-    public static final int FUEL = -3;
-
     /** {@code recipeId} dos botões de pagamento do sinalizador: "ponha 1 deste item no slot de pagamento". */
     public static final int PAY = -4;
 
     /** Só estes {@code recipeId} chegam do cliente de verdade ({@code >= 0} é uma receita); o resto é ignorado. */
     public static boolean validRequestId(int recipeId) {
-        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == FUEL || recipeId == PAY;
+        return recipeId >= 0 || recipeId == PLACE || recipeId == CURSOR || recipeId == PAY;
     }
 
     private BenchResults() {
@@ -92,8 +89,8 @@ public final class BenchResults {
     }
 
     /** Aba de um item solto (ver {@link BenchCompat#slotTab}). */
-    public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
-        return BenchCompat.slotTab(menu, stack);
+    public static int slotTab(AbstractContainerMenu menu, ServerPlayer player, ItemStack stack) {
+        return BenchCompat.slotTab(menu, player, stack);
     }
 
     /** O que o jogador tem à mão para esta estação: o armazenamento já varrido ({@code stored}) e a mochila. */
@@ -199,39 +196,6 @@ public final class BenchResults {
     }
 
     /**
-     * Botão de combustível (fornalha, defumador, alto-forno): o servidor escolhe o combustível pela mesma regra do botão
-     * ({@link BenchCompat#pickFuel}; o item do pedido é só o ícone que o cliente mostrava) e o põe direto no slot de
-     * combustível: uma pilha (o que cabe) ou um só. Fornalha guarda o que está nos slots, então o que entra ali já é do
-     * jogador e não volta ao baú ao fechar (nada vai para o caderno de emprestados).
-     */
-    public static void fuel(ServerPlayer player, AbstractContainerMenu menu, boolean one) {
-        Slot slot = BenchCompat.fuelSlot(menu);
-        if (slot == null || !FeatureGate.allow(player, Feature.BENCH_FUEL)) {
-            return;
-        }
-        BenchPool pool = BenchPool.of(player);
-        List<BenchPool.Stack> stored = pool.contents();
-        ItemStack model = BenchCompat.pickFuel(slot, candidate -> stored.stream()
-                .anyMatch(s -> s.count() > 0 && ItemStack.isSameItemSameComponents(s.item(), candidate)));
-        if (model.isEmpty()) {
-            BenchSync.markDirty(player);
-            return;
-        }
-        ItemStack inside = slot.getItem();
-        int room = Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model)) - inside.getCount();
-        if (room <= 0) {
-            return;
-        }
-        // take() nunca passa do pedido e o pedido cabe no slot: tudo o que sai do baú entra no slot (nada some).
-        int total = ItemSource.sum(pool.source().take(model, one ? 1 : room));
-        if (total > 0) {
-            slot.set(model.copyWithCount(inside.getCount() + total));
-            menu.broadcastChanges();
-        }
-        BenchSync.markDirty(player);
-    }
-
-    /**
      * Botão de pagamento do sinalizador: 1 do item pedido vai do armazenamento para o slot de pagamento (o slot só
      * guarda 1). Só item que o slot aceita (minério de pagamento); outro pedido é ignorado. Se o slot já tem outro
      * pagamento que veio do armazenamento, ele volta ao baú antes (trocar de ferro para esmeralda); pagamento do
@@ -267,9 +231,13 @@ public final class BenchResults {
     public static void place(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested, boolean one) {
         ItemStack model = requested.copyWithCount(1);
         BenchPool pool = BenchPool.of(player);
-        for (Slot slot : BenchCompat.placementOrder(menu)) {
+        for (Slot slot : BenchCompat.placementOrder(menu, player, model)) {
             if (slot.container == player.getInventory() || !slot.mayPlace(model)) {
                 continue;
+            }
+            // Aba Combustível das fornalhas: função própria, com cadeado próprio.
+            if (BenchCompat.isFuelSlot(menu, slot) && !FeatureGate.allow(player, Feature.BENCH_FUEL)) {
+                break;
             }
             ItemStack inside = slot.getItem();
             if (!inside.isEmpty() && !ItemStack.isSameItemSameComponents(inside, model)) {

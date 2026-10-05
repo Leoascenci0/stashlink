@@ -63,10 +63,6 @@ public final class BenchPullService {
             BenchResults.pay(player, menu, request.item());
             return;
         }
-        if (request.recipeId() == BenchResults.FUEL) {
-            BenchResults.fuel(player, menu, request.one());
-            return;
-        }
         if (request.recipeId() == BenchResults.PLACE) {
             BenchResults.place(player, menu, request.item(), request.one());
             return;

@@ -27,6 +27,7 @@ jobs:
           for c in AbstractRecipeBookScreen AbstractContainerScreen AbstractFurnaceScreen; do echo "--- $c"; javap -p net/minecraft/client/gui/screens/inventory/$c.class | grep -v lambda; done
           echo "--- AbstractRecipeBookScreen code"; javap -p -c net/minecraft/client/gui/screens/inventory/AbstractRecipeBookScreen.class | grep -e "^  [a-z].*(" -e "invoke" | head -120
           echo "--- RecipeBookComponent"; javap -p net/minecraft/client/gui/screens/recipebook/RecipeBookComponent.class | grep -i -e visible -e toggle -e "boolean" | head -30
+      - uses: actions/upload-artifact@v4
         with:
           name: stashlink-jars
           path: |

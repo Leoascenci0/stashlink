@@ -120,6 +120,62 @@ public final class BenchCompat {
         return ItemKinds.isWeapon(stack) ? GEAR_TAB_WEAPONS : GEAR_TAB_TOOLS;
     }
 
+    /** Qual das três fornalhas (cada uma tem as suas abas). */
+    public enum FurnaceKind {
+        FURNACE, SMOKER, BLAST
+    }
+
+    /** A fornalha aberta, ou {@code null} se não é uma fornalha. */
+    public static FurnaceKind furnaceKind(AbstractContainerMenu menu) {
+        if (menu instanceof SmokerMenu) {
+            return FurnaceKind.SMOKER;
+        }
+        if (menu instanceof BlastFurnaceMenu) {
+            return FurnaceKind.BLAST;
+        }
+        return menu instanceof AbstractFurnaceMenu ? FurnaceKind.FURNACE : null;
+    }
+
+    /** Abas da fornalha: comida, blocos, minérios, combustível. Defumador: comida, combustível. Alto-forno: minérios, combustível. */
+    public static final int FURNACE_TAB_FOOD = 0;
+    public static final int FURNACE_TAB_BLOCKS = 1;
+    public static final int FURNACE_TAB_ORES = 2;
+    public static final int FURNACE_TAB_FUEL = 3;
+    public static final int SMOKER_TAB_FOOD = 0;
+    public static final int SMOKER_TAB_FUEL = 1;
+    public static final int BLAST_TAB_ORES = 0;
+    public static final int BLAST_TAB_FUEL = 1;
+
+    /** A aba de combustível desta fornalha. */
+    public static int fuelTab(AbstractContainerMenu menu) {
+        FurnaceKind kind = furnaceKind(menu);
+        return kind == FurnaceKind.FURNACE ? FURNACE_TAB_FUEL : kind == FurnaceKind.SMOKER ? SMOKER_TAB_FUEL : BLAST_TAB_FUEL;
+    }
+
+    /** Esta fornalha funde/assa o item (a regra do jogo)? Sem jogador (sem mundo), não dá para saber: não. */
+    private static boolean smelts(AbstractContainerMenu menu, Player player, ItemStack stack) {
+        return player != null && player.level().recipeAccess().propertySet(furnaceInput(menu)).test(stack);
+    }
+
+    /**
+     * Aba de um item numa fornalha: o que ela funde vai para comida / blocos / minérios (minério = o que o alto-forno
+     * funde: minérios, metais brutos, ferramentas de metal); o resto que a lista mostra é combustível.
+     */
+    private static int furnaceTab(AbstractContainerMenu menu, Player player, ItemStack stack) {
+        FurnaceKind kind = furnaceKind(menu);
+        if (!smelts(menu, player, stack)) {
+            return fuelTab(menu);
+        }
+        if (kind != FurnaceKind.FURNACE) {
+            return 0;   // defumador: comida; alto-forno: minérios
+        }
+        if (ItemKinds.isFood(stack)) {
+            return FURNACE_TAB_FOOD;
+        }
+        boolean ore = player.level().recipeAccess().propertySet(RecipePropertySet.BLAST_FURNACE_INPUT).test(stack);
+        return ore ? FURNACE_TAB_ORES : FURNACE_TAB_BLOCKS;
+    }
+
     /** O que um item é para a bigorna. Um predicado só: o filtro e a aba nunca discordam. */
     private enum AnvilKind {
         BOOK, GEAR, MATERIAL
@@ -207,7 +263,18 @@ public final class BenchCompat {
 
     /** A estação usa o painel "Armazenamento"? O sinalizador não: o pagamento são os botões de ícone. */
     public static boolean usesPanel(AbstractContainerMenu menu) {
-        return isStation(menu) && !hasRecipeBook(menu) && stationOf(menu) != Station.BEACON;
+        Station station = stationOf(menu);
+        // A bancada fica com o livro de receitas do jogo; as fornalhas usam o painel (abas fixas, combustível).
+        return isStation(menu) && station != Station.BEACON && station != Station.CRAFTING;
+    }
+
+    /** O botão do livro de receitas nas telas do jogo (para escondê-lo nas fornalhas). */
+    public static final int RECIPE_BUTTON_WIDTH = 20;
+    public static final int RECIPE_BUTTON_HEIGHT = 18;
+
+    /** As fornalhas trocam o livro de receitas do jogo pelo painel: o livro fica fechado e o botão dele some. */
+    public static boolean hidesRecipeBook(AbstractContainerMenu menu) {
+        return menu instanceof AbstractFurnaceMenu;
     }
 
     /** O slot de lápis-lazúli da mesa de encantamento aberta, ou {@code null} se não é uma mesa de encantamento. */
@@ -257,7 +324,15 @@ public final class BenchCompat {
      * conserto; nas outras, 0.
      */
     public static int slotTab(AbstractContainerMenu menu, ItemStack stack) {
+        return slotTab(menu, null, stack);
+    }
+
+    /** Igual a {@link #slotTab(AbstractContainerMenu, ItemStack)}; as fornalhas precisam do jogador (receitas do mundo). */
+    public static int slotTab(AbstractContainerMenu menu, Player player, ItemStack stack) {
         switch (stationOf(menu)) {
+            case FURNACE -> {
+                return furnaceTab(menu, player, stack);
+            }
             case SMITHING -> {
                 // Slot 0 = molde, 1 = item a melhorar (armadura ou ferramenta/arma), 2 = material.
                 if (menu.getSlot(0).mayPlace(stack)) {
@@ -298,6 +373,15 @@ public final class BenchCompat {
      * Em que ordem testar os slots ao pôr um item solto: no encantamento o slot do item aceita qualquer coisa, então
      * o do lápis-lazúli tem que ser testado primeiro.
      */
+    public static List<Slot> placementOrder(AbstractContainerMenu menu, Player player, ItemStack stack) {
+        // Fornalha: o slot de entrada aceita qualquer coisa no jogo, então decide aqui. O que ela funde vai para a
+        // entrada; o resto (carvão, balde de lava...) para o combustível.
+        if (menu instanceof AbstractFurnaceMenu) {
+            return List.of(menu.getSlot(smelts(menu, player, stack) ? 0 : 1));
+        }
+        return placementOrder(menu);
+    }
+
     public static List<Slot> placementOrder(AbstractContainerMenu menu) {
         List<Slot> order = new ArrayList<>(menu.slots);
         if (stationOf(menu) == Station.ENCHANTING) {
@@ -501,43 +585,9 @@ public final class BenchCompat {
         return menu instanceof AbstractFurnaceMenu || menu instanceof BrewingStandMenu;
     }
 
-    /**
-     * Combustíveis "de verdade" que o botão de combustível das fornalhas usa, na ordem de preferência. Só itens que
-     * existem para queimar: o botão nunca escolhe sozinho tábua, tronco ou ferramenta de madeira do baú (o jogador
-     * pode pôr um desses na mão, e aí o botão completa com o mesmo item).
-     */
-    private static final List<Item> FUELS = List.of(Items.COAL, Items.CHARCOAL, Items.COAL_BLOCK, Items.BLAZE_ROD,
-            Items.DRIED_KELP_BLOCK, Items.LAVA_BUCKET);
-
-    /** O slot de combustível da fornalha/defumador/alto-forno aberto, ou {@code null} se não é uma fornalha. */
-    public static Slot fuelSlot(AbstractContainerMenu menu) {
-        return menu instanceof AbstractFurnaceMenu ? menu.getSlot(1) : null;
-    }
-
-    /** O item queima neste slot? O slot do jogo também aceita balde vazio (sobra do balde de lava), que não é combustível. */
-    public static boolean burnsIn(Slot slot, ItemStack stack) {
-        return !stack.isEmpty() && !stack.is(Items.BUCKET) && slot.mayPlace(stack);
-    }
-
-    /**
-     * Que combustível o botão põe no slot (um item, contagem 1), ou vazio se não há o que pôr. Slot com combustível:
-     * completa com o mesmo item (se o armazenamento tem e ainda cabe). Slot vazio: o primeiro de {@link #FUELS} que o
-     * armazenamento tem. A mesma regra no cliente (ícone e dica do botão) e no servidor (que decide de verdade).
-     */
-    public static ItemStack pickFuel(Slot slot, java.util.function.Predicate<ItemStack> inStorage) {
-        ItemStack inside = slot.getItem();
-        if (!inside.isEmpty()) {
-            ItemStack same = inside.copyWithCount(1);
-            boolean room = inside.getCount() < Math.min(inside.getMaxStackSize(), slot.getMaxStackSize(inside));
-            return room && burnsIn(slot, same) && inStorage.test(same) ? same : ItemStack.EMPTY;
-        }
-        for (Item item : FUELS) {
-            ItemStack candidate = new ItemStack(item);
-            if (burnsIn(slot, candidate) && inStorage.test(candidate)) {
-                return candidate;
-            }
-        }
-        return ItemStack.EMPTY;
+    /** É o slot de combustível de uma fornalha (para o cadeado da função de combustível)? */
+    public static boolean isFuelSlot(AbstractContainerMenu menu, Slot slot) {
+        return menu instanceof AbstractFurnaceMenu && menu.getSlot(1) == slot;
     }
 
     /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */

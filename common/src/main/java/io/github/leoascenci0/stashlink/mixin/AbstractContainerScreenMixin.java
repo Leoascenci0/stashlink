@@ -2,7 +2,6 @@ package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
 import io.github.leoascenci0.stashlink.client.BenchBeaconButtons;
-import io.github.leoascenci0.stashlink.client.BenchFuelButton;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
 import io.github.leoascenci0.stashlink.client.ReceivePanel;
@@ -50,9 +49,6 @@ public abstract class AbstractContainerScreenMixin {
     @Unique
     private BenchPanel stashlink$benchPanel;
 
-    /** Botão de combustível das fornalhas (Item 16.3); só existe em fornalha, defumador e alto-forno. */
-    @Unique
-    private BenchFuelButton stashlink$fuelButton;
 
     /** Ícones de pagamento clicáveis do sinalizador (Item 16.3); só existe no sinalizador. */
     @Unique
@@ -122,38 +118,27 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    /** O botão de combustível das fornalhas e os ícones de pagamento clicáveis do sinalizador. */
+    /** Os ícones de pagamento clicáveis do sinalizador. */
     @Inject(method = "init", at = @At("TAIL"))
-    private void stashlink$addFuelButton(CallbackInfo ci) {
+    private void stashlink$addBeaconButtons(CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        stashlink$fuelButton = BenchFuelButton.create(self.getMenu());
         stashlink$beaconButtons = BenchBeaconButtons.create(self.getMenu());
     }
 
-    /** Desenha o botão de combustível (a posição acompanha o livro de receitas, que desloca a fornalha) e os do sinalizador. */
+    /** Desenha os botões do sinalizador. */
     @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void stashlink$drawFuelButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+    private void stashlink$drawBeaconButtons(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
                                           CallbackInfo ci) {
-        if (stashlink$fuelButton != null) {
-            stashlink$fuelButton.layout(leftPos, topPos);
-            stashlink$fuelButton.draw(graphics, mouseX, mouseY);
-        }
         if (stashlink$beaconButtons != null) {
             stashlink$beaconButtons.layout(leftPos, topPos);
             stashlink$beaconButtons.draw(graphics, mouseX, mouseY);
         }
     }
 
-    /** Clique no botão de combustível ou num ícone do sinalizador: pede ao servidor; o clique não chega ao jogo. */
+    /** Clique num ícone do sinalizador: pede ao servidor; o clique não chega ao jogo. */
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void stashlink$clickFuelButton(MouseButtonEvent event, boolean doubleClick,
+    private void stashlink$clickBeaconButtons(MouseButtonEvent event, boolean doubleClick,
                                            CallbackInfoReturnable<Boolean> cir) {
-        if (stashlink$fuelButton != null) {
-            stashlink$fuelButton.layout(leftPos, topPos);
-            if (stashlink$fuelButton.mouseClicked(event)) {
-                cir.setReturnValue(true);
-            }
-        }
         if (stashlink$beaconButtons != null) {
             stashlink$beaconButtons.layout(leftPos, topPos);
             if (stashlink$beaconButtons.mouseClicked(event)) {
@@ -177,6 +162,27 @@ public abstract class AbstractContainerScreenMixin {
             if (child instanceof net.minecraft.client.gui.components.EditBox box && box.getWidth() == BenchCompat.ANVIL_NAME_FIELD_WIDTH
                     && box.getX() != leftPos + BenchCompat.ANVIL_NAME_FIELD_DX) {
                 box.setX(leftPos + BenchCompat.ANVIL_NAME_FIELD_DX);
+            }
+        }
+    }
+
+    /**
+     * Fornalhas com o painel: o botão do livro de receitas (20x18, o único botão de imagem desse tamanho na tela) some,
+     * já que o livro fica fechado. É criado depois do {@code init} desta classe, por isso a conferência é a cada quadro.
+     */
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    private void stashlink$hideRecipeBookButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                                CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (stashlink$benchPanel == null || !BenchCompat.hidesRecipeBook(self.getMenu())
+                || !io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
+            return;
+        }
+        for (GuiEventListener child : self.children()) {
+            if (child instanceof net.minecraft.client.gui.components.ImageButton button
+                    && button.getWidth() == BenchCompat.RECIPE_BUTTON_WIDTH && button.getHeight() == BenchCompat.RECIPE_BUTTON_HEIGHT) {
+                button.visible = false;
+                button.active = false;
             }
         }
     }
