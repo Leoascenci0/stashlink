@@ -4,7 +4,9 @@ import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
+import io.github.leoascenci0.stashlink.network.RequestLimiter;
 import io.github.leoascenci0.stashlink.platform.Services;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import net.minecraft.network.chat.Component;
@@ -21,6 +23,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
  * nenhum outro jogador está com o container aberto. Mexe só em metadado: nenhum item muda de lugar.
  */
 public final class SlotLockService {
+    private static final RequestLimiter LIMITER = new RequestLimiter(StashLinkConfig.SLOT_LOCK_COOLDOWN_TICKS);
+
     private SlotLockService() {
     }
 
@@ -45,8 +49,13 @@ public final class SlotLockService {
                 || request.menuSlot() < 0 || request.menuSlot() >= menu.slots.size()) {
             return;
         }
+        if (!LIMITER.allow(player)) {
+            return;
+        }
         Slot slot = menu.slots.get(request.menuSlot());
-        if (slot.container == player.getInventory() || !SlotLocks.supports(slot.container, slot.getContainerSlot())) {
+        // Tela de outro mod (loja, seletor) também é ChestMenu, mas sobre um container "de mentira": não é armazenamento.
+        if (slot.container == player.getInventory() || !LootAllService.isWorldStorage(slot.container)
+                || !SlotLocks.supports(slot.container, slot.getContainerSlot())) {
             return;
         }
         for (BlockEntity be : SlotLocks.holders(slot.container)) {

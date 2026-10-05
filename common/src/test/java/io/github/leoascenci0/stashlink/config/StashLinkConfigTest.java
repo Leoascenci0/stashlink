@@ -133,6 +133,67 @@ class StashLinkConfigTest {
     }
 
     @Test
+    void savingOverABrokenFileKeepsABackupFirst(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("stashlink.json");
+        Path bak = dir.resolve("stashlink.json.bak");
+        Files.writeString(file, "{ isto não é json");
+        assertFalse(StashLinkConfig.load(file));
+
+        assertTrue(StashLinkConfig.save(file));
+        assertEquals("{ isto não é json", Files.readString(bak), "o conteúdo quebrado ficou guardado");
+        assertTrue(Files.readString(file).contains("configVersion"), "e o arquivo agora é um JSON de verdade");
+
+        // O arquivo já está bom: salvar de novo não gera outra cópia nem mexe no .bak.
+        assertTrue(StashLinkConfig.save(file));
+        assertEquals("{ isto não é json", Files.readString(bak));
+    }
+
+    @Test
+    void anExistingBackupIsNeverOverwritten(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("stashlink.json");
+        Path bak = dir.resolve("stashlink.json.bak");
+        Files.writeString(bak, "backup antigo");
+        Files.writeString(file, "{ quebrado de novo");
+        assertFalse(StashLinkConfig.load(file));
+
+        assertTrue(StashLinkConfig.save(file));
+        assertEquals("backup antigo", Files.readString(bak), "o .bak que já existia continua igual");
+        try (var files = Files.list(dir)) {
+            assertEquals(1, files.filter(p -> p.getFileName().toString().endsWith(".bak")
+                    && !p.equals(bak)).filter(p -> {
+                try {
+                    return Files.readString(p).equals("{ quebrado de novo");
+                } catch (java.io.IOException e) {
+                    return false;
+                }
+            }).count(), "a cópia nova ganhou a data no nome");
+        }
+    }
+
+    @Test
+    void aFutureVersionFileIsNotDowngradedByLoad(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("stashlink.json");
+        String future = "{ \"configVersion\": 3, \"sourceRadius\": 11, \"campoDoFuturo\": true }";
+        Files.writeString(file, future);
+
+        assertTrue(StashLinkConfig.load(file), "o que o mod entende é usado");
+        assertEquals(11, StashLinkConfig.sourceRadius);
+        assertEquals(future, Files.readString(file), "mas o arquivo não é regravado (nem como versão 2)");
+        assertFalse(Files.exists(dir.resolve("stashlink.json.bak")));
+    }
+
+    @Test
+    void savingOverAFutureVersionFileKeepsABackup(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("stashlink.json");
+        String future = "{ \"configVersion\": 3, \"sourceRadius\": 11, \"campoDoFuturo\": true }";
+        Files.writeString(file, future);
+        StashLinkConfig.load(file);
+
+        assertTrue(StashLinkConfig.save(file), "comando/tela ainda gravam");
+        assertEquals(future, Files.readString(dir.resolve("stashlink.json.bak")), "mas o arquivo do futuro fica guardado");
+    }
+
+    @Test
     void trySetRadiusRespectsServerCap() {
         StashLinkConfig.maxRadius = 16;
         assertTrue(StashLinkConfig.trySetRadius(16));

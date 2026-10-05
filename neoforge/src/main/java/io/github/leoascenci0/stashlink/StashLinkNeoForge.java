@@ -60,6 +60,7 @@ public class StashLinkNeoForge {
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> RefillService.tick(event.getServer()));
         // Slots travados (Item 13): manda ao cliente com o mod o que está reservado no container aberto.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> SlotLockSync.tick(event.getServer()));
+        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> PlayerPrefsService.tick(event.getServer()));
         // Bancadas com armazenamento (Item 16): manda ao cliente com o mod o que há por perto.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> BenchSync.tick(event.getServer()));
         // Sair com a estação aberta (ou parar o servidor) devolve o emprestado ao baú antes do save do jogador.

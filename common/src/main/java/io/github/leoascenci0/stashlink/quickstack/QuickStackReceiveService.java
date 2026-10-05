@@ -4,7 +4,9 @@ import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.ReceivesRequest;
+import io.github.leoascenci0.stashlink.network.RequestLimiter;
 import io.github.leoascenci0.stashlink.platform.Services;
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
 import net.minecraft.network.chat.Component;
@@ -20,6 +22,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
  * que os mods de proteção liberam e que nenhum outro jogador está com o container aberto. Só mexe em metadado.
  */
 public final class QuickStackReceiveService {
+    private static final RequestLimiter LIMITER = new RequestLimiter(StashLinkConfig.RECEIVES_COOLDOWN_TICKS);
+
     private QuickStackReceiveService() {
     }
 
@@ -36,7 +40,9 @@ public final class QuickStackReceiveService {
     /** O container do baú/barril/shulker do menu aberto (o primeiro slot que não é do jogador), ou {@code null}. */
     public static Container storageOf(ServerPlayer player, AbstractContainerMenu menu) {
         for (Slot slot : menu.slots) {
-            if (slot.container != player.getInventory() && QuickStackReceive.supports(slot.container)) {
+            // Só armazenamento de verdade: o container "de mentira" de uma tela de outro mod não conta.
+            if (slot.container != player.getInventory() && LootAllService.isWorldStorage(slot.container)
+                    && QuickStackReceive.supports(slot.container)) {
                 return slot.container;
             }
         }
@@ -52,6 +58,9 @@ public final class QuickStackReceiveService {
         }
         // O botão é parte da tecla N: com ela trancada ou desligada, o servidor não muda nada (Revisão 1.0).
         if (!FeatureGate.allow(player, Feature.QUICK_STACK)) {
+            return;
+        }
+        if (!LIMITER.allow(player)) {
             return;
         }
         Container container = storageOf(player, menu);

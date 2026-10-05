@@ -33,6 +33,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 
 ### Segurança e desempenho
 - Toda mudança de item é feita e validada no servidor (distância, permissões e claims).
+- Pedidos ao servidor com limite de ritmo (travar slot, botão N, rótulo, preferências, bancada) e recusados em telas de outros mods que só imitam um baú. Config quebrada ou de versão futura ganha uma cópia `.bak` antes de ser sobrescrita.
 - Testado em servidor com 2 jogadores, 289 containers e Carpet, sem duplicação nos cenários testados; varredura bem abaixo de 5 ms por operação com raio 32.
 - Revisão completa antes da publicação (`docs/REVISAO-1.0.md`): corrigido o reabastecimento que apagava o balde, a tigela ou a garrafa vazia, e fechados três atalhos pelos quais um cliente adulterado passava por um cadeado.
 

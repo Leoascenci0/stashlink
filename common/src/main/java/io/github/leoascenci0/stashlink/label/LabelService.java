@@ -3,8 +3,10 @@ package io.github.leoascenci0.stashlink.label;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.LabelEditRequest;
 import io.github.leoascenci0.stashlink.network.LabelEditorData;
+import io.github.leoascenci0.stashlink.network.RequestLimiter;
 import io.github.leoascenci0.stashlink.network.SetLabelRequest;
 import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.core.BlockPos;
@@ -23,12 +25,15 @@ public final class LabelService {
     /** Alcance extra além do alcance normal de blocos (mesmo critério de abrir o baú). */
     private static final double REACH_SLACK = 1.0;
 
+    private static final RequestLimiter EDIT_LIMITER = new RequestLimiter(StashLinkConfig.LABEL_COOLDOWN_TICKS);
+    private static final RequestLimiter SET_LIMITER = new RequestLimiter(StashLinkConfig.LABEL_COOLDOWN_TICKS);
+
     private LabelService() {
     }
 
     public static void handleEdit(ServerPlayer player, LabelEditRequest request) {
         try {
-            if (!FeatureGate.allow(player, Feature.LABEL)) {
+            if (!FeatureGate.allow(player, Feature.LABEL) || !EDIT_LIMITER.allow(player)) {
                 return;
             }
             BlockEntity be = target(player, request.pos());
@@ -43,6 +48,9 @@ public final class LabelService {
 
     public static void handleSet(ServerPlayer player, SetLabelRequest request) {
         try {
+            if (!SET_LIMITER.allow(player)) {
+                return;
+            }
             apply(player, request.pos(), request.name(), request.note());
         } catch (RuntimeException e) {
             Constants.LOG.error("Falha ao gravar rótulo de {}", player.getGameProfile().name(), e);

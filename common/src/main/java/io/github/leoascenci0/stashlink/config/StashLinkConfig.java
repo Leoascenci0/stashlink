@@ -79,7 +79,28 @@ public final class StashLinkConfig {
     /** Tempo mínimo entre duas execuções da tecla W do mesmo jogador (impede spam de pacotes). */
     public static final int LOOT_ALL_COOLDOWN_TICKS = 5;
 
+    /** Tempo mínimo entre dois pedidos de travar/destravar slot do mesmo jogador (anti-flood). */
+    public static final int SLOT_LOCK_COOLDOWN_TICKS = 3;
+
+    /** Tempo mínimo entre dois cliques no botão "recebe itens com a N" do mesmo jogador (anti-flood). */
+    public static final int RECEIVES_COOLDOWN_TICKS = 3;
+
+    /** Tempo mínimo entre dois pedidos de rótulo (abrir o editor, ou gravar) do mesmo jogador (anti-flood). */
+    public static final int LABEL_COOLDOWN_TICKS = 4;
+
+    /** Tempo mínimo entre duas aplicações das preferências do mesmo jogador; no intervalo vale só a última. */
+    public static final int PLAYER_PREFS_COOLDOWN_TICKS = 20;
+
+    /** Tempo mínimo entre dois pedidos da bancada que varrem o raio (montar receita, pagar): 3 ticks. */
+    public static final int BENCH_SWEEP_COOLDOWN_TICKS = 3;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    /**
+     * Arquivo que o último {@link #load} achou quebrado ou de versão futura: o próximo {@link #save} nele guarda antes
+     * uma cópia {@code .bak}, para o jogador não perder o que tinha escrito.
+     */
+    private static Path backupBeforeSave;
 
     private StashLinkConfig() {
     }
@@ -173,6 +194,11 @@ public final class StashLinkConfig {
      * rejeitados; JSON inválido lança {@link JsonSyntaxException} sem alterar nada.
      */
     public static void fromJson(String json) {
+        apply(json);
+    }
+
+    /** Aplica o JSON e devolve o {@code configVersion} que estava escrito nele. */
+    private static int apply(String json) {
         Data d = GSON.fromJson(json, Data.class);
         if (d == null) {
             throw new JsonSyntaxException("arquivo vazio");
@@ -209,6 +235,7 @@ public final class StashLinkConfig {
             }
         }
         lockedFeatures = features;
+        return d.configVersion;
     }
 
     /** Caminho do arquivo no loader atual. */
@@ -228,34 +255,59 @@ public final class StashLinkConfig {
 
     /**
      * Lê o arquivo. Se não existe, cria com os padrões. Se está quebrado, mantém os valores atuais e avisa no log
-     * (o arquivo do jogador não é sobrescrito, para ele poder consertar).
+     * (o arquivo do jogador não é sobrescrito aqui; e o primeiro {@link #save} depois guarda um {@code .bak} dele).
+     * Se vem de uma versão futura do mod, usa o que entende, avisa e <b>não</b> regrava (não rebaixa o arquivo).
      *
      * @return {@code true} se o arquivo foi lido (ou criado) sem erro
      */
     public static boolean load(Path file) {
         try {
             if (!Files.exists(file)) {
+                backupBeforeSave = null;
                 return save(file);
             }
-            fromJson(Files.readString(file, StandardCharsets.UTF_8));
+            int version = apply(Files.readString(file, StandardCharsets.UTF_8));
+            if (version > CONFIG_VERSION) {
+                backupBeforeSave = file;
+                Constants.LOG.warn("Config {} é da versão {} (este mod entende até a {}); não vou regravar o arquivo "
+                        + "sozinho. Se algo for salvo por comando ou tela, fica uma cópia .bak.", file, version, CONFIG_VERSION);
+                return true;
+            }
             // Regrava já normalizado (completa campos novos, corrige valores fora da faixa).
+            backupBeforeSave = null;
             return save(file);
         } catch (IOException | JsonSyntaxException e) {
+            backupBeforeSave = file;
             Constants.LOG.warn("Config {} ilegível, mantendo valores atuais: {}", file, e.toString());
             return false;
         }
     }
 
-    /** Grava o arquivo (cria a pasta se preciso). Erro de disco só vai para o log. */
+    /**
+     * Grava o arquivo (cria a pasta se preciso). Erro de disco só vai para o log. Se o arquivo estava quebrado ou era de
+     * versão futura (ver {@link #load}), guarda antes uma cópia {@code .bak}; se a cópia falha, não sobrescreve.
+     */
     public static boolean save(Path file) {
         try {
             Files.createDirectories(file.getParent());
+            if (file.equals(backupBeforeSave) && Files.exists(file)) {
+                Path bak = backupPath(file);
+                Files.copy(file, bak);
+                Constants.LOG.warn("Guardei a config anterior em {} antes de sobrescrever {}", bak, file);
+            }
+            backupBeforeSave = null;
             Files.writeString(file, toJson() + System.lineSeparator(), StandardCharsets.UTF_8);
             return true;
         } catch (IOException e) {
             Constants.LOG.warn("Não consegui gravar {}: {}", file, e.toString());
             return false;
         }
+    }
+
+    /** {@code stashlink.json.bak}; se já existe um (de um conserto anterior), um com a data no nome, nunca por cima. */
+    private static Path backupPath(Path file) {
+        Path bak = file.resolveSibling(file.getFileName() + ".bak");
+        return Files.exists(bak) ? file.resolveSibling(file.getFileName() + "." + System.currentTimeMillis() + ".bak") : bak;
     }
 
     private static int clamp(int v, int lo, int hi) {

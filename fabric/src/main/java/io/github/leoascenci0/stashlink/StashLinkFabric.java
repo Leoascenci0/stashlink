@@ -56,6 +56,8 @@ public class StashLinkFabric implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(RefillService::tick);
         // Slots travados (Item 13): manda ao cliente com o mod o que está reservado no container aberto.
         ServerTickEvents.END_SERVER_TICK.register(SlotLockSync::tick);
+        // Preferências que chegaram dentro do intervalo anti-flood são aplicadas aqui, quando ele acaba.
+        ServerTickEvents.END_SERVER_TICK.register(PlayerPrefsService::tick);
 
         // Pedido de item vindo do cliente (Litematica). O tipo precisa ser registrado nos dois lados.
         PayloadTypeRegistry.serverboundPlay().register(PullItemRequest.TYPE, PullItemRequest.STREAM_CODEC);

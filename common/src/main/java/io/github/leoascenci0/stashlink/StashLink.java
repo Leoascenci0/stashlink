@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink;
 
 import io.github.leoascenci0.stashlink.bench.BenchSync;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsService;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,5 +22,6 @@ public class StashLink {
     public static void onPlayerLeave(ServerPlayer player) {
         BenchSync.release(player);
         PlayerPrefsStore.remove(player.getUUID());
+        PlayerPrefsService.forget(player);
     }
 }

@@ -117,7 +117,8 @@ public final class OrganizeService {
             return;
         }
         Container container = storageOf(player, menu);
-        if (container == null) {
+        // Tela de outro mod (loja, seletor) também é ChestMenu, mas sobre um container "de mentira": não se organiza.
+        if (container == null || !LootAllService.isWorldStorage(container)) {
             return;
         }
         for (BlockEntity be : SlotLocks.holders(container)) {
