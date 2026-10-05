@@ -664,10 +664,15 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   `chestsReach32AndShulkersAreNeverBenchStorage` (baú a 20 entra com 32, baú a 40 não, e no padrão 16 o baú a 20 sai); a
   medição de desempenho (`StashLinkGameTests`, 289 containers) passou a rodar com raio 32.
 
-### Item 22 — Release 1.0 (publicação) ⬜
+### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`
 - Último item do plano: só entra depois dos Itens 13–21. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–21 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
+- **Em andamento (2026-10-05):** Item 15 mesclado (PR #46), então os Itens 13–21 estão todos na `main`. Feito: `CHANGELOG.md`
+  1.0.0 completo (Itens 13–21 e limites conhecidos), README com as funções novas e lugar para os GIFs, versão `1.0.0` e a
+  descrição do mod em `gradle.properties` (antes era o texto do modelo e apareceria na lista de mods). Em `docs/publicacao/`:
+  página da loja (en e pt), prompt do ícone e sugestões de nome, e o prompt da revisão completa, que roda **antes** da tag.
+  Falta (Eliel): revisão completa, GIFs, ícone novo, tag `v1.0.0` e publicação.
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Como usar este roadmap

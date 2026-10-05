@@ -2,20 +2,28 @@
 
 <p align="center"><img src="docs/img/icon.png" alt="StashLink" width="160"></p>
 
-Mod de qualidade de vida para Minecraft — **Fabric** e **NeoForge**.
+Mod de qualidade de vida para Minecraft 26.3: **Fabric** e **NeoForge**. O armazenamento por perto funciona como se
+estivesse na sua mochila.
 
-- Use itens de **shulker boxes** direto do inventário, sem colocá-las no chão.
-- Shulkers/baús colocados perto (raio configurável) também servem de fonte.
-- Integração com **Litematica**: construa clicando na pré-visualização com os materiais na shulker.
-- **N** guarda seus itens em baús próximos que já tenham aquele item.
-- **W** dentro de um baú puxa tudo o que couber no inventário.
-- **Alt + clique** num slot de baú o reserva para aquele item: só ele entra, **N** prefere esse slot e o slot vazio mostra uma prévia (só com o mod no servidor e no cliente; vale em baú duplo, barril e shulker colocada).
-- Cada função tem **liga/desliga e um cadeado** na tela de config (tecla **K**), como o seletor de dificuldade do jogo: o botão é seu; o cadeado, do dono do servidor ou de um operador, impede a função de funcionar naquele servidor (ou `/stashlink feature <nome> lock|unlock`).
+<!-- GIFs: gravar no jogo e salvar em docs/img/ com estes nomes -->
+| Reabastecer e tecla N | Bancadas com armazenamento | Organizar e buscar |
+|---|---|---|
+| ![](docs/img/refill.gif) | ![](docs/img/bench.gif) | ![](docs/img/organize.gif) |
+
+- **Reabastecer a mão** com itens de shulkers no inventário e de baús, barris e shulkers por perto.
+- **N** guarda seus itens nos baús que já os têm; **W** puxa tudo; **Shift + clique esquerdo + passar o mouse** move item por item.
+- **Botão do meio** num bloco traz o item do armazenamento para a hotbar; **Litematica** (Fabric) constrói com os itens das shulkers.
+- **Bancadas e estações** (bancada, fornalhas, ferreiro, bigorna, encantamento, poções, sinalizador...) usam o armazenamento
+  por perto, com um painel de busca e abas que mostra só o que serve.
+- **Nome no baú** (lápis ✎ ou **J**), com holograma; **Alt + clique** reserva um slot para um item; **O** organiza todo o
+  armazenamento, com prévia e desfazer, e acha o baú de um item.
+- Cada função tem **liga/desliga e um cadeado** na tela de config (tecla **K**), como o seletor de dificuldade do jogo: o
+  botão é seu; o cadeado, do dono do servidor ou de um operador (ou `/stashlink feature <nome> lock|unlock`).
 
 ## Dois modos de funcionar
 
 - **Servidor com o StashLink** (mundo local, ou servidor com o mod): o servidor faz o trabalho. Raio configurável
-  (baús até 16 blocos, shulkers até 64), usa shulkers e baús próximos, e tudo é validado no servidor.
+  (baús, barris e bancadas: padrão 16, até 32 blocos; shulkers: padrão 32, até 64), usa shulkers e baús próximos, e tudo é validado no servidor.
 - **Modo cliente** (servidor **sem** o mod, como um Realms): o mod funciona só no seu cliente, agindo como um
   jogador. Ele abre o container, move os itens por cliques de inventário e fecha — o mesmo que você faria à mão,
   só que automático. Liga/desliga em "Modo cliente" na tela de configuração (padrão: ligado). Cobre **W**
@@ -30,7 +38,7 @@ Limites do modo cliente:
 - As proteções/claims do servidor valem sozinhas: se o servidor não deixa abrir o container, o mod não abre.
 - Os containers abrem e fecham de forma visível enquanto o mod trabalha.
 
-Status: versão 1.0 em preparação. Veja [CHANGELOG.md](CHANGELOG.md), [docs/ROADMAP.md](docs/ROADMAP.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Status: versão 1.0. Veja [CHANGELOG.md](CHANGELOG.md), [docs/ROADMAP.md](docs/ROADMAP.md) e [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Instalar
 
