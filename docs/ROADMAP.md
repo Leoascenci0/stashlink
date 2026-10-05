@@ -674,7 +674,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   página da loja (en e pt), prompt do ícone e sugestões de nome, e o prompt da revisão completa, que roda **antes** da tag.
   Falta (Eliel): revisão completa, GIFs, ícone novo, tag `v1.0.0` e publicação.
 - **Revisão completa feita (2026-10-05, `docs/REVISAO-1.0.md`):** 9 áreas revisadas; corrigidos com teste 1 perda de item
-  (balde/tigela/garrafa vazia no reabastecimento), shulker dentro de shulker colocada, 3 cadeados contornáveis por
+  (balde/tigela/garrafa vazia no reabastecimento), 1 dupe (W em tela falsa de outro mod), shulker dentro de shulker colocada, 3 cadeados contornáveis por
   pacote forjado, rótulo de baú duplo, chunk carregado à força, 2 vazamentos de memória, 2 mixins frágeis e botões fora
   da tela; o CI passou a rodar os GameTests. Achados maiores viraram os Itens 23–25 (depois da 1.0).
   Falta (Eliel): GIFs, ícone novo, tag `v1.0.0` e publicação.
@@ -684,9 +684,9 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 
 ### Item 23 — Endurecer os pedidos ao servidor ⬜
 - **Branch:** `fix/pedidos-servidor`
-- **Telas falsas de outros mods:** W, Organizar, travar slot e Shift + passar aceitam qualquer `ChestMenu`. Mods que
-  montam menus (lojas, seletores) com um container "de mentira" seriam tratados como baú. Exigir que o container do
-  menu seja de um bloco de verdade (baú, barril, shulker, baú do End) — `LootAllService.isSupportedMenu`.
+- **Telas falsas de outros mods:** a W já recusa (revisão 1.0, `LootAllService.isWorldStorage`); falta o mesmo para
+  Organizar, travar slot e o botão N, que ainda aceitam qualquer `ChestMenu` (lojas, seletores com container "de
+  mentira").
 - **Anti-flood** nos pedidos que ainda não têm: travar slot, rótulo (editar/gravar), botão N, preferências; bancada
   com 2–3 ticks entre pedidos que varrem o raio.
 - `stashlink.json` quebrado: guardar cópia `.bak` antes de sobrescrever; versão futura do arquivo não é rebaixada.

@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.gametest;
 
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
+import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.ReceivesRequest;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackReceive;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackReceiveService;
@@ -11,6 +12,8 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -91,6 +94,22 @@ public class ReviewGameTests {
         check(h, lockedKept, "trancada: o baú devia continuar recebendo");
         QuickStackReceiveService.handle(p, new ReceivesRequest(7, false));
         check(h, !QuickStackReceive.accepts(chest), "destrancada: o botão devia desligar o baú");
+        Lab.close(p);
+        lab.cleanup();
+        h.succeed();
+    }
+
+    /** Tela de outro mod (loja, kit) feita com ChestMenu sobre um container de mentira: a tecla W não tira a vitrine. */
+    @GameTest
+    public void lootAllIgnoresFakeChestScreens(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ServerPlayer p = lab.player(3, 2, 3);
+        SimpleContainer shop = new SimpleContainer(27);
+        shop.setItem(0, new ItemStack(Items.DIAMOND, 5));
+        p.containerMenu = ChestMenu.threeRows(9, p.getInventory(), shop);
+        LootAllService.handle(p);
+        check(h, shop.countItem(Items.DIAMOND) == 5 && Lab.carried(p, Items.DIAMOND) == 0,
+                "a vitrine continua com os 5 diamantes e o jogador não ganhou nenhum");
         Lab.close(p);
         lab.cleanup();
         h.succeed();

@@ -58,6 +58,10 @@ public final class FeaturePolicyService {
         if (target == null) {
             return;
         }
+        if (StashLinkConfig.isFeatureLocked(target) == request.locked()) {
+            send(player);   // já estava assim: só corrige a tela de quem pediu
+            return;
+        }
         apply(player.level().getServer(), target, request.locked());
     }
 

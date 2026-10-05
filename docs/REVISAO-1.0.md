@@ -5,7 +5,8 @@ Nove áreas, cada uma lida por um revisor separado; as áreas de risco alto (dup
 leitura das correções. Esta sessão só traz **correções pequenas com teste**; o que é grande virou item novo no roadmap
 (Itens 23–25).
 
-**Resumo:** nenhum achado de gravidade alta ficou aberto. Achamos e corrigimos **um bug de perda de item**: o
+**Resumo:** nenhum achado de gravidade alta ficou aberto. Achamos e corrigimos **um bug de perda de item** e **um de
+dupe** (a W copiava itens de telas falsas de outros mods): o
 reabastecimento da mão a partir de balde, tigela ou garrafa vazia apagava o recipiente vazio. Também corrigimos três
 caminhos em que um cliente adulterado passava por um cadeado, dois vazamentos de memória e um caso raro de chunk
 carregado à força. A maior lacuna era de processo: o CI **não rodava os GameTests** (o `build` não os inclui), então
@@ -31,7 +32,7 @@ contornável ou falha visível; **baixa** = robustez, memória, texto.
 | 11 | 1 Rede | Cadeado pedido repetido regravava o `stashlink.json` e avisava todos a cada pacote (só operador) | baixa | `config/FeaturePolicyService.java:65` | **corrigido** (só grava se mudou); `FeatureGameTests` cobre |
 | 12 | 6 Mixins | Mixins só visuais com `require = 1`: um mod ou versão que mude o método derruba o jogo ao abrir a tela | média | `mixin/GrindstoneScreenMixin.java:28`, `mixin/RecipeBookComponentMixin.java:138` | **corrigido** (`require = 0`: perde-se só o enfeite) |
 | 13 | 5 Cliente | Botões "Organizar"/"Sistema" saíam da janela em GUI 4 com janela pequena | média | `mixin/ContainerScreenOrganizeMixin.java:37` | **corrigido** (encostam na borda) — teste visual, sem automação |
-| 14 | 2 Itens | `isSupportedMenu` aceita qualquer `ChestMenu`, inclusive telas de mods feitas com container falso (lojas, menus): W/Organizar/travar agiriam nelas | média | `lootall/LootAllService.java:47` | **vira item** (Item 23) |
+| 14 | 2 Itens | `isSupportedMenu` aceita qualquer `ChestMenu`, inclusive telas de mods feitas com container de mentira (lojas, kits): a W copiava os itens da vitrine (dupe) | média | `lootall/LootAllService.java:47` | **corrigido para a W** (só container de bloco, baú duplo ou baú do End) + `ReviewGameTests.lootAllIgnoresFakeChestScreens`; Organizar e travar slot nessas telas **viram item** (Item 23) |
 | 15 | 1 Rede | Sem anti-flood em travar slot, rótulo, botão N e preferências; bancada aceita 20 pedidos/s (cada um varre o raio) | baixa | `slotlock/SlotLockService`, `label/LabelService`, `bench/BenchPullService.java:53` | **vira item** (Item 23) |
 | 16 | 6 Compat | Painel das bancadas e botões não registram zona de exclusão para JEI/EMI/REI (podem ficar por baixo da lista deles) | média | `mixin/AbstractContainerScreenMixin.java:100` | **vira item** (Item 24) |
 | 17 | 3 Desemp. | Estação aberta refaz a varredura inteira a cada 100 ticks mesmo sem mudança | baixa | `bench/BenchSync.java:29` | **vira item** (Item 25, medir antes) |
@@ -64,7 +65,7 @@ contornável ou falha visível; **baixa** = robustez, memória, texto.
 ### Onde ainda falta teste (para itens futuros)
 
 Morte e troca de dimensão com a bancada aberta; itens com componentes (encantado, nomeado) nos fuzzers; Pull/Refill
-com shulker do inventário cheia; menu de container "falso" de outro mod; NeoForge (sem GameTests).
+com shulker do inventário cheia; Organizar e travar slot em tela falsa de outro mod; NeoForge (sem GameTests).
 
 ## Desempenho
 
