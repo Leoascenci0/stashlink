@@ -2,16 +2,41 @@
 
 ## 1.0.0 — Minecraft 26.3 (Fabric e NeoForge)
 
-- **Reabastecer a mão** a partir de shulkers no inventário, e de shulkers/baús/barris colocados perto.
-- **Raio de fontes** configurável: baús, barris e bancadas com padrão 16 e até 32 blocos; shulkers colocadas até 64 (padrão 32).
-- **Botão do meio** (pegar bloco) mirando um bloco traz o item do armazenamento para a hotbar (precisa de slot livre; nunca troca item seu; só com o mod no servidor).
-- **Litematica** (Fabric): Easy Place e pick block usam os itens das shulkers; o bloco novo troca no mesmo slot e o anterior volta ao armazenamento (a hotbar não enche).
-- **Slot travado**: Alt + clique num slot de baú reserva o slot para aquele item (só ele entra; N prefere o slot; a prévia aparece no slot vazio). Fica gravado no baú e funciona em baú duplo, barril e shulker colocada.
-- **Tecla N** guarda itens em baús próximos que já têm o item; **tecla W** puxa tudo do container aberto. Na tela do baú, o botão **N** liga/desliga se aquele baú recebe itens com a N (vale para baú, barril e shulker, e persiste); na config, a aba **Tecla N** escolhe as categorias que a N guarda (armadura, ferramentas, armas, comida, poções), cada uma com cadeado do servidor.
-- **Liga/desliga + cadeado** em cada função (reabastecer, N, W, Litematica, Alt + clique, nome do baú), como o seletor de dificuldade: o botão é seu, o cadeado é do servidor (dono ou operador, pela tela ou `/stashlink feature <nome> lock|unlock`); trancada, a função não funciona naquele servidor.
-- **Config**: tela no jogo (tecla K), `/stashlink`, preferências por jogador (Realms sem comandos).
-- **Modo cliente**: W, N e reabastecer a mão funcionam em servidor sem o mod (ex.: Realms).
-- Testado em servidor real com 2 jogadores, 289 containers e Carpet; sem dupe nos cenários testados.
-- Testado em jogo pelo Eliel num servidor próprio com o mod instalado (2026-10-03): funciona. O Realms foi abandonado como alvo de teste.
+Primeira versão pública. O StashLink faz o armazenamento por perto funcionar como se estivesse na sua mochila.
 
-Limites conhecidos: slot travado não vale para funil nem para mods que mexem direto no container, e só com o mod no servidor e no cliente (desenho da prévia ainda sem teste em jogo); modo cliente (servidor sem o mod) e Easy Place com Litematica ainda sem teste em jogo; NeoForge sem testes automáticos.
+### Armazenamento por perto
+- **Reabastecer a mão:** quando o item da mão acaba, vem mais de shulkers no inventário e de shulkers, baús e barris colocados perto.
+- **Raio configurável:** baús, barris e bancadas com padrão 16 e até 32 blocos; shulkers colocadas com padrão 32 e até 64. O dono do servidor pode baixar o teto (`maxRadius`).
+- **Botão do meio** mirando um bloco traz o item do armazenamento para a hotbar. Precisa de slot livre e nunca troca um item seu.
+- **Litematica** (Fabric): Easy Place e pick block usam os itens do armazenamento. O bloco novo entra no mesmo slot e o anterior volta ao armazenamento, então a hotbar não enche.
+
+### Teclas e gestos
+- **N** guarda seus itens nos baús por perto que já têm aquele item. **W** puxa tudo do container aberto.
+- **Shift + clique esquerdo + passar o mouse** move cada item por onde o mouse passa, do baú para a mochila ou ao contrário. Funciona também em servidor sem o mod.
+- Na tela do baú, o botão **N** liga/desliga se aquele baú recebe itens com a N. Na config, a aba **Tecla N** escolhe as categorias que a N guarda: armadura, ferramentas, armas, comida e poções.
+
+### Organizar e encontrar
+- **Nome no baú:** lápis ✎ na tela do baú ou tecla **J**. O nome aparece num holograma na frente do bloco (até 32 blocos), com símbolos (❤ ⭐ ⚡) e ícones de item (`:apple:`). A shulker leva o nome no item.
+- **Slot reservado:** Alt + clique num slot de baú reserva o slot para um item. Só ele entra ali, a N prefere esse slot e o slot vazio mostra uma prévia.
+- **Organizar:** botão Organizar no baú; tecla **O** organiza todo o armazenamento por perto, com prévia, Aplicar e Desfazer; busca de item que destaca o baú onde ele está.
+
+### Bancadas e estações
+- Bancada, fornalha, defumador, alto-forno, cortador de pedra, tear, mesa de cartografia, pedra de amolar, mesa de ferreiro, bigorna, mesa de encantamento, suporte de poções e sinalizador usam o armazenamento por perto.
+- Cada estação tem um painel no estilo do livro de receitas, com busca e abas, mostrando só o que serve nela. Em vermelho fica o que falta, e clicar põe o item no slot certo.
+- Extras: lápis-lazúli automático no encantamento, livros que servem na bigorna, aba Combustível nas fornalhas, pagamento do sinalizador com um clique e todas as poções possíveis no suporte, montadas passo a passo.
+- O inventário interno das estações nunca é usado como armazenamento: item que você deixou cozinhando não é mexido.
+
+### Controle
+- **Liga/desliga e cadeado** em cada função, como o seletor de dificuldade. O botão é seu; o cadeado é do dono do servidor ou de um operador (na tela ou com `/stashlink feature <nome> lock|unlock`).
+- Tela de config no jogo (tecla **K**), comando `/stashlink` e preferências por jogador.
+- **Modo cliente:** em servidor sem o mod, W, N, reabastecer a mão e Shift + passar o mouse funcionam por cliques normais de inventário.
+
+### Segurança e desempenho
+- Toda mudança de item é feita e validada no servidor (distância, permissões e claims).
+- Testado em servidor com 2 jogadores, 289 containers e Carpet, sem duplicação nos cenários testados; varredura bem abaixo de 5 ms por operação com raio 32.
+
+### Limites conhecidos
+- Modo cliente (servidor sem o mod) e a troca de slot do Litematica ainda sem teste em jogo.
+- NeoForge sem testes automáticos (os testes rodam no Fabric; o código é o mesmo).
+- Slot reservado não vale para funil nem para mods que mexem direto no container, e só funciona com o mod no servidor e no cliente.
+- O nome do baú usa só os símbolos que a fonte do jogo tem; emojis coloridos (📦) são descartados.
