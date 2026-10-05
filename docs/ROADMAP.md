@@ -421,6 +421,28 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Testes:** 108 GameTests (novos: cortador, tear, ferraria, encantamento/poções, colocar no slot certo). Visual conferido em jogo pelo Eliel.
 - **Fora do item:** abas na cartografia; escolher a cor do banner de base no tear.
 
+### Item 16.3 — Revisão e melhorias das bancadas ✅
+- **Branches:** `feat/bancadas-revisao` (Fase 1, PR #42/#43), `feat/bancadas-padronizacao` (Fase 2, PR #44), Fase 3 (`claude/cool-archimedes-5ibnld`, PR #45).
+- **Fases 1 e 2:** revisão de integridade (devolução ao fechar/sair, teto de pacote, anti-flood, chave estável de receita) e
+  padronização (cliques: esquerdo = pilha, direito = 1, Shift = máximo; mensagens; ordem única `BenchOrder`).
+- **Fase 3 (pedidos do Eliel após testar a Fase 2), feito:**
+  - **Fornalha, defumador, alto-forno:** painel do StashLink no lugar do livro do jogo, com abas fixas (Comida / Blocos /
+    Minérios / Combustível; defumador Comida / Combustível; alto-forno Minérios / Combustível). Combustível com só o balde
+    de lava; clicar põe no slot certo (`BENCH_FUEL`).
+  - **Ferreiro:** Enfeites / Armaduras / Ferramentas e armas / Materiais (subir ferramenta para netherite sem levá-la na mão).
+  - **Encantamento:** Armaduras / Ferramentas / Armas / Livros e **lápis-lazúli automático** (até 3, volta ao baú ao
+    fechar/sair; `BENCH_LAPIS`).
+  - **Bigorna:** Armaduras / Ferramentas / Armas / Livros / Materiais; com item no 1º slot, só os livros que servem nele
+    (`BENCH_BOOK_FILTER`).
+  - **Sinalizador (estação nova):** os ícones de pagamento da própria tela viram botões que puxam 1 minério (`BENCH_BEACON`).
+  - **Suporte de poções:** aba Poções com todas as poções do jogo a partir de água (vermelho = falta material), um passo
+    por clique (`BENCH_BREWING`).
+  - Ícone de armadura único (peitoral de ferro); contagem fora do canto dos itens (fica no tooltip), em todas as estações.
+- **Achados:** no 26.3 as receitas de poção são receitas de dados (`BrewingRecipe`), e as telas com livro de receitas não
+  chamam o `extractRenderState` da tela base (só o `extractContents`), o que escondia o primeiro botão de combustível.
+- **Testes:** GameTests novos (fornalhas, ferreiro, encantamento/lápis, bigorna/livros, sinalizador, poções) e unitário do
+  `BrewPlanner`; build do GitHub verde. Aprovado em jogo pelo Eliel (2026-10-05).
+
 ### Item 17 — Escolher o que cada baú recebe com a tecla N ✅
 - **Branch:** `feat/filtro-tecla-n`
 - Ideia: **dentro do baú**, um botão liga/desliga **"recebe itens com a tecla N"**. Ligado, a N guarda ali; desligado,
