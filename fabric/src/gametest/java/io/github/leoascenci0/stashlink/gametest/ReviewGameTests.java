@@ -11,6 +11,7 @@ import io.github.leoascenci0.stashlink.source.ContainerInsert;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ChestMenu;
@@ -67,6 +68,7 @@ public class ReviewGameTests {
                 p.getInventory().setItem(i, new ItemStack(Items.DIRT, 64));
             }
         }
+        p.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.DIRT, 64));   // a mão secundária também é lugar livre
         p.getInventory().setItem(hand, new ItemStack(Items.WATER_BUCKET));
         RefillService.tickPlayer(p);
         p.getInventory().setItem(hand, new ItemStack(Items.BUCKET));       // usou o balde
