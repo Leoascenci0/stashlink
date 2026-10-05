@@ -61,6 +61,14 @@ public class FilterGameTests {
         return p;
     }
 
+    /** Mesmo baú, jogador novo: o intervalo mínimo do botão é por jogador, então cada fase usa um (e fecha o anterior). */
+    private static ServerPlayer next(Lab lab, ServerPlayer old, Container chest, int menuId) {
+        Lab.close(old);
+        ServerPlayer p = player(lab, 0);
+        Lab.open(p, chest, menuId);
+        return p;
+    }
+
     private static void request(ServerPlayer p, int menuId, boolean receives) {
         QuickStackReceiveService.handle(p, new ReceivesRequest(menuId, receives));
     }
@@ -197,14 +205,16 @@ public class FilterGameTests {
         BlockEntity loaded = BlockEntity.loadStatic(pos, be.getBlockState(), tag, lab.level.registryAccess());
         check(h, !QuickStackReceive.accepts((Container) loaded), "desligado volta do disco desligado");
 
-        request(owner, 1, true);
+        owner = next(lab, owner, chest, 2);
+        request(owner, 2, true);
         CompoundTag after = be.saveWithFullMetadata(lab.level.registryAccess());
         BlockEntity reloaded = BlockEntity.loadStatic(pos, be.getBlockState(), after, lab.level.registryAccess());
         check(h, QuickStackReceive.accepts((Container) reloaded) && !after.contains(QuickStackReceive.KEY),
                 "religar também persiste");
 
         // quebrar o baú leva o botão: um baú novo no mesmo lugar recebe como sempre
-        request(owner, 1, false);
+        owner = next(lab, owner, chest, 3);
+        request(owner, 3, false);
         Lab.close(owner);
         lab.level.removeBlock(pos, false);
         Container again = lab.chest(2, 2, 2);
@@ -285,7 +295,7 @@ public class FilterGameTests {
         h.succeed();
     }
 
-    @GameTest
+    @GameTest(maxTicks = 40)
     public void aChestOpenByAnotherPlayerCannotBeChanged(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
@@ -296,10 +306,13 @@ public class FilterGameTests {
         request(a, 1, false);
         check(h, QuickStackReceive.accepts(chest), "com outro jogador no baú, ninguém muda o botão");
         Lab.close(b);
-        request(a, 1, false);
-        check(h, !QuickStackReceive.accepts(chest), "sozinho no baú, muda");
-        lab.cleanup();
-        h.succeed();
+        // O mesmo jogador só pode pedir de novo depois do intervalo do botão.
+        h.runAfterDelay(StashLinkConfig.RECEIVES_COOLDOWN_TICKS + 1, () -> {
+            request(a, 1, false);
+            check(h, !QuickStackReceive.accepts(chest), "sozinho no baú, muda");
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- categorias

@@ -5,7 +5,9 @@ import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.BenchPullRequest;
+import io.github.leoascenci0.stashlink.network.RequestLimiter;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -24,6 +26,9 @@ import java.util.WeakHashMap;
 public final class BenchPullService {
     /** Chave por identidade do objeto do jogador: relogar cria outro objeto, e o antigo é coletado sozinho. */
     private static final Map<ServerPlayer, Long> LAST_REQUEST = new WeakHashMap<>();
+
+    /** Montar receita e pagar varrem o raio inteiro: ficam mais espaçados que o resto (colocar e cursor seguem livres). */
+    private static final RequestLimiter SWEEP_LIMITER = new RequestLimiter(StashLinkConfig.BENCH_SWEEP_COOLDOWN_TICKS);
 
     private BenchPullService() {
     }
@@ -55,6 +60,9 @@ public final class BenchPullService {
             return;
         }
         LAST_REQUEST.put(player, now);
+        if ((request.recipeId() >= 0 || request.recipeId() == BenchResults.PAY) && !SWEEP_LIMITER.allow(player)) {
+            return;
+        }
         if (request.recipeId() >= 0) {
             BenchResults.craft(player, menu, request.recipeId(), request.item(), request.one());
             return;

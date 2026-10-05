@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.gametest;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import io.github.leoascenci0.stashlink.network.LockSlotRequest;
 import io.github.leoascenci0.stashlink.network.SlotLocksSync;
@@ -67,6 +68,18 @@ public class LockGameTests {
         SlotLockService.handle(p, new LockSlotRequest(menu.containerId, slot));
     }
 
+    /**
+     * Roda os passos um depois do outro, espaçados pelo intervalo que o servidor impõe entre pedidos de travar slot:
+     * é assim que um jogador de verdade clica (o limite anti-flood ignora pedidos no mesmo tick).
+     */
+    private static void steps(GameTestHelper h, Runnable... steps) {
+        int gap = StashLinkConfig.SLOT_LOCK_COOLDOWN_TICKS;
+        steps[0].run();
+        for (int i = 1; i < steps.length; i++) {
+            h.runAfterDelay((long) i * gap, steps[i]);
+        }
+    }
+
     private static Item locked(Container c, int slot) {
         return SlotLocks.lockedItem(c, slot);
     }
@@ -84,7 +97,7 @@ public class LockGameTests {
 
     // ---------------------------------------------------------------- travar e destravar
 
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void lockAndUnlockWork(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
@@ -92,33 +105,37 @@ public class LockGameTests {
         Lab.fill(chest, 3, COBBLE, 10);
         ChestMenu menu = Lab.open(p, chest, 1);
 
-        lock(p, menu, 3);                                   // slot com item: trava para ele
-        check(h, locked(chest, 3) == COBBLE, "slot 3 devia estar reservado para pedra");
-        check(h, Lab.count(chest, COBBLE) == 10, "travar não pode mexer nos itens");
-        lock(p, menu, 3);                                   // de novo: destrava
-        check(h, locked(chest, 3) == null, "slot 3 devia ter sido destravado");
-
-        lock(p, menu, 8);                                   // vazio e cursor vazio: nada a travar
-        check(h, locked(chest, 8) == null, "sem item não há o que travar");
-        menu.setCarried(new ItemStack(DIRT, 5));
-        lock(p, menu, 8);                                   // vazio com item no cursor: reserva para ele
-        check(h, locked(chest, 8) == DIRT, "slot 8 devia estar reservado para terra");
-        check(h, menu.getCarried().getCount() == 5 && chest.getItem(8).isEmpty(), "o cursor e o slot ficam como estavam");
-        menu.setCarried(ItemStack.EMPTY);
-
-        lock(p, menu, 40);                                  // slot do próprio inventário: ignorado
-        for (int i = 0; i < chest.getContainerSize(); i++) {
-            if (i != 8) {
-                check(h, locked(chest, i) == null, "só o slot 8 devia estar travado");
+        steps(h, () -> {
+            lock(p, menu, 3);                                   // slot com item: trava para ele
+            check(h, locked(chest, 3) == COBBLE, "slot 3 devia estar reservado para pedra");
+            check(h, Lab.count(chest, COBBLE) == 10, "travar não pode mexer nos itens");
+        }, () -> {
+            lock(p, menu, 3);                                   // de novo: destrava
+            check(h, locked(chest, 3) == null, "slot 3 devia ter sido destravado");
+        }, () -> {
+            lock(p, menu, 8);                                   // vazio e cursor vazio: nada a travar
+            check(h, locked(chest, 8) == null, "sem item não há o que travar");
+        }, () -> {
+            menu.setCarried(new ItemStack(DIRT, 5));
+            lock(p, menu, 8);                                   // vazio com item no cursor: reserva para ele
+            check(h, locked(chest, 8) == DIRT, "slot 8 devia estar reservado para terra");
+            check(h, menu.getCarried().getCount() == 5 && chest.getItem(8).isEmpty(), "o cursor e o slot ficam como estavam");
+            menu.setCarried(ItemStack.EMPTY);
+        }, () -> {
+            lock(p, menu, 40);                                  // slot do próprio inventário: ignorado
+            for (int i = 0; i < chest.getContainerSize(); i++) {
+                if (i != 8) {
+                    check(h, locked(chest, i) == null, "só o slot 8 devia estar travado");
+                }
             }
-        }
-        lock(p, menu, 999);                                 // índice inválido não derruba nada
-        lock(p, menu, -1);
-        p.containerMenu = p.inventoryMenu;
-        lock(p, menu, 3);                                   // menu já não é o aberto: ignorado
-        check(h, locked(chest, 3) == null, "pedido com menu fechado devia ser ignorado");
-        lab.cleanup();
-        h.succeed();
+            lock(p, menu, 999);                                 // índice inválido não derruba nada
+            lock(p, menu, -1);
+            p.containerMenu = p.inventoryMenu;
+            lock(p, menu, 3);                                   // menu já não é o aberto: ignorado
+            check(h, locked(chest, 3) == null, "pedido com menu fechado devia ser ignorado");
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- a reserva bloqueia outros itens
@@ -288,52 +305,55 @@ public class LockGameTests {
 
     // ---------------------------------------------------------------- baú duplo, barril, shulker
 
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void doubleChestKeepsLocksInTheRightHalf(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container dbl = lab.doubleChest(3, 2, 6);
         ServerPlayer p = player(lab, 4, 2, 4);
         Lab.prefs(p, 12, true);
         ChestMenu menu = Lab.open(p, dbl, 1);
-        menu.setCarried(new ItemStack(COBBLE, 1));
-        lock(p, menu, 3);                                              // primeira metade
-        lock(p, menu, 40);                                             // segunda metade
-        menu.setCarried(ItemStack.EMPTY);
-        check(h, locked(dbl, 3) == COBBLE && locked(dbl, 40) == COBBLE, "as duas travas valem no baú duplo");
-        check(h, locked(dbl, 4) == null && locked(dbl, 41) == null, "e só elas");
-
-        // mesmo olhando o baú duplo como duas block entities independentes, cada uma tem a sua
-        BlockPos left = h.absolutePos(new BlockPos(3, 2, 6));
-        BlockPos right = h.absolutePos(new BlockPos(4, 2, 6));
-        Container l = (Container) lab.level.getBlockEntity(left);
-        Container r = (Container) lab.level.getBlockEntity(right);
-        int inLeft = 0;
-        int inRight = 0;
-        for (int i = 0; i < 27; i++) {
-            inLeft += locked(l, i) != null ? 1 : 0;
-            inRight += locked(r, i) != null ? 1 : 0;
-        }
-        check(h, inLeft == 1 && inRight == 1, "uma trava em cada metade (" + inLeft + "/" + inRight + ")");
-
-        // terra não entra em nenhum dos dois slots reservados, nem por shift-clique
-        for (int slot : new int[]{3, 40}) {
-            menu.setCarried(new ItemStack(DIRT, 4));
-            menu.clicked(slot, 0, ContainerInput.PICKUP, p);
-            check(h, dbl.getItem(slot).isEmpty(), "terra recusada no slot " + slot);
+        steps(h, () -> {
+            menu.setCarried(new ItemStack(COBBLE, 1));
+            lock(p, menu, 3);                                              // primeira metade
+        }, () -> {
+            lock(p, menu, 40);                                             // segunda metade
             menu.setCarried(ItemStack.EMPTY);
-        }
-        // N com baú duplo: a pedra vai para o slot reservado da segunda metade ou da primeira (o primeiro)
-        Lab.close(p);
-        Lab.give(p, 12, COBBLE, 20);
-        QuickStackService.handle(p);
-        // A ordem das metades no container que o jogo monta pode ser a inversa da do teste: vale qualquer um dos dois reservados.
-        int inReserved = dbl.getItem(3).getCount() + dbl.getItem(40).getCount();
-        check(h, inReserved == 20 && dbl.countItem(COBBLE) == 20, "N devia usar so os slots reservados do bau duplo: reservados=" + inReserved + " total=" + dbl.countItem(COBBLE));
-        lab.cleanup();
-        h.succeed();
+            check(h, locked(dbl, 3) == COBBLE && locked(dbl, 40) == COBBLE, "as duas travas valem no baú duplo");
+            check(h, locked(dbl, 4) == null && locked(dbl, 41) == null, "e só elas");
+
+            // mesmo olhando o baú duplo como duas block entities independentes, cada uma tem a sua
+            BlockPos left = h.absolutePos(new BlockPos(3, 2, 6));
+            BlockPos right = h.absolutePos(new BlockPos(4, 2, 6));
+            Container l = (Container) lab.level.getBlockEntity(left);
+            Container r = (Container) lab.level.getBlockEntity(right);
+            int inLeft = 0;
+            int inRight = 0;
+            for (int i = 0; i < 27; i++) {
+                inLeft += locked(l, i) != null ? 1 : 0;
+                inRight += locked(r, i) != null ? 1 : 0;
+            }
+            check(h, inLeft == 1 && inRight == 1, "uma trava em cada metade (" + inLeft + "/" + inRight + ")");
+
+            // terra não entra em nenhum dos dois slots reservados, nem por shift-clique
+            for (int slot : new int[]{3, 40}) {
+                menu.setCarried(new ItemStack(DIRT, 4));
+                menu.clicked(slot, 0, ContainerInput.PICKUP, p);
+                check(h, dbl.getItem(slot).isEmpty(), "terra recusada no slot " + slot);
+                menu.setCarried(ItemStack.EMPTY);
+            }
+            // N com baú duplo: a pedra vai para o slot reservado da segunda metade ou da primeira (o primeiro)
+            Lab.close(p);
+            Lab.give(p, 12, COBBLE, 20);
+            QuickStackService.handle(p);
+            // A ordem das metades no container que o jogo monta pode ser a inversa da do teste: vale qualquer um dos dois reservados.
+            int inReserved = dbl.getItem(3).getCount() + dbl.getItem(40).getCount();
+            check(h, inReserved == 20 && dbl.countItem(COBBLE) == 20, "N devia usar so os slots reservados do bau duplo: reservados=" + inReserved + " total=" + dbl.countItem(COBBLE));
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void barrelAndShulkerWork(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container barrel = lab.block(Blocks.BARREL, 2, 2, 2);
@@ -341,58 +361,63 @@ public class LockGameTests {
         ServerPlayer p = player(lab, 4, 2, 4);
 
         ChestMenu bm = Lab.open(p, barrel, 1);
-        bm.setCarried(new ItemStack(COBBLE, 1));
-        lock(p, bm, 7);
-        bm.setCarried(new ItemStack(DIRT, 3));
-        bm.clicked(7, 0, ContainerInput.PICKUP, p);
-        check(h, locked(barrel, 7) == COBBLE && barrel.getItem(7).isEmpty(), "barril: reservado e recusa terra");
-        bm.setCarried(ItemStack.EMPTY);
-
-        ShulkerBoxMenu sm = new ShulkerBoxMenu(2, p.getInventory(), shulker);
-        p.containerMenu = sm;
-        sm.setCarried(new ItemStack(COBBLE, 1));
-        lock(p, sm, 7);
-        sm.setCarried(new ItemStack(DIRT, 3));
-        sm.clicked(7, 0, ContainerInput.PICKUP, p);
-        check(h, locked(shulker, 7) == COBBLE && shulker.getItem(7).isEmpty(), "shulker: reservada e recusa terra");
-        sm.setCarried(new ItemStack(COBBLE, 3));
-        sm.clicked(7, 0, ContainerInput.PICKUP, p);
-        check(h, shulker.getItem(7).is(COBBLE), "shulker: aceita o item reservado");
-        lab.cleanup();
-        h.succeed();
+        steps(h, () -> {
+            bm.setCarried(new ItemStack(COBBLE, 1));
+            lock(p, bm, 7);
+            bm.setCarried(new ItemStack(DIRT, 3));
+            bm.clicked(7, 0, ContainerInput.PICKUP, p);
+            check(h, locked(barrel, 7) == COBBLE && barrel.getItem(7).isEmpty(), "barril: reservado e recusa terra");
+            bm.setCarried(ItemStack.EMPTY);
+        }, () -> {
+            ShulkerBoxMenu sm = new ShulkerBoxMenu(2, p.getInventory(), shulker);
+            p.containerMenu = sm;
+            sm.setCarried(new ItemStack(COBBLE, 1));
+            lock(p, sm, 7);
+            sm.setCarried(new ItemStack(DIRT, 3));
+            sm.clicked(7, 0, ContainerInput.PICKUP, p);
+            check(h, locked(shulker, 7) == COBBLE && shulker.getItem(7).isEmpty(), "shulker: reservada e recusa terra");
+            sm.setCarried(new ItemStack(COBBLE, 3));
+            sm.clicked(7, 0, ContainerInput.PICKUP, p);
+            check(h, shulker.getItem(7).is(COBBLE), "shulker: aceita o item reservado");
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- memória no baú (disco)
 
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void locksSurviveSaveAndLoad(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
         ServerPlayer p = player(lab, 4, 2, 4);
         ChestMenu menu = Lab.open(p, chest, 1);
-        menu.setCarried(new ItemStack(COBBLE, 1));
-        lock(p, menu, 5);
-        menu.setCarried(new ItemStack(LOG, 1));
-        lock(p, menu, 22);
-        menu.setCarried(ItemStack.EMPTY);
-
         BlockPos pos = h.absolutePos(new BlockPos(2, 2, 2));
         BlockEntity be = lab.level.getBlockEntity(pos);
-        // o mesmo caminho do disco: salvar o bloco e carregar de novo (reiniciar o servidor)
-        CompoundTag tag = be.saveWithFullMetadata(lab.level.registryAccess());
-        BlockEntity loaded = BlockEntity.loadStatic(pos, be.getBlockState(), tag, lab.level.registryAccess());
-        check(h, loaded instanceof Container, "o bloco recarregado devia ser um container");
-        check(h, locked((Container) loaded, 5) == COBBLE && locked((Container) loaded, 22) == LOG,
-                "as travas voltaram do disco");
-        check(h, locked((Container) loaded, 6) == null, "e só elas");
+        steps(h, () -> {
+            menu.setCarried(new ItemStack(COBBLE, 1));
+            lock(p, menu, 5);
+        }, () -> {
+            menu.setCarried(new ItemStack(LOG, 1));
+            lock(p, menu, 22);
+            menu.setCarried(ItemStack.EMPTY);
 
-        // destravar apaga do disco também
-        lock(p, menu, 5);
-        CompoundTag after = be.saveWithFullMetadata(lab.level.registryAccess());
-        BlockEntity reloaded = BlockEntity.loadStatic(pos, be.getBlockState(), after, lab.level.registryAccess());
-        check(h, locked((Container) reloaded, 5) == null && locked((Container) reloaded, 22) == LOG, "destravar também persiste");
-        lab.cleanup();
-        h.succeed();
+            // o mesmo caminho do disco: salvar o bloco e carregar de novo (reiniciar o servidor)
+            CompoundTag tag = be.saveWithFullMetadata(lab.level.registryAccess());
+            BlockEntity loaded = BlockEntity.loadStatic(pos, be.getBlockState(), tag, lab.level.registryAccess());
+            check(h, loaded instanceof Container, "o bloco recarregado devia ser um container");
+            check(h, locked((Container) loaded, 5) == COBBLE && locked((Container) loaded, 22) == LOG,
+                    "as travas voltaram do disco");
+            check(h, locked((Container) loaded, 6) == null, "e só elas");
+        }, () -> {
+            // destravar apaga do disco também
+            lock(p, menu, 5);
+            CompoundTag after = be.saveWithFullMetadata(lab.level.registryAccess());
+            BlockEntity reloaded = BlockEntity.loadStatic(pos, be.getBlockState(), after, lab.level.registryAccess());
+            check(h, locked((Container) reloaded, 5) == null && locked((Container) reloaded, 22) == LOG, "destravar também persiste");
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
     @GameTest
@@ -449,7 +474,7 @@ public class LockGameTests {
 
     // ---------------------------------------------------------------- 2 jogadores no mesmo baú
 
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void secondPlayerBlocksLockChanges(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
@@ -458,17 +483,20 @@ public class LockGameTests {
         Lab.fill(chest, 3, COBBLE, 10);
         ChestMenu ma = Lab.open(a, chest, 1);
         ChestMenu mb = Lab.open(b, chest, 2);
-        lock(a, ma, 3);
-        lock(b, mb, 3);
-        check(h, locked(chest, 3) == null, "com dois jogadores no baú, ninguém muda travas");
-        Lab.close(b);
-        lock(a, ma, 3);
-        check(h, locked(chest, 3) == COBBLE, "B saiu: A consegue travar");
-        Lab.open(b, chest, 3);
-        lock(b, b.containerMenu, 3);
-        check(h, locked(chest, 3) == COBBLE, "B entrou de novo: a trava não muda");
-        lab.cleanup();
-        h.succeed();
+        steps(h, () -> {
+            lock(a, ma, 3);
+            lock(b, mb, 3);
+            check(h, locked(chest, 3) == null, "com dois jogadores no baú, ninguém muda travas");
+            Lab.close(b);
+        }, () -> {
+            lock(a, ma, 3);
+            check(h, locked(chest, 3) == COBBLE, "B saiu: A consegue travar");
+            Lab.open(b, chest, 3);
+            lock(b, b.containerMenu, 3);
+            check(h, locked(chest, 3) == COBBLE, "B entrou de novo: a trava não muda");
+            lab.cleanup();
+            h.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- fuzz: 2 jogadores, 3000 ações

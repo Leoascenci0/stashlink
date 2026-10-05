@@ -1789,7 +1789,7 @@ public class BenchGameTests {
             menu.getSlot(i).set(awkward.copy());
         }
         menu.getSlot(3).set(ItemStack.EMPTY);
-        h.runAfterDelay(2, () -> {
+        h.runAfterDelay(StashLinkConfig.BENCH_SWEEP_COOLDOWN_TICKS, () -> {
             BenchPoolSync.Entry again = entryOf(BenchSync.snapshot(p), swift);
             BenchPullService.handle(p, new BenchPullRequest(1, swift, false, again.id()));
             check(h, menu.getSlot(3).getItem().is(Items.SUGAR) && Lab.count(chest, Items.SUGAR) == 0,
@@ -1800,7 +1800,7 @@ public class BenchGameTests {
             menu.getSlot(3).set(ItemStack.EMPTY);
             Lab.fill(chest, 4, Items.SUGAR, 1);
             menu.getSlot(0).set(potion(net.minecraft.world.item.alchemy.Potions.MUNDANE));
-            h.runAfterDelay(2, () -> {
+            h.runAfterDelay(StashLinkConfig.BENCH_SWEEP_COOLDOWN_TICKS, () -> {
                 BenchPullService.handle(p, new BenchPullRequest(1, swift, false, again.id()));
                 check(h, menu.getSlot(3).getItem().isEmpty() && Lab.count(chest, Items.SUGAR) == 1,
                         "poção diferente no suporte: nada muda");

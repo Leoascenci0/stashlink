@@ -666,7 +666,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 
 ### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`
-- Último item do plano: só entra depois dos Itens 13–21. Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- Último item do plano: só entra depois dos Itens 13–21 **e 23–25** (ordem nova do Eliel, 2026-10-05: o 22 só fecha depois do 25). Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–21 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
 - **Em andamento (2026-10-05):** Item 15 mesclado (PR #46), então os Itens 13–21 estão todos na `main`. Feito: `CHANGELOG.md`
   1.0.0 completo (Itens 13–21 e limites conhecidos), README com as funções novas e lugar para os GIFs, versão `1.0.0` e a
@@ -676,13 +676,13 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Revisão completa feita (2026-10-05, `docs/REVISAO-1.0.md`):** 9 áreas revisadas; corrigidos com teste 1 perda de item
   (balde/tigela/garrafa vazia no reabastecimento), 1 dupe (W em tela falsa de outro mod), shulker dentro de shulker colocada, 3 cadeados contornáveis por
   pacote forjado, rótulo de baú duplo, chunk carregado à força, 2 vazamentos de memória, 2 mixins frágeis e botões fora
-  da tela, e testes que se misturavam com o vizinho. Achados maiores viraram os Itens 23–25 (depois da 1.0).
+  da tela, e testes que se misturavam com o vizinho. Achados maiores viraram os Itens 23–25, que entram **antes** da publicação (decisão do Eliel, 2026-10-05).
   Falta (Eliel): GIFs, ícone novo, tag `v1.0.0` e publicação.
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
-## Depois do 1.0 (achados da revisão, `docs/REVISAO-1.0.md`)
+## Antes da publicação (achados da revisão, `docs/REVISAO-1.0.md`)
 
-### Item 23 — Endurecer os pedidos ao servidor ⬜
+### Item 23 — Endurecer os pedidos ao servidor ✅
 - **Branch:** `fix/pedidos-servidor`
 - **Telas falsas de outros mods:** a W já recusa (revisão 1.0, `LootAllService.isWorldStorage`); falta o mesmo para
   Organizar, travar slot e o botão N, que ainda aceitam qualquer `ChestMenu` (lojas, seletores com container "de
@@ -692,6 +692,14 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - `stashlink.json` quebrado: guardar cópia `.bak` antes de sobrescrever; versão futura do arquivo não é rebaixada.
 - **Pronto quando:** GameTest com menu de container falso (W não tira nada) e com rajada de pedidos (o servidor só
   atende no ritmo do limite).
+- **Feito (2026-10-05):** `LootAllService.isWorldStorage` agora também vale em `OrganizeService` (organizar o baú aberto),
+  `SlotLockService` e `QuickStackReceiveService` (e no `storageOf` dela). `isSupportedMenu` ficou como estava: o cliente
+  o usa e lá o container é sempre um `SimpleContainer`. Anti-flood com o ajudante `network/RequestLimiter` (um por tipo de
+  pedido, ignora em silêncio): travar slot 3 ticks, botão N 3, rótulo (abrir editor e gravar) 4, bancada 3 só para montar
+  receita e pagar (colocar e cursor seguem livres), preferências 20 ticks guardando só a última (aplicada pelo tick
+  do servidor). `StashLinkConfig`: config quebrada ou de versão futura ganha `stashlink.json.bak` (nunca por cima de um
+  `.bak` que já existe) antes do primeiro `save`; versão futura não é regravada pelo `load`. Testes: 6 GameTests novos em
+  `ReviewGameTests` (tela falsa, rajadas de 50 pedidos, bancada) e 4 unitários em `StashLinkConfigTest`.
 
 ### Item 24 — Compatibilidade com JEI, EMI e REI ⬜
 - **Branch:** `feat/compat-jei-emi-rei`
