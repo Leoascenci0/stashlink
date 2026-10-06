@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.mixin;
 
 import io.github.leoascenci0.stashlink.client.BenchPanel;
 import io.github.leoascenci0.stashlink.client.BenchBeaconButtons;
+import io.github.leoascenci0.stashlink.client.PanelZones;
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.client.LabelPanel;
 import io.github.leoascenci0.stashlink.client.ReceivePanel;
@@ -115,7 +116,16 @@ public abstract class AbstractContainerScreenMixin {
             for (AbstractWidget widget : stashlink$benchPanel.widgets()) {
                 ((ScreenInvoker) (Object) this).stashlink$addRenderableWidget(widget);
             }
+            PanelZones.register(self, stashlink$benchPanel::zones);
+        } else {
+            PanelZones.clear(self);
         }
+    }
+
+    /** Fechar a tela libera a zona (JEI/REI deixam de reservar o espaço). */
+    @Inject(method = "removed", at = @At("HEAD"))
+    private void stashlink$clearPanelZones(CallbackInfo ci) {
+        PanelZones.clear((AbstractContainerScreen<?>) (Object) this);
     }
 
     /** Os ícones de pagamento clicáveis do sinalizador. */

@@ -711,12 +711,18 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   `.bak` que já existe) antes do primeiro `save`; versão futura não é regravada pelo `load`. Testes: 6 GameTests novos em
   `ReviewGameTests` (tela falsa, rajadas de 50 pedidos, bancada) e 4 unitários em `StashLinkConfigTest`.
 
-### Item 24 — Compatibilidade com JEI, EMI e REI ⬜
+### Item 24 — Compatibilidade com JEI, EMI e REI ✅
 - **Branch:** `feat/compat-jei-emi-rei`
 - O painel "Armazenamento" das bancadas e os botões ao lado do baú não avisam esses mods de que ocupam aquele espaço
   (zona de exclusão), então a lista de itens deles pode ficar por baixo. Plugin opcional por mod (só carrega se o mod
   existir, como o Litematica), e parar de mexer em `Screen.width` se a zona resolver.
 - **Pronto quando:** com cada um dos três instalado, painel e lista não se sobrepõem em GUI 2 e 3.
+- **Feito:** `client/PanelZones` (common) guarda o retângulo do painel + abas; plugins só no Fabric
+  (`compat/jei/StashLinkJeiPlugin` via `jei_mod_plugin`, `compat/rei/StashLinkReiPlugin` via `rei_client`), carregados
+  só se o mod existir. O botão N e o lápis ficam dentro do fundo do baú, que JEI/REI já tratam como ocupado.
+  O `Screen.width` do encantamento/poções **fica**: vem de essas telas ignorarem `leftPos`, não dos mods.
+- **Pendente:** (1) **EMI** não tem versão para o 26.x (última 1.1.24 para 1.21.1): plugin quando sair; (2) checagem
+  visual manual em GUI 2 e 3 (`./gradlew :fabric:runClient -PcompatJei` / `-PcompatRei`); (3) NeoForge sem plugin nem teste.
 
 ### Item 25 — Desempenho e acabamento das bancadas e rótulos ⬜
 - **Branch:** `perf/bancadas-rotulos`

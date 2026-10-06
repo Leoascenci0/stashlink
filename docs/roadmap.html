@@ -243,9 +243,9 @@ const ITEMS = [
    do:["Organizar, travar slot e botão N só em container de bloco de verdade (a W já recusava telas falsas)","Anti-flood com RequestLimiter: travar slot e botão N 3 ticks, rótulo 4, bancada 3 (receita e pagar), preferências 20 guardando só a última","Config quebrada ou de versão futura guarda cópia .bak antes de sobrescrever; versão futura não é regravada pelo load","6 GameTests novos (tela falsa, rajadas, bancada) e 4 unitários da config"],
    ok:"Menu falso não perde item com W; rajada de pedidos é atendida só no ritmo do limite."}
 ,
-  {n:24, phase:"Antes da publicação", t:"Compatibilidade com JEI, EMI e REI", b:"feat/compat-jei-emi-rei", f:["F10"], s:"todo",
-   do:["Zona de exclusão do painel das bancadas e dos botões do baú","Plugin opcional por mod, carregado só se o mod existir"],
-   ok:"Com cada um instalado, painel e lista não se sobrepõem."}
+  {n:24, phase:"Antes da publicação", t:"Compatibilidade com JEI, EMI e REI", b:"feat/compat-jei-emi-rei", f:["F10"], s:"done",
+   do:["PanelZones (common) guarda o retângulo do painel Armazenamento + abas; o botão N e o lápis ficam dentro do fundo do baú, que JEI/REI já excluem","Plugins opcionais só no Fabric: JEI (jei_mod_plugin) e REI (rei_client), carregados só se o mod existir","EMI: sem versão para o 26.x (última 1.1.24 / 1.21.1), plugin fica para quando sair","Screen.width do encantamento/poções fica: não é por causa dos mods, é porque essas telas ignoram leftPos","Falta o teste visual manual (GUI 2 e 3) com JEI e REI: ./gradlew :fabric:runClient -PcompatJei / -PcompatRei"],
+   ok:"JEI e REI recebem a zona do painel; checagem visual manual pendente; EMI aguarda versão 26.x."}
 ,
   {n:25, phase:"Antes da publicação", t:"Desempenho e acabamento das bancadas e rótulos", b:"perf/bancadas-rotulos", f:["F8","F10"], s:"todo",
    do:["Medir antes: bancada aberta com 289 baús cheios, N/Organizar com claims, muitos jogadores","Rótulos do baú do End apagados quando o baú some","Bigorna: ferramenta sempre no 1º slot"],

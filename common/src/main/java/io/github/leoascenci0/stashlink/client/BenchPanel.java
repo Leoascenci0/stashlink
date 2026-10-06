@@ -175,6 +175,17 @@ public final class BenchPanel {
         return List.of(search);
     }
 
+    /** O que o painel ocupa na tela agora (para JEI/REI não desenharem a lista por baixo); vazio se ele está oculto. */
+    public List<PanelZones.Zone> zones() {
+        return active() ? List.of(zoneAt(x, y, tabs.size())) : List.of();
+    }
+
+    /** Painel + abas: as abas saem {@code TAB_OVERLAP} px para a esquerda e podem passar da altura do painel. */
+    static PanelZones.Zone zoneAt(int x, int y, int tabCount) {
+        int left = tabCount == 0 ? x : x - TAB_OVERLAP;
+        return new PanelZones.Zone(left, y, x + WIDTH - left, Math.max(HEIGHT, TAB_TOP + TAB_H * tabCount));
+    }
+
     private boolean active() {
         return BenchClient.activeFor(menu);
     }
