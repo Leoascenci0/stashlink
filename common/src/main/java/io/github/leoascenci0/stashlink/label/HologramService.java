@@ -4,7 +4,6 @@ import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.compat.mc.LabelCompat;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -72,6 +71,7 @@ public final class HologramService {
             HOLOS.values().forEach(h -> h.entity().discard());
             HOLOS.clear();
             TRACKED.clear();
+            ENDER_ABSENT.clear();
         }
         if (owner != server) {
             owner = server;
@@ -134,19 +134,56 @@ public final class HologramService {
         }
     }
 
-    /** Baús do End carregados com rótulo gravado no mundo entram na lista. */
+    /**
+     * Quantos ciclos (de {@value #INTERVAL} ticks) um rótulo do End aguenta sem baú <b>numa posição carregada</b>
+     * antes de ser apagado do mundo: 5 minutos. Dá tempo de quebrar e recolocar o baú no mesmo lugar (o rótulo volta);
+     * passado isso o baú sumiu de vez e o rótulo não fica gravado para sempre. Posição em chunk descarregado nunca
+     * conta (não dá para saber), e a contagem vive só na memória (reiniciar o servidor recomeça).
+     */
+    public static final int ENDER_ABSENT_CYCLES = 5 * 60 * 20 / INTERVAL;
+
+    private static final Map<String, Integer> ENDER_ABSENT = new HashMap<>();
+
+    /**
+     * Baús do End carregados com rótulo gravado no mundo entram na lista. Percorre cada rótulo uma vez, sem copiar a
+     * lista, olhando só a dimensão dele; e apaga o rótulo cujo baú sumiu de uma posição carregada
+     * ({@link #ENDER_ABSENT_CYCLES}).
+     */
     private static void trackEnderChests(MinecraftServer server) {
         ServerLevel overworld = server.overworld();
         if (overworld == null) {
             return;
         }
-        for (EnderLabels.Entry entry : EnderLabels.of(overworld).entries()) {
-            for (ServerLevel level : server.getAllLevels()) {
-                BlockPos pos = entry.pos();
-                if (level.dimension().identifier().toString().equals(entry.dimension()) && level.isLoaded(pos)
-                        && level.getBlockEntity(pos) instanceof EnderChestBlockEntity be) {
-                    TRACKED.add(be);
+        EnderLabels labels = EnderLabels.of(overworld);
+        Map<String, ServerLevel> levels = new HashMap<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            levels.put(level.dimension().identifier().toString(), level);
+        }
+        List<EnderLabels.Entry> gone = null;
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (EnderLabels.Entry entry : labels.view()) {
+            ServerLevel level = levels.get(entry.dimension());
+            if (level == null || !level.isLoaded(entry.pos())) {
+                continue;   // não dá para saber: não conta como ausente
+            }
+            String key = EnderLabels.keyOf(entry);
+            if (level.getBlockEntity(entry.pos()) instanceof EnderChestBlockEntity be) {
+                TRACKED.add(be);
+            } else if (ENDER_ABSENT.merge(key, 1, Integer::sum) > ENDER_ABSENT_CYCLES) {
+                if (gone == null) {
+                    gone = new ArrayList<>();
                 }
+                gone.add(entry);
+            } else {
+                seen.add(key);
+            }
+        }
+        // O que voltou a ter baú, sumiu da lista ou está em chunk descarregado deixa de contar como ausente.
+        ENDER_ABSENT.keySet().retainAll(seen);
+        if (gone != null) {
+            for (EnderLabels.Entry entry : gone) {
+                labels.set(levels.get(entry.dimension()), entry.pos(), Label.EMPTY);
+                ENDER_ABSENT.remove(EnderLabels.keyOf(entry));
             }
         }
     }

@@ -67,6 +67,16 @@ public final class EnderLabels extends SavedData {
         return new ArrayList<>(byKey.values());
     }
 
+    /** Visão sem cópia, só para leitura (o ciclo do holograma): quem remover algo faz isso depois de percorrer. */
+    public java.util.Collection<Entry> view() {
+        return java.util.Collections.unmodifiableCollection(byKey.values());
+    }
+
+    /** Chave estável de uma entrada (dimensão + posição), para quem precisa lembrar de algo por entrada. */
+    public static String keyOf(Entry entry) {
+        return key(entry.dimension(), entry.pos());
+    }
+
     public Label get(ServerLevel level, BlockPos pos) {
         Entry entry = byKey.get(key(dimension(level), pos));
         return entry == null ? Label.EMPTY : entry.label();

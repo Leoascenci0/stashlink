@@ -379,6 +379,12 @@ public final class BenchCompat {
         if (menu instanceof AbstractFurnaceMenu) {
             return List.of(menu.getSlot(smelts(menu, player, stack) ? 0 : 1));
         }
+        // Bigorna: os dois slots de entrada aceitam qualquer coisa. A ferramenta (ou arma, armadura) é sempre a do 1º
+        // slot; material e livro vão para o 2º, mesmo clicados primeiro. Se o 2º está ocupado, sobra o 1º.
+        if (menu instanceof AnvilMenu) {
+            return anvilKind(stack) == AnvilKind.GEAR
+                    ? List.of(menu.getSlot(0), menu.getSlot(1)) : List.of(menu.getSlot(1), menu.getSlot(0));
+        }
         return placementOrder(menu);
     }
 

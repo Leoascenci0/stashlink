@@ -247,8 +247,8 @@ const ITEMS = [
    do:["PanelZones (common) guarda o retângulo do painel Armazenamento + abas; o botão N e o lápis ficam dentro do fundo do baú, que JEI/REI já excluem","Plugins opcionais só no Fabric: JEI (jei_mod_plugin) e REI (rei_client), carregados só se o mod existir","EMI: sem versão para o 26.x (última 1.1.24 / 1.21.1), plugin fica para quando sair","Screen.width do encantamento/poções fica: não é por causa dos mods, é porque essas telas ignoram leftPos","Falta o teste visual manual (GUI 2 e 3) com JEI e REI: ./gradlew :fabric:runClient -PcompatJei / -PcompatRei"],
    ok:"JEI e REI recebem a zona do painel; checagem visual manual pendente; EMI aguarda versão 26.x."}
 ,
-  {n:25, phase:"Antes da publicação", t:"Desempenho e acabamento das bancadas e rótulos", b:"perf/bancadas-rotulos", f:["F8","F10"], s:"todo",
-   do:["Medir antes: bancada aberta com 289 baús cheios, N/Organizar com claims, muitos jogadores","Rótulos do baú do End apagados quando o baú some","Bigorna: ferramenta sempre no 1º slot"],
+  {n:25, phase:"Antes da publicação", t:"Desempenho e acabamento das bancadas e rótulos", b:"perf/bancadas-rotulos", f:["F8","F10"], s:"done",
+   do:["Medido (289 baús): bancada aberta reconfere em 0,57 ms a cada 100 ticks — sem problema, não mexeu","Rótulos do baú do End: ciclo 262 → 139 µs (1000 rótulos); rótulo de baú sumido é apagado após 5 min, lista percorrida sem cópia","Bigorna: ferramenta sempre no 1º slot, com GameTest da ordem; 180 GameTests verdes","Não medido (precisa de servidor real): N/Organizar com mod de claims e muitos jogadores"],
    ok:"Números antes e depois no PR; bigorna com teste da ordem."}
 ,
   {n:22, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"wip",
