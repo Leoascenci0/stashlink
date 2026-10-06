@@ -389,6 +389,36 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Pedido do Eliel (2026-10-05): a mochila também aparece no painel, mesmo com "usar baús" desligado; sai dela primeiro. */
+    @GameTest
+    public void panelListsTheBackpackAndTakesFromItFirst(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(8, 2, 4);
+        Lab.fill(chest, 0, Items.RAW_IRON, 10);
+        ServerPlayer p = lab.player(4, 2, 4);
+        p.getInventory().setItem(0, new ItemStack(Items.RAW_IRON, 5));
+        p.getInventory().setItem(1, new ItemStack(Items.COAL, 3));
+
+        Lab.prefs(p, 8, false);   // baús desligados: só a mochila aparece
+        FurnaceMenu menu = new FurnaceMenu(2, p.getInventory());
+        p.containerMenu = menu;
+        List<BenchPoolSync.Entry> off = BenchSync.snapshot(p);
+        check(h, items(off).contains(Items.RAW_IRON) && items(off).contains(Items.COAL)
+                && off.stream().filter(e -> e.item().is(Items.RAW_IRON)).findFirst().orElseThrow().count() == 5,
+                "baús desligados: a mochila aparece (5 de ferro): " + off);
+
+        Lab.prefs(p, 8, true);
+        List<BenchPoolSync.Entry> on = BenchSync.snapshot(p);
+        check(h, on.stream().filter(e -> e.item().is(Items.RAW_IRON)).findFirst().orElseThrow().count() == 15,
+                "baús ligados: mochila + baú somam 15");
+
+        BenchPullService.handle(p, new BenchPullRequest(2, new ItemStack(Items.RAW_IRON), true,
+                io.github.leoascenci0.stashlink.bench.BenchResults.PLACE));
+        check(h, menu.getSlot(0).getItem().is(Items.RAW_IRON) && menu.getSlot(0).getItem().getCount() == 1
+                && Lab.count(chest, Items.RAW_IRON) == 10, "um de ferro veio da mochila; o baú não foi tocado");
+        clean(lab, h);
+    }
+
     /** Relato do Eliel: a ardósia abissal talhada aparecia duas vezes no cortador (sai de mais de uma pedra). */
     @GameTest
     public void stonecutterListsEachResultOnlyOnce(GameTestHelper h) {
@@ -1059,15 +1089,17 @@ public class BenchGameTests {
         p.containerMenu = furnace;
 
         BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.JUNGLE_LOG), false, -2));   // painel: pôr na entrada
-        check(h, furnace.getSlot(0).getItem().is(Items.JUNGLE_LOG) && Lab.count(chest, Items.JUNGLE_LOG) == 0,
-                "a lenha emprestada foi para a entrada: " + furnace.getSlot(0).getItem());
+        // Mochila primeiro (2026-10-05): as 20 próprias vão antes; o baú só completa (5).
+        check(h, furnace.getSlot(0).getItem().is(Items.JUNGLE_LOG) && furnace.getSlot(0).getItem().getCount() == 25
+                && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "mochila primeiro e baú completa: " + furnace.getSlot(0).getItem());
         furnace.removed(p);
         p.containerMenu = p.inventoryMenu;
         BenchSync.tick(lab.level.getServer());
-        check(h, Lab.carried(p, Items.JUNGLE_LOG) == 20 && Lab.count(chest, Items.JUNGLE_LOG) == 0,
-                "as 20 lenhas próprias ficam com o jogador e o baú não ganha nada: mochila=" + Lab.carried(p, Items.JUNGLE_LOG)
+        check(h, Lab.carried(p, Items.JUNGLE_LOG) == 0 && Lab.count(chest, Items.JUNGLE_LOG) == 0,
+                "nada volta ao baú e nada some: mochila=" + Lab.carried(p, Items.JUNGLE_LOG)
                         + " baú=" + Lab.count(chest, Items.JUNGLE_LOG));
-        check(h, furnace.getSlot(0).getItem().getCount() == 5, "o emprestado ficou na fornalha");
+        check(h, furnace.getSlot(0).getItem().getCount() == 25, "tudo ficou na fornalha");
         clean(lab, h);
     }
 

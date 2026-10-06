@@ -154,7 +154,12 @@ public final class BenchPanel {
      */
     public static int stationLeft(int screenWidth, int imageWidth, int defaultLeft) {
         int start = (screenWidth - (WIDTH + GAP + imageWidth)) / 2;
-        return start >= TAB_OVERLAP ? start + WIDTH + GAP : defaultLeft;
+        if (start >= TAB_OVERLAP) {
+            return start + WIDTH + GAP;
+        }
+        // Sem folga para as abas dos dois lados: encosta o painel (com as abas) na margem, desde que a estação caiba.
+        int tight = TAB_OVERLAP + MARGIN + WIDTH + GAP;
+        return tight + imageWidth <= screenWidth ? tight : defaultLeft;
     }
 
     /** Posição do painel: à esquerda da estação, grudado nela e na mesma altura do livro do jogo. */

@@ -197,7 +197,7 @@ public final class BenchSync {
         boolean autoLapis = FeatureGate.allowSilently(player, Feature.BENCH_LAPIS);
         boolean bookFilter = FeatureGate.allowSilently(player, Feature.BENCH_BOOK_FILTER);
         boolean fuelTab = FeatureGate.allowSilently(player, Feature.BENCH_FUEL);
-        for (BenchPool.Stack stack : BenchPool.of(player).contents()) {
+        for (BenchPool.Stack stack : BenchPool.of(player).listing()) {
             if (!listed(menu, player, stack.item(), autoLapis, bookFilter, fuelTab)) {
                 continue;
             }

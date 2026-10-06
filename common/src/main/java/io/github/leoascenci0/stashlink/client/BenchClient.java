@@ -146,9 +146,23 @@ public final class BenchClient {
             return;
         }
         for (BenchPoolSync.Entry entry : pool) {
-            if (BenchCompat.usableForCrafting(entry.item())) {
-                BenchCompat.account(contents, entry.item(), entry.count());
+            // A lista também traz a mochila, que o jogo já contou: só o que passa dela é do armazenamento.
+            int storage = entry.count() - inBackpack(menu, entry.item());
+            if (storage > 0 && BenchCompat.usableForCrafting(entry.item())) {
+                BenchCompat.account(contents, entry.item(), storage);
             }
         }
+    }
+
+    /** Quantos deste item (mesmo item e componentes) há nos slots da mochila do menu aberto. */
+    private static int inBackpack(AbstractContainerMenu menu, ItemStack item) {
+        int total = 0;
+        for (net.minecraft.world.inventory.Slot slot : menu.slots) {
+            if (slot.container instanceof net.minecraft.world.entity.player.Inventory
+                    && ItemStack.isSameItemSameComponents(slot.getItem(), item)) {
+                total += slot.getItem().getCount();
+            }
+        }
+        return total;
     }
 }

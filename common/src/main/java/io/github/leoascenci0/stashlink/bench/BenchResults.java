@@ -208,8 +208,8 @@ public final class BenchResults {
         if (slot == null || !slot.mayPlace(model) || !FeatureGate.allow(player, Feature.BENCH_BEACON)) {
             return;
         }
-        // Só troca se o novo pagamento existe no armazenamento: senão o slot ficaria vazio à toa.
-        boolean available = BenchPool.of(player).contents().stream()
+        // Só troca se o novo pagamento existe na mochila ou no armazenamento: senão o slot ficaria vazio à toa.
+        boolean available = BenchPool.of(player).listing().stream()
                 .anyMatch(s -> s.count() > 0 && ItemStack.isSameItemSameComponents(s.item(), model));
         if (!available) {
             BenchSync.markDirty(player);
@@ -251,12 +251,18 @@ public final class BenchResults {
             if (room <= 0) {
                 continue;
             }
-            int total = ItemSource.sum(pool.source().take(model, one ? 1 : room));
+            int wanted = one ? 1 : room;
+            // Mochila primeiro (item do jogador, fora do caderno); o armazenamento só completa o que faltar.
+            int fromBackpack = pool.takeFromBackpack(model, wanted);
+            int fromStorage = wanted > fromBackpack ? ItemSource.sum(pool.source().take(model, wanted - fromBackpack)) : 0;
+            int total = fromBackpack + fromStorage;
             if (total <= 0) {
-                break;   // não há no armazenamento (a lista vai se atualizar)
+                break;   // não há na mochila nem no armazenamento (a lista vai se atualizar)
             }
             slot.set(model.copyWithCount(inside.getCount() + total));
-            BenchLedger.record(player, Map.of(model.getItem(), total), pool.origin());
+            if (fromStorage > 0) {
+                BenchLedger.record(player, Map.of(model.getItem(), fromStorage), pool.origin());
+            }
             menu.broadcastChanges();
             break;
         }

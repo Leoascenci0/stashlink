@@ -96,8 +96,11 @@ public final class BenchPullService {
 
         BenchPool pool = BenchPool.of(player);
         ItemSource source = pool.source();
-        List<ItemStack> taken = source.take(model, wanted);
-        int total = ItemSource.sum(taken);
+        // Mochila primeiro (item do jogador: fora do caderno), o armazenamento só completa o que faltar.
+        int fromBackpack = pool.takeFromBackpack(model, wanted);
+        List<ItemStack> taken = wanted > fromBackpack ? source.take(model, wanted - fromBackpack) : List.of();
+        int fromStorage = ItemSource.sum(taken);
+        int total = fromBackpack + fromStorage;
         if (total <= 0) {
             BenchSync.markDirty(player);
             return;
@@ -105,7 +108,9 @@ public final class BenchPullService {
         // take() nunca passa de "wanted" e wanted cabe no cursor: a soma sempre cabe.
         menu.setCarried(model.copyWithCount(carried.getCount() + total));
         menu.broadcastChanges();
-        BenchLedger.record(player, Map.of(model.getItem(), total), pool.origin());
+        if (fromStorage > 0) {
+            BenchLedger.record(player, Map.of(model.getItem(), fromStorage), pool.origin());
+        }
         BenchSync.markDirty(player);
     }
 }
