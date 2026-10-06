@@ -257,6 +257,45 @@ public class LabelGameTests {
         h.succeed();
     }
 
+    /**
+     * Item 25: rótulo do End cujo baú sumiu de uma posição carregada é apagado do mundo depois da carência; o de um baú
+     * que existe e o de uma posição descarregada ficam. Antes da carência (quebrar e recolocar) o rótulo ainda volta.
+     */
+    @GameTest
+    public void enderLabelOfAVanishedChestIsEventuallyDropped(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        BlockPos kept = abs(lab, 2, 2, 2);
+        BlockPos orphan = abs(lab, 4, 2, 2);
+        BlockPos far = new BlockPos(2_000_000, 64, 2_000_000);   // chunk que ninguém carregou
+        lab.level.setBlock(kept, Blocks.ENDER_CHEST.defaultBlockState(), 3);
+        EnderLabels ender = EnderLabels.of(lab.level);
+        ender.set(lab.level, kept, new Label("fica", ""));
+        ender.set(lab.level, orphan, new Label("orfao", ""));
+        ender.set(lab.level, far, new Label("longe", ""));
+        for (int i = 0; i < HologramService.ENDER_ABSENT_CYCLES - 1; i++) {
+            sync(lab);
+        }
+        check(h, !ender.get(lab.level, orphan).isEmpty(), "dentro da carência o rótulo ainda está lá");
+        lab.level.setBlock(orphan, Blocks.ENDER_CHEST.defaultBlockState(), 3);   // recolocou a tempo: zera a contagem
+        sync(lab);
+        lab.level.removeBlock(orphan, false);
+        for (int i = 0; i < HologramService.ENDER_ABSENT_CYCLES - 1; i++) {
+            sync(lab);
+        }
+        check(h, !ender.get(lab.level, orphan).isEmpty(), "recolocar zera a carência");
+        for (int i = 0; i < 3; i++) {
+            sync(lab);
+        }
+        check(h, ender.get(lab.level, orphan).isEmpty(), "passada a carência o rótulo órfão é apagado");
+        check(h, ender.get(lab.level, kept).name().equals("fica"), "baú que existe mantém o rótulo");
+        check(h, ender.get(lab.level, far).name().equals("longe"), "posição descarregada não conta como ausente");
+        ender.set(lab.level, kept, Label.EMPTY);
+        ender.set(lab.level, far, Label.EMPTY);
+        lab.level.removeBlock(kept, false);
+        sync(lab);
+        h.succeed();
+    }
+
     /** Revisão 1.0: baú rotulado sozinho e depois emendado com outro não perde o nome nem o holograma. */
     @GameTest
     public void chestLabeledAloneKeepsItsLabelWhenItBecomesDouble(GameTestHelper h) {

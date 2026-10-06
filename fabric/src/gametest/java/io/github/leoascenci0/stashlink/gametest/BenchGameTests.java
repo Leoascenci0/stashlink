@@ -1866,6 +1866,34 @@ public class BenchGameTests {
         clean(lab, h);
     }
 
+    /** Bigorna: a ferramenta vai sempre para o 1º slot e o material para o 2º, na ordem que o jogador clicar. */
+    @GameTest
+    public void anvilToolAlwaysGoesToTheFirstSlot(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container chest = lab.chest(2, 2, 2);
+        chest.setItem(0, new ItemStack(Items.IRON_INGOT, 2));   // um para cada rodada
+        chest.setItem(1, new ItemStack(Items.IRON_PICKAXE));
+        chest.setItem(2, new ItemStack(Items.DIAMOND_SWORD));
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        net.minecraft.world.inventory.AnvilMenu menu = new net.minecraft.world.inventory.AnvilMenu(1, p.getInventory());
+        p.containerMenu = menu;
+        BenchResults.place(p, menu, new ItemStack(Items.IRON_INGOT), true);      // material primeiro
+        BenchResults.place(p, menu, new ItemStack(Items.IRON_PICKAXE), true);
+        check(h, menu.getSlot(0).getItem().is(Items.IRON_PICKAXE) && menu.getSlot(1).getItem().is(Items.IRON_INGOT),
+                "material primeiro: ferramenta no 1º, lingote no 2º: " + menu.getSlot(0).getItem() + " / " + menu.getSlot(1).getItem());
+        menu.getSlot(0).set(ItemStack.EMPTY);
+        menu.getSlot(1).set(ItemStack.EMPTY);
+        BenchResults.place(p, menu, new ItemStack(Items.DIAMOND_SWORD), true);   // ferramenta primeiro
+        BenchResults.place(p, menu, new ItemStack(Items.IRON_INGOT), true);
+        check(h, menu.getSlot(0).getItem().is(Items.DIAMOND_SWORD) && menu.getSlot(1).getItem().is(Items.IRON_INGOT),
+                "ferramenta primeiro: continua no 1º: " + menu.getSlot(0).getItem() + " / " + menu.getSlot(1).getItem());
+        menu.getSlot(0).set(ItemStack.EMPTY);
+        menu.getSlot(1).set(ItemStack.EMPTY);
+        p.containerMenu = p.inventoryMenu;
+        clean(lab, h);
+    }
+
     /** Bigorna: o filtro do painel e a aba usam o mesmo predicado (armadura, ferramenta/etiqueta, arma, livro, material). */
     @GameTest
     public void anvilFilterAndTabShareOnePredicate(GameTestHelper h) {

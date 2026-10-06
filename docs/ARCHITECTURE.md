@@ -391,7 +391,10 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   (`collectImplicitComponents`) e lê ao colocar (`applyImplicitComponents`) — sem registrar componente novo
   (que exigiria código por loader). **Baú do End** (não é `BaseContainerBlockEntity`, o conteúdo é do jogador e o bloco
   solta sem dados): `EnderLabels`, um `SavedData` (`data/stashlink/ender_labels.dat`, no mundo principal, com dimensão +
-  posição), então sobrevive a quebrar e recolocar no mesmo lugar. **Baú duplo:** `Labels.set` grava nas duas metades;
+  posição), então sobrevive a quebrar e recolocar no mesmo lugar — por 5 minutos: o rótulo cujo baú sumiu de uma
+  posição **carregada** é apagado depois disso (`HologramService.ENDER_ABSENT_CYCLES`, contagem só em memória;
+  posição em chunk descarregado nunca conta). **Bigorna:** `BenchCompat.placementOrder` manda ferramenta/arma/armadura
+  ao 1º slot e material/livro ao 2º (os dois slots aceitam qualquer coisa no jogo). **Baú duplo:** `Labels.set` grava nas duas metades;
   só a de menor posição (âncora) tem holograma, no meio.
 - **Holograma (`HologramService`).** É um *reflexo*: `TextDisplay` com a tag `stashlink_label_hologram`, **nunca gravado**
   (`EntityMixin` faz `shouldBeSaved` falso), então não existe holograma órfão (crash, área descarregada, baú quebrado

@@ -1,6 +1,10 @@
 package io.github.leoascenci0.stashlink.gametest;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.bench.BenchSync;
+import io.github.leoascenci0.stashlink.label.EnderLabels;
+import io.github.leoascenci0.stashlink.label.HologramService;
+import io.github.leoascenci0.stashlink.label.Label;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
@@ -365,7 +369,7 @@ public class StashLinkGameTests {
         // Cada repetição usa um jogador novo (o cooldown é por jogador); eles são criados ANTES de medir, para o
         // custo de criar jogador simulado não entrar na conta.
         List<ServerPlayer> pool = new ArrayList<>();
-        for (int i = 0; i < 3 * reps; i++) {
+        for (int i = 0; i < 3 * reps + 1; i++) {
             ServerPlayer q = lab.player(GRID / 2.0, 2, GRID / 2.0);
             Lab.prefs(q, 32, true);
             pool.add(q);
@@ -407,11 +411,36 @@ public class StashLinkGameTests {
         worst[0] = 0;
         long idle = time(() -> RefillService.tickPlayer(p), 10000, worst);
 
+        // Item 25: bancada aberta com os 289 baús cheios. Uma reconferência (a cada 100 ticks) = um snapshot inteiro.
+        ServerPlayer bench = pool.get(next[0]++);
+        bench.containerMenu = new net.minecraft.world.inventory.CraftingMenu(1, bench.getInventory());
+        worst[0] = 0;
+        long benchSnap = time(() -> BenchSync.snapshot(bench), reps, worst);
+        long benchSnapWorst = worst[0];
+        bench.containerMenu = bench.inventoryMenu;
+
+        // Item 25: rótulos de baú do End gravados em posições de chunks não carregados (a lista só cresce).
+        net.minecraft.server.level.ServerLevel level = h.getLevel();
+        EnderLabels ender = EnderLabels.of(level);
+        List<BlockPos> labelled = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            BlockPos far = new BlockPos(1_000_000 + i * 16, 64, 1_000_000);
+            ender.set(level, far, new Label("rotulo" + i, ""));
+            labelled.add(far);
+        }
+        worst[0] = 0;
+        long holo = time(() -> HologramService.sync(level.getServer()), reps, worst);
+        for (BlockPos far : labelled) {
+            ender.set(level, far, Label.EMPTY);
+        }
+
         String report = String.format(
                 "[STASHLINK-PERF] 289 containers, raio 32, %d repeticoes (media/pior, microsegundos): "
-                        + "find=%d/%d findAll=%d/%d quickStack(N)=%d/%d refill(pior caso)=%d/%d pull(item ausente)=%d/%d idleTick=%d",
+                        + "find=%d/%d findAll=%d/%d quickStack(N)=%d/%d refill(pior caso)=%d/%d pull(item ausente)=%d/%d idleTick=%d "
+                        + "benchSnapshot(a cada 100 ticks)=%d/%d holoSync(1000 rotulos do End)=%d",
                 reps, find / 1000, findWorst / 1000, findAll / 1000, findAllWorst / 1000, quick / 1000, quickWorst / 1000,
-                refill / 1000, refillWorst / 1000, pull / 1000, pullWorst / 1000, idle / 1000);
+                refill / 1000, refillWorst / 1000, pull / 1000, pullWorst / 1000, idle / 1000,
+                benchSnap / 1000, benchSnapWorst / 1000, holo / 1000);
         Constants.LOG.info(report);
 
         lab.cleanup();

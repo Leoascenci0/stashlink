@@ -724,8 +724,17 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - **Pendente:** (1) **EMI** não tem versão para o 26.x (última 1.1.24 para 1.21.1): plugin quando sair; (2) checagem
   visual manual em GUI 2 e 3 (`./gradlew :fabric:runClient -PcompatJei` / `-PcompatRei`); (3) NeoForge sem plugin nem teste.
 
-### Item 25 — Desempenho e acabamento das bancadas e rótulos ⬜
+### Item 25 — Desempenho e acabamento das bancadas e rótulos ✅
 - **Branch:** `perf/bancadas-rotulos`
+- **Feito (2026-10-05):** medido no harness de 289 containers (local, Windows, média de 100 repetições). **Bancada
+  aberta com 289 baús cheios:** reconferência inteira (`BenchSync.snapshot`) = 0,57 ms a cada 100 ticks (~6 µs/tick) →
+  **não mexeu** (sem problema medido). **Rótulos do End** (1000 gravados em chunks descarregados): ciclo do holograma
+  262 → 139 µs; mais importante, o rótulo de baú que sumiu de posição carregada agora é apagado depois de 5 min de
+  carência (quebrar e recolocar logo em seguida ainda traz o rótulo de volta), e a lista é percorrida sem cópia, uma vez
+  por ciclo. **Bigorna:** `BenchCompat.placementOrder` põe ferramenta/arma/armadura no 1º slot e material/livro no 2º,
+  na ordem que o jogador clicar (`BenchGameTests.anvilToolAlwaysGoesToTheFirstSlot`). **Não medido (sem como aqui):**
+  N/Organizar com mod de claims e fontes só em baús com muitos jogadores — exigem servidor real com esses mods/jogadores;
+  sem número, não se mexeu. 180 GameTests verdes (177 + 3).
 - Medir antes (`spark` ou o harness de 289 containers): bancada aberta com baús cheios refaz a varredura a cada 100
   ticks mesmo sem mudança; N/Organizar com mod de claims; fontes só em baús com muitos jogadores. Só otimizar o que o
   número mostrar.
