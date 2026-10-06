@@ -8,6 +8,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -30,7 +32,9 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.WeakHashMap;
 
 /** Ferramentas comuns dos cenários: monta o "laboratório" (baús, jogadores, contagem de itens) no mundo real do teste. */
 final class Lab {
@@ -38,6 +42,8 @@ final class Lab {
     final ServerLevel level;
     /** Tudo o que este teste colocou no mundo; é removido no fim para não atrapalhar os outros testes. */
     private final List<BlockPos> placed = new ArrayList<>();
+    /** Última mensagem da barra de ação de cada jogador simulado: o teste confere avisos sem ter um cliente. */
+    private static final Map<ServerPlayer, Component> OVERLAYS = new WeakHashMap<>();
 
     Lab(GameTestHelper helper) {
         this.helper = helper;
@@ -61,6 +67,12 @@ final class Lab {
             @Override
             public GameType gameMode() {
                 return mode;
+            }
+
+            @Override
+            public void sendOverlayMessage(Component message) {
+                OVERLAYS.put(this, message);
+                super.sendOverlayMessage(message);
             }
         };
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
@@ -140,6 +152,12 @@ final class Lab {
 
     static void close(ServerPlayer p) {
         p.containerMenu = p.inventoryMenu;
+    }
+
+    /** A chave de tradução da última mensagem na barra de ação do jogador, ou {@code null} se não houve nenhuma. */
+    static String overlayKey(ServerPlayer p) {
+        Component last = OVERLAYS.get(p);
+        return last != null && last.getContents() instanceof TranslatableContents t ? t.getKey() : null;
     }
 
     static int count(Container c, Item item) {

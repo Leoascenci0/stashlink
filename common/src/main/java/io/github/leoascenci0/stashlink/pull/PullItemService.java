@@ -87,7 +87,8 @@ public final class PullItemService {
         }
         boolean swappable = mine != null && !PlayerPrefsStore.isSlotLocked(player, mine.slot);
 
-        PlayerSources.Operation operation = PlayerSources.operation(player);
+        // Baú que outro jogador está olhando fica de fora, como na tecla N e no botão do meio.
+        PlayerSources.Operation operation = PlayerSources.operationSkippingOpened(player);
         PullLogic.Owned owned = swappable ? mine.asOwned() : null;
         ItemSource returnTo = swappable
                 ? operation.returnTarget(mine.origin, new StackListSink(backpack))
@@ -101,6 +102,16 @@ public final class PullItemService {
             LEDGER.put(player, next);
         }
         select(player, result.slot());
+        // O item existe por perto, mas a hotbar está cheia de coisas do jogador: o cliente já cancelou o Litematica,
+        // então sem este aviso o Easy Place só pararia de colocar o bloco, sem explicação.
+        if (result.slot() == PullLogic.NO_SLOT && operation.source().available(model) > 0) {
+            warnHotbarFull(player);
+        }
+    }
+
+    private static void warnHotbarFull(ServerPlayer player) {
+        player.sendOverlayMessage(Component.translatableWithFallback("stashlink.pick_block.hotbar_full",
+                "Hotbar full: free a slot to bring this item"));
     }
 
     /**
@@ -165,8 +176,7 @@ public final class PullItemService {
         }
         List<ItemStack> hotbar = inventory.getNonEquipmentItems().subList(0, Inventory.getSelectionSize());
         if (PullLogic.chooseSlot(hotbar, inventory.getSelectedSlot(), model) == PullLogic.NO_SLOT) {
-            player.sendOverlayMessage(Component.translatableWithFallback("stashlink.pick_block.hotbar_full",
-                    "Hotbar full: free a slot to bring this item"));
+            warnHotbarFull(player);
             return false;
         }
         // Sem "owned"/"returnTo": a troca no mesmo slot do Item 18 é só do Litematica. Aqui o item vai para um slot

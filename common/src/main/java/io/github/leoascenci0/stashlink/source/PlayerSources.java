@@ -30,7 +30,8 @@ public final class PlayerSources {
 
     /**
      * Como {@link #operation(ServerPlayer)}, mas ignorando containers que <b>outro</b> jogador está olhando (a mesma
-     * regra da tecla N). Usado pelo botão do meio (Item 19), que tira itens de baús sem o jogador abri-los.
+     * regra da tecla N). Usado por tudo que tira itens de baús sem o jogador abri-los: botão do meio (Item 19),
+     * pedido do Litematica (Item 7) e reabastecimento da mão (Item 4).
      */
     public static Operation operationSkippingOpened(ServerPlayer player) {
         return new Operation(player, true);

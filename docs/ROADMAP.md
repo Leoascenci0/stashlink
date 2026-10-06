@@ -764,6 +764,25 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - Bigorna: ferramenta sempre no 1º slot, mesmo clicando no material primeiro.
 - **Pronto quando:** números antes/depois no PR; bigorna com GameTest da ordem.
 
+### Item 27 — Litematica: avisos e baú aberto por outro jogador ✅
+- **Branch:** `fix/litematica-avisos`
+- Achados da conversa com o Eliel sobre a integração com o Litematica (2026-10-06), nenhum derruba o jogo nem perde item:
+  (1) se uma versão nova do Litematica mudasse a função que o mod enxerta, a integração desligava **em silêncio**;
+  (2) com a hotbar cheia de itens do jogador, o Easy Place parava sem explicação (o cliente cancela o Litematica e o
+  servidor não tem onde pôr o bloco); (3) o Litematica e o reabastecimento da mão tiravam de baú que outro jogador
+  estava olhando, ao contrário da N e do botão do meio (decisão "a rever" do Item 19).
+- **Feito (decisões em `docs/ARCHITECTURE.md`, "Item 27"):** `LitematicaMixinPlugin` confere, antes de aplicar, se
+  `InventoryUtils.schematicWorldPickBlock` existe com a assinatura esperada e escreve no log "Integração com o Litematica
+  X ligada" ou por que ficou desligada. Hotbar cheia com o item por perto: aviso na barra de ação (o mesmo do botão do
+  meio). Litematica e reabastecimento passam a pular baú aberto por outro jogador (`PlayerSources.operationSkippingOpened`),
+  a mesma regra em todas as funções.
+- **Testes:** 1 GameTest novo (`fullHotbarWarnsOnlyWhenItemIsNearby`) e 3 ajustados (`refillSkipsChestOpenedByOther`,
+  `twoPlayersSwapOnSameChest`, `fullHotbarDoesNothing` agora confere o aviso); 191 GameTests verdes. **Mutação:** desfazer
+  cada uma das três mudanças derruba exatamente o teste dela. Cliente com Litematica 0.29.1 (`-PcompatMods`): o log mostra
+  "Integração com o Litematica 0.29.1 ligada" (o cliente de desenvolvimento cai logo depois por um erro nativo da
+  máquina, `0xC0000005`, que acontece igual com o código da `main`).
+- **Continua sem teste em jogo:** a troca no mesmo slot (Item 18) com Easy Place; roteiro no Item 18.
+
 ## Antes da publicação: armazenamento de outros mods (pedido do Eliel, 2026-10-05)
 
 ### Item 26 — Baús e gavetas de outros mods como armazenamento

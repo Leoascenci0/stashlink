@@ -15,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Ponto de extensão no Litematica 0.27.x: {@code InventoryUtils.schematicWorldPickBlock} é chamado tanto
  * pelo pick block da pré-visualização quanto pelo Easy Place. (A API de eventos de pick block do Litematica
  * não serve: o Easy Place não passa por ela.) O alvo é dado por nome para não precisar do Litematica para
- * compilar; se a assinatura mudar numa versão futura, {@code require = 0} apenas desliga a integração.
+ * compilar; se a assinatura mudar numa versão futura, {@code require = 0} apenas desliga a integração, e o
+ * {@code LitematicaMixinPlugin} avisa no log (a assinatura esperada está lá, em {@code HOOK_DESC}: mudar os dois juntos).
  */
 @Mixin(targets = "fi.dy.masa.litematica.util.InventoryUtils")
 public abstract class InventoryUtilsMixin {

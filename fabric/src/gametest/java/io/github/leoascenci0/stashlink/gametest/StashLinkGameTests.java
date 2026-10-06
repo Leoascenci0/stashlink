@@ -150,28 +150,40 @@ public class StashLinkGameTests {
         h.succeed();
     }
 
-    /** Reabastecimento da mão tirando de um baú que OUTRO jogador está com aberto: o total se mantém. */
+    /**
+     * Reabastecimento da mão pula o baú que OUTRO jogador está olhando (a mesma regra da N); fechado, volta a valer.
+     * Depois, A aperta W: o total se mantém.
+     */
     @GameTest
-    public void refillFromChestOpenedByOther(GameTestHelper h) {
+    public void refillSkipsChestOpenedByOther(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(4, 2, 4);
         Lab.fill(chest, 0, COBBLE, 64);
         ServerPlayer a = lab.player(3, 2, 3);
         ServerPlayer b = lab.player(5, 2, 5);
         Lab.prefs(b, 8, true);
-        ChestMenu ma = Lab.open(a, chest, 1);
+        Lab.open(a, chest, 1);
 
-        b.getInventory().setItem(b.getInventory().getSelectedSlot(), new ItemStack(COBBLE, 1));
+        int slot = b.getInventory().getSelectedSlot();
+        b.getInventory().setItem(slot, new ItemStack(COBBLE, 1));
         RefillService.tickPlayer(b);                     // o mod "vê" 1 pedra na mão
-        b.getInventory().setItem(b.getInventory().getSelectedSlot(), ItemStack.EMPTY); // colocou o bloco
-        RefillService.tickPlayer(b);                     // esgotou: reabastece
-        ma.broadcastChanges();
+        b.getInventory().setItem(slot, ItemStack.EMPTY); // colocou o bloco
+        RefillService.tickPlayer(b);                     // esgotou, mas o único baú está aberto por A
+        check(h, Lab.count(chest, COBBLE) == 64, "baú aberto por A não podia ceder pedra: " + Lab.count(chest, COBBLE));
+        check(h, Lab.carried(b, COBBLE) == 0, "B não devia ter recebido pedra: " + Lab.carried(b, COBBLE));
 
+        // A fecha o baú: o próximo bloco que esgotar reabastece dele.
+        Lab.close(a);
+        b.getInventory().setItem(slot, new ItemStack(COBBLE, 1));
+        RefillService.tickPlayer(b);
+        b.getInventory().setItem(slot, ItemStack.EMPTY);
+        RefillService.tickPlayer(b);
+        check(h, Lab.carried(b, COBBLE) == 64, "com o baú fechado, B devia ter a mão cheia: " + Lab.carried(b, COBBLE));
         int total = Lab.count(chest, COBBLE) + Lab.carried(b, COBBLE) + Lab.carried(a, COBBLE);
         check(h, total == 64, "pedra: esperado 64, achou " + total);
-        check(h, Lab.carried(b, COBBLE) == 64, "B devia ter a mão cheia de pedra: " + Lab.carried(b, COBBLE));
 
-        // A aperta W logo depois: o que sobrou no baú (nada) não pode virar item novo.
+        // A abre e aperta W logo depois: o que sobrou no baú (nada) não pode virar item novo.
+        Lab.open(a, chest, 2);
         LootAllService.handle(a);
         total = Lab.count(chest, COBBLE) + Lab.carried(b, COBBLE) + Lab.carried(a, COBBLE);
         check(h, total == 64, "depois do W de A, esperado 64, achou " + total);
