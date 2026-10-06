@@ -27,7 +27,7 @@ Campos iguais nas duas; o Eliel digita login/token e clica em publicar.
 - **NeoForge:** `stashlink-neoforge-26.3-1.0.0.jar` — sem dependências; **sem** Litematica (diga isso na página).
 - **Licença:** MIT · **Ambiente:** cliente e servidor.
 - **Links:** código `https://github.com/Leoascenci0/stashlink`, problemas `.../issues`.
-- **Ícone:** `docs/img/icon.png` (400×400, 211 KB: a CurseForge pede no mínimo 400 px e o Modrinth aceita até 256 KB).
+- **Ícone:** `docs/img/icon.png` (400×400, 70 KB, PNG de 256 cores: a CurseForge pede no mínimo 400 px e no máximo 100 KB).
   É o baú com corrente recortado do banner; o mesmo desenho, em 256×256, é o ícone dentro do jogo.
 - **Galeria** (ilustrações, não capturas do jogo: a legenda diz isso para não enganar quem baixa):
 
