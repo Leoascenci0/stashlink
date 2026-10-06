@@ -27,10 +27,18 @@
         ],
         "main": [
             "io.github.leoascenci0.stashlink.StashLinkFabric"
+        ],
+        "jei_mod_plugin": [
+            "io.github.leoascenci0.stashlink.compat.jei.StashLinkJeiPlugin"
+        ],
+        "rei_client": [
+            "io.github.leoascenci0.stashlink.compat.rei.StashLinkReiPlugin"
         ]
     },
     "suggests": {
         "litematica": ">=0.27.14",
+        "jei": "*",
+        "roughlyenoughitems": "*",
         "modmenu": "*"
     },
     "depends": {

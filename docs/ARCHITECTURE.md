@@ -28,6 +28,7 @@ Regra: tudo que dá para escrever sem tocar API de loader fica em `common`. Load
   Sempre validados no servidor: distância, permissão, tamanho do pedido.
 - **Índice de containers no raio** — cache por chunk, invalidado por eventos; nunca varredura bruta por uso.
 - **Compat Litematica** — soft dependency, isolada em pacote próprio; carregada só se o mod existir.
+- **Compat JEI/REI (só Fabric)** — `client/PanelZones` (common) expõe a zona do painel Armazenamento; plugins em `fabric/.../compat/{jei,rei}` entram por entrypoint do próprio mod (`jei_mod_plugin`, `rei_client`), então só carregam se o mod existir. EMI sem versão 26.x; NeoForge sem plugin.
 
 ## Riscos conhecidos
 

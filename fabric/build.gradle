@@ -8,6 +8,11 @@ repositories {
         url = 'https://maven.terraformersmc.com/releases/'
         content { includeGroup 'com.terraformersmc' }
     }
+    // Item 24: o Rectangle da API do REI vem desta biblioteca (em jogo, o Cloth Config que o REI exige já a traz).
+    maven {
+        url = 'https://maven.shedaniel.me/'
+        content { includeGroup 'me.shedaniel.cloth' }
+    }
     // Mods de terceiros só para os testes de compatibilidade (Item 11); nunca entram no jar do StashLink.
     maven {
         url = 'https://api.modrinth.com/maven'
@@ -17,6 +22,10 @@ repositories {
 
 dependencies {
     compileOnly("com.terraformersmc:modmenu:18.0.2") { transitive = false }
+    // Item 24: só a API, para compilar os plugins opcionais; nada disto entra no jar nem é exigido em jogo.
+    compileOnly("maven.modrinth:jei:QfoQJyPO") { transitive = false }
+    compileOnly("maven.modrinth:rei:ePn2dRJ1") { transitive = false }
+    compileOnly("me.shedaniel.cloth:basic-math:0.4.1") { transitive = false }
     minecraft("com.mojang:minecraft:${minecraft_version}")
     implementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     implementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
@@ -46,6 +55,23 @@ if (project.hasProperty('compatMods')) {
         runtimeOnly("maven.modrinth:litematica:ZqV316KY")
         runtimeOnly("maven.modrinth:malilib:JX9bESec")
         runtimeOnly("maven.modrinth:tweakeroo:fWxKATn6")
+    }
+}
+
+// Compat cliente do Item 24, um mod por vez (a checagem visual é manual):
+//   ./gradlew :fabric:runClient -PcompatJei    ou    -PcompatRei
+// EMI: ainda não existe versão para o Minecraft 26.x (a última é a 1.21.1), por isso não há plugin dele.
+if (project.hasProperty('compatJei')) {
+    dependencies {
+        runtimeOnly("maven.modrinth:jei:QfoQJyPO")
+        runtimeOnly("maven.modrinth:mezzconfig:GKiA7PV4")
+    }
+}
+if (project.hasProperty('compatRei')) {
+    dependencies {
+        runtimeOnly("maven.modrinth:rei:ePn2dRJ1")
+        runtimeOnly("maven.modrinth:architectury-api:gAI51C1M")
+        runtimeOnly("maven.modrinth:cloth-config:fg2uyxOW")
     }
 }
 
