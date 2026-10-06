@@ -794,7 +794,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   - **W na tela de outro mod: limite registrado** (a tela não diz de que bloco é).
   - Harness de GameTest do NeoForge criado: `./gradlew :neoforge:runGameTestServer`. Os mesmos 10 cenários rodam nos dois
     loaders; o Sophisticated Storage real foi testado no NeoForge (5 testes) e o Storage Drawers real no Fabric (3; a
-    versão NeoForge dele não carrega no NeoForge 26.3.0.39). 203 GameTests no Fabric, 15 do StashLink no NeoForge e
+    versão NeoForge dele não carrega no NeoForge 26.3.0.39). 204 GameTests no Fabric, 15 do StashLink no NeoForge e
     220 unitários verdes.
   - **Mutação:** 10 regras anti-dupe estragadas de propósito, as 10 pegas (uma só passou a ser pega com o teste novo
     da troca do Litematica devolvendo à gaveta).
