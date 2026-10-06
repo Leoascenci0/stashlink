@@ -43,10 +43,17 @@ fabricApi {
     }
 }
 
+// Item 26: cenários de GameTest iguais nos dois loaders (Lab, gaveta de teste) ficam em common/src/gametest.
+sourceSets.named('gametest') {
+    java.srcDir project(':common').file('src/gametest/java')
+}
+
 dependencies {
     // Item 11: mods comuns carregados junto no servidor de teste (`:fabric:runGameTest`).
     gametestRuntimeOnly("maven.modrinth:carpet:yt9oDFOj")
     gametestRuntimeOnly("maven.modrinth:upgraded-iron-chests:LbC7gT0a")
+    // Item 26: gavetas de verdade (a versão NeoForge 26.3.0.1 não carrega no NeoForge 26.3.0.39).
+    gametestRuntimeOnly("maven.modrinth:storagedrawers:26.3.0.1+fabric") { transitive = false }
 }
 
 // Compat cliente (Item 11): ./gradlew :fabric:runClient -PcompatMods

@@ -68,6 +68,7 @@ public final class PlayerSources {
         private final Memo<NearbyContainers.Found> nearby;
         private final Memo<ContainerSource> placed;
         private final Memo<ContainerSource> storage;
+        private final Memo<ModStorageSource> modStorage;
         private final ItemSource source;
 
         private Operation(ServerPlayer player, boolean skipOpenedByOthers) {
@@ -75,15 +76,20 @@ public final class PlayerSources {
             this.skipOpenedByOthers = skipOpenedByOthers;
             // As shulkers estão nos slots normais do inventário; as mãos ficam fora desta lista.
             this.shulkers = new PlayerShulkerSource(player.getInventory().getNonEquipmentItems());
-            // Prioridade: shulkers no inventário, shulkers colocadas no raio, baús/barris no raio. As duas últimas
-            // são preguiçosas: a varredura só acontece se as anteriores não bastarem.
+            // Prioridade: shulkers no inventário, shulkers colocadas no raio, baús/barris no raio e, por último, baús e
+            // gavetas de outros mods (Item 26). As três últimas são preguiçosas: a varredura (uma só para as três) só
+            // acontece se as anteriores não bastarem.
             this.nearby = new Memo<>(() -> NearbyContainers.find(player));
             this.placed = new Memo<>(() -> new ContainerSource(guard(nearby.get().shulkers())));
             this.storage = new Memo<>(() -> new ContainerSource(guard(nearby.get().storage())));
+            this.modStorage = new Memo<>(() -> new ModStorageSource(skipOpenedByOthers
+                    ? QuickStackService.guard(player, nearby.get().modStorage())
+                    : nearby.get().modStorage()));
             this.source = new PrioritizedItemSource(List.of(
                     shulkers,
                     new LazyItemSource(placed::get),
-                    new LazyItemSource(storage::get)));
+                    new LazyItemSource(storage::get),
+                    new LazyItemSource(modStorage::get)));
         }
 
         public ItemSource source() {
@@ -113,6 +119,9 @@ public final class PlayerSources {
             if (storage.made()) {
                 positions.addAll(storage.get().touchedPositions());
             }
+            if (modStorage.made()) {
+                positions.addAll(modStorage.get().touchedPositions());
+            }
             return new Origin(shulkers.touched(), McCompat.dimensionOf(player), positions);
         }
 
@@ -139,6 +148,9 @@ public final class PlayerSources {
                             entry.where()));
                 }
                 targets.add(ContainerSource.returningTo(usable, origin.positions()));
+                // Item 26: o que veio de um bloco de outro mod volta a ele, com a mesma regra (ninguém olhando).
+                targets.add(ModStorageSource.returningTo(QuickStackService.guard(player, found.modStorage()),
+                        origin.positions()));
             }
             targets.add(overflow);
             return new PrioritizedItemSource(targets);

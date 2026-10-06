@@ -9,6 +9,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 - **Raio configurável:** baús, barris e bancadas com padrão 16 e até 32 blocos; shulkers colocadas com padrão 32 e até 64. O dono do servidor pode baixar o teto (`maxRadius`).
 - **Botão do meio** mirando um bloco traz o item do armazenamento para a hotbar. Precisa de slot livre e nunca troca um item seu.
 - **Litematica** (Fabric): Easy Place e pick block usam os itens do armazenamento. O bloco novo entra no mesmo slot e o anterior volta ao armazenamento, então a hotbar não enche. Com a hotbar cheia de itens seus, um aviso na barra de ação explica por que o bloco não veio. O log diz se a integração ligou; se uma versão nova do Litematica não for compatível, ela se desliga com aviso, sem afetar o resto do mod.
+- **Baús e gavetas de outros mods** (Sophisticated Storage, Storage Drawers e outros baús e barris marcados como tal) contam como armazenamento: a N guarda neles, e a mão, o botão do meio e as bancadas tiram deles. Gavetas com milhares de itens num slot funcionam. Máquinas e controladores de rede nunca são usados. Servidores podem acrescentar blocos pela tag `stashlink:mod_storage` (datapack).
 
 ### Teclas e gestos
 - **N** guarda seus itens nos baús por perto que já têm aquele item. **W** puxa tudo do container aberto.
@@ -40,7 +41,8 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 
 ### Limites conhecidos
 - Modo cliente (servidor sem o mod) e a troca de slot do Litematica ainda sem teste em jogo.
-- NeoForge sem testes automáticos (os testes rodam no Fabric; o código é o mesmo).
+- NeoForge com poucos testes automáticos: só os de baús e gavetas de outros mods rodam lá; o resto roda no Fabric (o código é o mesmo).
+- Em baús e gavetas de outros mods: o W não funciona na tela deles, e slot reservado, nome e Organizar não valem. Shulkers de outros mods não contam. Se outro jogador está perto com a tela de um mod aberta, o bloco fica de fora naquele momento, por segurança.
 - Slot reservado não vale para funil nem para mods que mexem direto no container, e só funciona com o mod no servidor e no cliente.
 - O nome do baú usa só os símbolos que a fonte do jogo tem; emojis coloridos (📦) são descartados.
 - Com JEI, EMI ou REI, o painel das bancadas pode ficar por baixo da lista deles (compatibilidade planejada).

@@ -41,6 +41,53 @@ neoForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// Item 26: GameTests no NeoForge (`./gradlew :neoforge:runGameTestServer`). Como no Fabric, ficam num source set
+// separado (src/gametest) com um mod só dos testes (stashlink_test): nada disso entra no jar do StashLink. Os cenários
+// são os mesmos do Fabric (common/src/gametest); aqui fica só a "cola" (registro dos testes, da gaveta e da capability).
+sourceSets {
+    gametest {
+        java.srcDirs = ['src/gametest/java', project(':common').file('src/gametest/java')]
+        resources.srcDirs = ['src/gametest/resources']
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    gametestCompileOnly.extendsFrom compileOnly
+    gametestImplementation.extendsFrom implementation
+    gametestRuntimeOnly.extendsFrom runtimeOnly
+}
+repositories {
+    // Mods de terceiros só para os testes de compatibilidade (Item 26); nunca entram no jar do StashLink.
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+}
+dependencies {
+    gametestRuntimeOnly("maven.modrinth:sophisticated-storage:26.3-1.5.117.2152") { transitive = false }
+    gametestRuntimeOnly("maven.modrinth:sophisticated-core:26.3-1.5.4.2375") { transitive = false }
+    // Storage Drawers 26.3.0.1 (NeoForge) não carrega no NeoForge 26.3.0.39: usa ModConfig.Type.COMMON, que não existe
+    // mais. O teste com gavetas de verdade fica no Fabric (ver fabric/build.gradle).
+}
+neoForge {
+    addModdingDependenciesTo sourceSets.gametest
+    mods {
+        stashlink_test {
+            sourceSet sourceSets.gametest
+        }
+    }
+    runs {
+        gameTestServer {
+            type = 'gameTestServer'
+            sourceSet = sourceSets.gametest
+            loadedMods = [mods."${mod_id}", mods.stashlink_test]
+            gameDirectory = this.mkdir(this.file('runs/gametest'))
+            systemProperty('neoforge.enabledGameTestNamespaces', "${mod_id},stashlink_test")
+        }
+    }
+}
+
 // Implement mcgradleconventions loader attribute
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
 ['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->

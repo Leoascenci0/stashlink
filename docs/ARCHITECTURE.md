@@ -874,3 +874,75 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   não cede nem recebe); `PickBlockGameTests.fullHotbarDoesNothing` confere o aviso. O jogador simulado (`Lab.player`)
   guarda a última mensagem da barra de ação (`Lab.overlayKey`). Mutação: desfazer cada mudança derruba exatamente o
   teste dela.
+
+## Item 26 — Baús e gavetas de outros mods como armazenamento (2026-10-05)
+
+- **Investigação (o que existe no 26.3).**
+  - **NeoForge 26.3.0.39-beta:** `Capabilities.Item.BLOCK` = `BlockCapability<ResourceHandler<ItemResource>, @Nullable Direction>`,
+    pedida com `level.getCapability(cap, pos, state, be, null)` (lado `null` = o inventário inteiro). Mexer exige uma
+    transação: `Transaction.openRoot()`; fechar sem `commit()` desfaz tudo. O antigo `IItemHandler` não é mais a API.
+  - **Fabric API 0.161.0+26.3 (transfer-api 8.0.25):** `ItemStorage.SIDED` = `BlockApiLookup<Storage<ItemVariant>, @Nullable Direction>`,
+    `find(level, pos, state, be, null)` (direção `null` = inventário inteiro), transação `Transaction.openOuter()`. O Fabric
+    também oferece todo `Container` do jogo (baú, fornalha, funil...) por essa tomada, de reserva.
+  - **Sophisticated Storage 26.3-1.5.117 (só NeoForge):** registra a capability no baú, barril, barril limitado, shulker,
+    **controlador** e Storage IO/Input/Output (esses três e o controlador mostram a rede inteira). Baús estão em `c:chests`,
+    barris em `c:barrels`; barris limitados e shulkers não têm tag `c:`. Baú duplo: a metade secundária entrega o
+    inventário da principal, e é **o mesmo objeto** (conferido no teste). Só os slots de guardar (os de upgrade não
+    aparecem); com upgrade de pilha ou barril limitado, um slot passa de 64.
+  - **Storage Drawers 26.3.0.1:** a tag `storagedrawers:drawers` só lista as gavetas de madeira; compactadoras e emolduradas
+    ficam sem tag; os **controladores** (`controller`, `controller_io` e os emoldurados) mostram todas as gavetas ligadas. A
+    compactadora mostra o mesmo estoque em 2 ou 3 formas (bloco, item, pepita). A versão NeoForge **não carrega** no NeoForge
+    26.3.0.39 (usa `ModConfig.Type.COMMON`, que não existe mais); a versão Fabric funciona.
+  - **Functional Storage:** sem versão 26.2/26.3 (a mais nova é 26.1.2). **Iron Chests** do alexbegt: sem 26.x; o
+    Upgraded Iron Chests 26.3 estende o baú do jogo e continua pelo caminho de sempre.
+- **Quem é armazenamento: lista de permitidos (`StorageCompat.MOD_STORAGE`, tag `stashlink:mod_storage`).** A tomada de
+  itens também existe em máquinas, controladores e redes (AE2, Refined Storage). "Todo bloco com a tomada" faria a N
+  encher a entrada de uma máquina, a bancada tirar o combustível dela e um controlador contar as mesmas gavetas de novo.
+  A lista padrão tem `#c:chests`, `#c:barrels`, os barris limitados do Sophisticated, `#storagedrawers:drawers` e as
+  gavetas compactadoras e emolduradas. Tudo é `"required": false`, ou seja, mod ausente não quebra nada. Servidor ou
+  modpack acrescenta blocos com um datapack. Bloco do jogo (`minecraft:`) nunca entra por aqui.
+- **Peças.** `source/ModStorage` (interface comum: listar, contar, tirar e guardar com simulação, em `long`) →
+  `FabricModStorage` / `NeoForgeModStorage` (só cola, via `IPlatformHelper.modStorageAt`). `NearbyContainers` acha os
+  blocos **na mesma passada** de sempre (`Found.modStorage`; para a N, `findStash`). Baú, barril e shulker do jogo, e quem
+  estende o baú do jogo, são reconhecidos antes e nunca chegam ao caminho novo, então nada conta duas vezes.
+  `ModStorageSource` (um `ItemSource`) aplica as regras de `ContainerSource`: permissão só para quem tem o item, devolução
+  só a quem emprestou e blocos repetidos contados uma vez (o mesmo objeto do loader em duas posições, como no baú duplo).
+- **Onde entra.**
+  - Reabastecer, Litematica e botão do meio (`PlayerSources`): os blocos de outros mods são a última fonte.
+  - Bancadas (`BenchPool`): entram depois dos baús e barris, na mesma varredura, então continua 1 varredura por clique.
+  - N (`QuickStackService`): depois dos containers do jogo, com a mesma regra "o bloco já tem o item"
+    (`ModStorageSource.stashInto`).
+  - Devolução: as posições entram na `Origin`, e `PlayerSources.returnTarget` e `BenchPool.returnTarget` devolvem também
+    aos blocos de outros mods. Assim o emprestado de uma gaveta volta a ela ao fechar a estação.
+- **Regras.**
+  - `Feature.MOD_STORAGE`: tem liga/desliga e cadeado. É conferida em silêncio na varredura, porque modifica as outras
+    funções.
+  - Segue "usar baús como fonte" (desligado = sem blocos de outros mods, menos na N, igual aos barris) e o raio dos baús.
+  - Claims: `canPlayerUseBlock`.
+  - **Outro jogador:** a tela de outro mod não diz de que bloco é. Então o bloco fica de fora se outro jogador está a
+    alcance de tela dele (`isWithinBlockInteractionRange(pos, 4.0)`, a distância com que o jogo fecha telas) e a tela dele
+    é de outro mod, de tipo desconhecido ou mostra o próprio bloco (`StorageCompat.couldBeViewing`). Uma tela do jogo
+    (bancada, baú do jogo) não trava.
+  - **Anti-dupe:** todo movimento é simulado antes, e só conta o que o bloco disse que entrou ou saiu (dentro da
+    transação do loader). Um bloco que dá erro conta como vazio naquela operação, sem levar junto o que outros já deram.
+  - **Quantidades grandes:** tudo em `long`, com soma que trava no máximo (`saturated`), inclusive no
+    `PrioritizedItemSource` e no `BenchPool`. O que sai vira stacks de no máximo 64 (ou o máximo do item).
+- **W na tela de outro mod: fica como limite.** A tela (menu) de outro mod não diz de que bloco é e não usa `Container` do
+  jogo, então não dá para achar o bloco aberto com segurança. O W continua só em baú, barril e shulker do jogo. Ideia para
+  o futuro: lembrar o bloco que o jogador clicou no mesmo tick em que a tela abriu.
+- **Testes.**
+  - Cenários **iguais nos dois loaders** em `common/src/gametest` (`ModStorageScenarios`, `Lab` e a gaveta de teste
+    `ApiDrawerBlockEntity`). A gaveta de teste não é `Container`: só tem a tomada do loader, 2 slots de até 10 000.
+  - Fabric: `ModStorageGameTests` (9) e `StorageDrawersGameTests` (3, com gavetas de verdade: comum, compactadora e
+    controlador fora).
+  - **NeoForge: harness novo** (`./gradlew :neoforge:runGameTestServer`). É um mod só de teste, `stashlink_test`, no source
+    set `gametest`: registra os testes (`RegisterGameTestsEvent` + registro `TEST_FUNCTION`), a gaveta e a capability, e
+    usa uma estrutura vazia 8x8x8. Roda os mesmos 9 cenários e mais 5 com o **Sophisticated Storage de verdade** (N, mão,
+    botão do meio, bancada, baú duplo contado uma vez, barril limitado com mais de 64, controlador e shulker fora). O
+    jogador simulado do NeoForge precisa de `NetworkRegistry.configureMockConnection` (`Lab.MOCK_CONNECTION`), senão o
+    Sophisticated derruba o teste ao mandar um pacote quando ele entra.
+  - Unitários: `ModStorageSourceTest` (11, com uma gaveta em memória e fuzz de tirar/devolver).
+- **Limites.** Shulkers de outros mods ficam fora da lista padrão (decisão do Eliel, por enquanto). Slot travado, rótulos e
+  Organizar não valem em bloco de outro mod. Também ficam de fora o modo cliente (Realms) e redes AE2/Refined Storage.
+  Gaveta com upgrade de destruir excesso destrói o que a N mandar além do limite: é a regra da própria gaveta, como faria
+  com um funil. Functional Storage ainda não tem versão 26.3 (os blocos dele não estão na lista).

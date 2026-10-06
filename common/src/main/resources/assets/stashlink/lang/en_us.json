@@ -109,6 +109,8 @@
   "stashlink.bench.tab.ores": "Ores",
   "stashlink.feature.bench_brewing": "Possible potions (brewing stand)",
   "stashlink.feature.bench_brewing.tip": "At the brewing stand, the Potions tab lists every potion you can make with what is in your backpack and nearby (red: something is missing). One click sets up the next step: bottles, ingredient and blaze powder if needed.",
+  "stashlink.feature.mod_storage": "Chests and drawers from other mods",
+  "stashlink.feature.mod_storage.tip": "Chests and drawers from other mods (Sophisticated Storage, drawers...) count as storage: N stores into them, and hand refill, middle click and workbenches take from them. W does not work in their screens.",
   "stashlink.bench.beacon.tip": "Click: put 1 in the payment slot, from your backpack or storage.",
   "stashlink.bench.beacon.none": "None of this in your backpack or storage",
   "stashlink.bench.beacon.none.radius": "None of this in your backpack or within %s blocks",
