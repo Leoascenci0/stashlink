@@ -1732,9 +1732,12 @@ public class BenchGameTests {
         });
     }
 
-    /** Sinalizador: pagamento do próprio jogador nunca vai para o baú; trancado, nada sai. */
+    /**
+     * Sinalizador: pagamento do próprio jogador nunca vai para o baú. Trocar devolve a esmeralda dele à mochila (Item
+     * 16.5, decisão do Eliel; antes ela ficava e a troca não acontecia). Trancado, nada sai.
+     */
     @GameTest
-    public void beaconKeepsThePlayersOwnPaymentAndRespectsTheLock(GameTestHelper h) {
+    public void beaconSendsThePlayersOwnPaymentBackToTheBackpackAndRespectsTheLock(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container chest = lab.chest(2, 2, 2);
         Lab.fill(chest, 0, Items.DIAMOND, 3);
@@ -1744,9 +1747,11 @@ public class BenchGameTests {
         p.containerMenu = menu;
         menu.getSlot(0).set(new ItemStack(Items.EMERALD));      // pagamento que o jogador pôs com a mão
         BenchPullService.handle(p, new BenchPullRequest(1, new ItemStack(Items.DIAMOND), true, BenchResults.PAY));
-        check(h, menu.getSlot(0).getItem().is(Items.EMERALD) && Lab.count(chest, Items.DIAMOND) == 3
-                && Lab.count(chest, Items.EMERALD) == 0, "a esmeralda do jogador fica; nada sai do baú");
+        check(h, menu.getSlot(0).getItem().is(Items.DIAMOND) && Lab.count(chest, Items.DIAMOND) == 2
+                && Lab.count(chest, Items.EMERALD) == 0 && p.getInventory().countItem(Items.EMERALD) == 1,
+                "a esmeralda do jogador volta à mochila (nunca ao baú) e o diamante do baú entra");
         menu.getSlot(0).set(ItemStack.EMPTY);
+        Lab.fill(chest, 0, Items.DIAMOND, 3);                   // recomeça: o baú com os 3 diamantes
         h.runAfterDelay(2, () -> {
             // Trancar e pedir no mesmo tick: os testes rodam lado a lado e o clean() dos outros destranca tudo.
             StashLinkConfig.setFeatureLocked(Feature.BENCH_BEACON, true);

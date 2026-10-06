@@ -21,7 +21,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 - **Organizar:** botão Organizar no baú; tecla **O** organiza todo o armazenamento por perto, com prévia, Aplicar e Desfazer; busca de item que destaca o baú onde ele está.
 
 ### Bancadas e estações
-- Bancada, fornalha, defumador, alto-forno, cortador de pedra, tear, mesa de cartografia, pedra de amolar, mesa de ferreiro, bigorna, mesa de encantamento, suporte de poções e sinalizador usam o armazenamento por perto.
+- Bancada, fornalha, defumador, alto-forno, cortador de pedra, tear, mesa de cartografia, pedra de amolar, mesa de ferreiro, bigorna, mesa de encantamento, suporte de poções e sinalizador usam a sua mochila e o armazenamento por perto, a mochila primeiro. Só a mochila de quem abriu a estação: ninguém usa a mochila de outro jogador.
 - Cada estação tem um painel no estilo do livro de receitas, com busca e abas, mostrando só o que serve nela. Em vermelho fica o que falta, e clicar põe o item no slot certo.
 - Extras: lápis-lazúli automático no encantamento, livros que servem na bigorna, aba Combustível nas fornalhas, pagamento do sinalizador com um clique e todas as poções possíveis no suporte, montadas passo a passo.
 - O inventário interno das estações nunca é usado como armazenamento: item que você deixou cozinhando não é mexido.

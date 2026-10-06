@@ -8,12 +8,10 @@ import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.network.BenchPullRequest;
 import io.github.leoascenci0.stashlink.network.RequestLimiter;
-import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -95,21 +93,17 @@ public final class BenchPullService {
         int wanted = request.one() ? Math.min(1, room) : room;
 
         BenchPool pool = BenchPool.of(player);
-        ItemSource source = pool.source();
         // Mochila primeiro (item do jogador: fora do caderno), o armazenamento só completa o que faltar.
-        int fromBackpack = pool.takeFromBackpack(model, wanted);
-        List<ItemStack> taken = wanted > fromBackpack ? source.take(model, wanted - fromBackpack) : List.of();
-        int fromStorage = ItemSource.sum(taken);
-        int total = fromBackpack + fromStorage;
-        if (total <= 0) {
+        BenchPool.Taken taken = pool.take(model, wanted);
+        if (taken.total() <= 0) {
             BenchSync.markDirty(player);
             return;
         }
         // take() nunca passa de "wanted" e wanted cabe no cursor: a soma sempre cabe.
-        menu.setCarried(model.copyWithCount(carried.getCount() + total));
+        menu.setCarried(model.copyWithCount(carried.getCount() + taken.total()));
         menu.broadcastChanges();
-        if (fromStorage > 0) {
-            BenchLedger.record(player, Map.of(model.getItem(), fromStorage), pool.origin());
+        if (taken.storage() > 0) {
+            BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
         }
         BenchSync.markDirty(player);
     }

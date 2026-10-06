@@ -4,7 +4,6 @@ import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
-import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -15,10 +14,13 @@ import java.util.WeakHashMap;
 
 /**
  * Lápis-lazúli automático na mesa de encantamento (Item 16.3, Fase 3): com a mesa aberta, o servidor completa o slot
- * de lápis até {@link BenchCompat#LAPIS_TARGET} com lápis do armazenamento ao alcance, sem clique. O que ele põe entra
- * no caderno de emprestados ({@link BenchLedger}), igual a um item do painel: o que não for gasto volta ao baú de
- * origem ao fechar a mesa, ao sair do servidor ou ao parar o servidor (a mesa devolve os slots ao fechar, e o caderno
- * os leva de volta antes disso). Tirar do baú e pôr no slot é um passo só na thread do servidor: nada some nem duplica.
+ * de lápis até {@link BenchCompat#LAPIS_TARGET}, sem clique: <b>da mochila de quem abriu primeiro</b> e do
+ * armazenamento ao alcance o que faltar (Item 16.5). Só o que veio do armazenamento entra no caderno de emprestados
+ * ({@link BenchLedger}), igual a um item do painel: o que não for gasto volta ao baú de origem ao fechar a mesa, ao
+ * sair do servidor ou ao parar o servidor (a mesa devolve os slots ao fechar, e o caderno os leva de volta antes
+ * disso); o lápis da mochila volta para a mochila, como faria o jogo. O caderno conta o gasto primeiro do lápis do
+ * jogador (o que sobra no slot é "emprestado" até o limite do que veio do baú). Tirar e pôr no slot é um passo só na
+ * thread do servidor: nada some nem duplica.
  */
 public final class BenchLapis {
     /** Depois de uma tentativa, espera este tanto (0,5 s) antes da próxima: sem lápis no raio, não varre os baús todo tick. */
@@ -53,13 +55,15 @@ public final class BenchLapis {
         }
         NEXT_TRY.put(player, now + RETRY_TICKS);
         BenchPool pool = BenchPool.of(player);
-        // take() nunca passa de "want" e "want" cabe no slot: tudo o que sai do baú entra no slot.
-        int total = ItemSource.sum(pool.source().take(model, want));
-        if (total <= 0) {
+        // Mochila primeiro, baú completa. take() nunca passa de "want" e "want" cabe no slot: tudo o que sai entra.
+        BenchPool.Taken taken = pool.take(model, want);
+        if (taken.total() <= 0) {
             return;
         }
-        slot.set(model.copyWithCount(inside.getCount() + total));
-        BenchLedger.record(player, Map.of(model.getItem(), total), pool.origin());
+        slot.set(model.copyWithCount(inside.getCount() + taken.total()));
+        if (taken.storage() > 0) {
+            BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
+        }
         menu.broadcastChanges();
         BenchSync.markDirty(player);
     }

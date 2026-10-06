@@ -10,7 +10,11 @@ import java.util.List;
  */
 final class BenchText {
     static final String EMPTY_RADIUS = "stashlink.bench.panel.empty.radius";
+    static final String EMPTY_BACKPACK = "stashlink.bench.panel.empty.backpack";
     static final String EMPTY = "stashlink.bench.panel.empty";
+    static final String PAYMENT_NONE_RADIUS = "stashlink.bench.beacon.none.radius";
+    static final String PAYMENT_NONE_BACKPACK = "stashlink.bench.beacon.none.backpack";
+    static final String PAYMENT_NONE = "stashlink.bench.beacon.none";
     static final String NO_MATCH = "stashlink.bench.panel.nomatch";
     static final String COUNT = "stashlink.bench.panel.count";
     static final String ITEM_TIP = "stashlink.bench.panel.tip";
@@ -26,17 +30,30 @@ final class BenchText {
     }
 
     /**
-     * Lista vazia: com busca, "nenhum item combina"; sem busca, "nada no raio de N blocos" (o raio efetivo que o
-     * servidor mandou, não o preferido do jogador). Sem raio conhecido, a mensagem genérica.
+     * Lista vazia: com busca, "nenhum item combina"; sem busca, "nada na mochila nem no raio de N blocos" (o raio
+     * efetivo que o servidor mandou, não o preferido do jogador). Raio 0 é "usar baús" desligado: só a mochila conta,
+     * e a mensagem diz isso em vez de "raio de 0 blocos". Sem raio conhecido, a mensagem genérica.
      */
     static Component empty(boolean searching, int radius) {
         if (searching) {
             return Component.translatable(NO_MATCH);
         }
-        return radius >= 0 ? Component.translatable(EMPTY_RADIUS, radius) : Component.translatable(EMPTY);
+        return byRadius(radius, EMPTY_RADIUS, EMPTY_BACKPACK, EMPTY);
     }
 
-    /** "No baú: N": a contagem do item no armazenamento, no tooltip. Uma função só para todas as estações. */
+    /** Ícone de pagamento do sinalizador que não há: mesma regra de {@link #empty} (mochila e raio, só mochila, genérica). */
+    static Component paymentMissing(int radius) {
+        return byRadius(radius, PAYMENT_NONE_RADIUS, PAYMENT_NONE_BACKPACK, PAYMENT_NONE);
+    }
+
+    private static Component byRadius(int radius, String withRadius, String backpackOnly, String unknown) {
+        if (radius > 0) {
+            return Component.translatable(withRadius, radius);
+        }
+        return Component.translatable(radius == 0 ? backpackOnly : unknown);
+    }
+
+    /** "Disponível: N": a contagem do item na mochila + armazenamento, no tooltip. Uma função só para todas as estações. */
     static Component inStorage(int count) {
         return Component.translatable(COUNT, count);
     }
