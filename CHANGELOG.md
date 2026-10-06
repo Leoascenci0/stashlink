@@ -26,6 +26,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 - Cada estação tem um painel no estilo do livro de receitas, com busca e abas, mostrando só o que serve nela. Em vermelho fica o que falta, e clicar põe o item no slot certo.
 - Extras: lápis-lazúli automático no encantamento, livros que servem na bigorna, aba Combustível nas fornalhas, pagamento do sinalizador com um clique e todas as poções possíveis no suporte, montadas passo a passo.
 - O inventário interno das estações nunca é usado como armazenamento: item que você deixou cozinhando não é mexido.
+- **JEI e REI:** o painel das estações reserva o seu espaço, e a lista de itens deles se afasta em vez de ficar por cima.
 
 ### Controle
 - **Liga/desliga e cadeado** em cada função, como o seletor de dificuldade. O botão é seu; o cadeado é do dono do servidor ou de um operador (na tela ou com `/stashlink feature <nome> lock|unlock`).
@@ -40,9 +41,9 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 - Revisão completa antes da publicação (`docs/REVISAO-1.0.md`): corrigido o reabastecimento que apagava o balde, a tigela ou a garrafa vazia, e fechados três atalhos pelos quais um cliente adulterado passava por um cadeado.
 
 ### Limites conhecidos
-- Modo cliente (servidor sem o mod) e a troca de slot do Litematica ainda sem teste em jogo.
+- Ainda sem teste em jogo (só testes automáticos): modo cliente (servidor sem o mod), troca de slot do Litematica com o Easy Place, estações usando a mochila de quem abriu e o painel das estações ao lado do JEI e do REI.
 - NeoForge com poucos testes automáticos: só os de baús e gavetas de outros mods rodam lá; o resto roda no Fabric (o código é o mesmo).
 - Em baús e gavetas de outros mods: o W não funciona na tela deles, e slot reservado, nome e Organizar não valem. Shulkers de outros mods não contam. Se outro jogador está perto com a tela de um mod aberta, o bloco fica de fora naquele momento, por segurança.
 - Slot reservado não vale para funil nem para mods que mexem direto no container, e só funciona com o mod no servidor e no cliente.
 - O nome do baú usa só os símbolos que a fonte do jogo tem; emojis coloridos (📦) são descartados.
-- Com JEI, EMI ou REI, o painel das bancadas pode ficar por baixo da lista deles (compatibilidade planejada).
+- EMI ainda não tem versão para o Minecraft 26.x, então não foi testado junto (o JEI e o REI foram).
