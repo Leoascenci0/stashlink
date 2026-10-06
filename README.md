@@ -1,14 +1,18 @@
 # StashLink
 
-<p align="center"><img src="docs/img/icon.png" alt="StashLink" width="160"></p>
+<p align="center"><img src="docs/img/banner.jpg" alt="StashLink — Storage Within Reach"></p>
 
 Mod de qualidade de vida para Minecraft 26.3: **Fabric** e **NeoForge**. O armazenamento por perto funciona como se
 estivesse na sua mochila.
 
-<!-- GIFs: gravar no jogo e salvar em docs/img/ com estes nomes -->
+**Baixar:** [Modrinth](https://modrinth.com/mod/stashlink) · [CurseForge](https://www.curseforge.com/minecraft/mc-mods/stashlink) ·
+[GitHub Releases](https://github.com/Leoascenci0/stashlink/releases)
+
+<!-- GIFs (depois da 1.0): gravar no jogo seguindo docs/publicacao/roteiro-gifs.md e trocar este comentário por:
 | Reabastecer e tecla N | Bancadas com armazenamento | Organizar e buscar |
 |---|---|---|
 | ![](docs/img/refill.gif) | ![](docs/img/bench.gif) | ![](docs/img/organize.gif) |
+-->
 
 - **Reabastecer a mão** com itens de shulkers no inventário e de baús, barris e shulkers por perto.
 - **N** guarda seus itens nos baús que já os têm; **W** puxa tudo; **Shift + clique esquerdo + passar o mouse** move item por item.

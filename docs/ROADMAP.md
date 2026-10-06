@@ -710,6 +710,11 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   pacote forjado, rótulo de baú duplo, chunk carregado à força, 2 vazamentos de memória, 2 mixins frágeis e botões fora
   da tela, e testes que se misturavam com o vizinho. Achados maiores viraram os Itens 23–25, que entram **antes** da publicação (decisão do Eliel, 2026-10-05).
   Falta (Eliel): GIFs, ícone novo, tag `v1.0.0` e publicação.
+- **Publicação (2026-10-06):** Itens 23–27 mesclados. O Eliel gerou banner e ilustrações e decidiu publicar **sem** os testes
+  em jogo pendentes (entram nos limites conhecidos do CHANGELOG) e **sem** os GIFs (ficam para depois da 1.0; roteiro em
+  `docs/publicacao/roteiro-gifs.md`). Ícone novo = baú com corrente recortado do banner (jogo, README e lojas); banner no
+  topo do README e das páginas da loja; ilustrações na galeria das lojas, com legenda dizendo que são ilustrações. O Claude
+  envia às lojas pelo navegador do Eliel, já logado (sem digitar senha ou token), com a confirmação dele antes do envio.
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Antes da publicação (achados da revisão, `docs/REVISAO-1.0.md`)

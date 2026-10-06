@@ -1,5 +1,8 @@
 # Ícone e nome do mod
 
+> **Resolvido em 2026-10-06:** o ícone novo é o baú com corrente recortado do banner que o Eliel gerou
+> (`docs/img/banner.jpg`). Este arquivo fica como registro de por que trocar e de como gerar outro.
+
 ## Por que trocar o ícone atual
 
 O ícone atual (`docs/img/icon.png`) é bonito em tamanho grande, mas tem muita coisa: baú, shulker, 5 itens, a hotbar e

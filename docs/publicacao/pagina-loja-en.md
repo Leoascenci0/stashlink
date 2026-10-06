@@ -1,9 +1,8 @@
 <!-- Página do mod para Modrinth e CurseForge (em inglês, o público das lojas). Colar no campo "Description".
-     Trocar os caminhos dos GIFs pelos links das imagens enviadas à galeria da loja. -->
+     O banner vem do GitHub (docs/img/banner.jpg). As ilustrações vão na galeria da loja (docs/img/galeria/). -->
 
-<p align="center"><img src="ICON_URL" width="128" alt="StashLink"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Leoascenci0/stashlink/main/docs/img/banner.jpg" alt="StashLink — Storage Within Reach"></p>
 
-<h1 align="center">StashLink</h1>
 <p align="center"><b>Your storage, always within reach.</b><br>
 Refill, store, craft and organize from the chests around you, as if everything were in your backpack.</p>
 
@@ -23,8 +22,6 @@ You built a storage room. Now stop walking back and forth to it.
 StashLink makes the **chests, barrels and shulker boxes around you** behave like an extension of your inventory. Your hand
 refills on its own, one key puts everything away, and every crafting station can pull ingredients straight from nearby storage.
 
-![Refill and quick stack](GIF_REFILL)
-
 ## 📦 Storage within reach
 
 | | |
@@ -32,6 +29,7 @@ refills on its own, one key puts everything away, and every crafting station can
 | **Hand refill** | When your stack runs out, more comes from shulkers in your inventory and from chests, barrels and shulkers nearby. Build without stopping. |
 | **Middle click** | Middle-click a block and its item comes from storage to your hotbar. It never replaces one of your items. |
 | **Litematica** (Fabric) | Easy Place and pick block take blocks from your storage. The old block goes back, so your hotbar never fills up. |
+| **Storage from other mods** | Chests, barrels and drawers from mods like Sophisticated Storage and Storage Drawers count as storage too. Drawers holding thousands of items work. Machines and network controllers are never touched. |
 | **Adjustable range** | Chests, barrels and stations: 16 blocks by default, up to 32. Placed shulkers: 32 by default, up to 64. |
 
 ## ⌨️ One key, done
@@ -51,11 +49,10 @@ chest decides if that chest receives items from N at all.
 
 ## 🛠️ Crafting stations that see your storage
 
-![Stations](GIF_BENCH)
-
 Crafting table, furnace, smoker, blast furnace, stonecutter, loom, cartography table, grindstone, smithing table, anvil,
 enchanting table, brewing stand and beacon all use the storage around you.
 
+- **Your backpack first**, then nearby storage. Only the backpack of the player who opened the station is used.
 - A **recipe-book style panel** with search and tabs shows **only what fits that station**.
 - Missing items show in **red**. One click puts the item in the right slot.
 - **Lapis lazuli** goes into the enchanting table by itself and goes back to the chest when you close it.
@@ -63,11 +60,9 @@ enchanting table, brewing stand and beacon all use the storage around you.
 - The **brewing stand** lists every potion you can make with what you have, one step per click.
 - The **beacon** takes its payment from storage with one click.
 
-Items you left cooking or brewing are **never touched**.
+Items you left cooking or brewing are **never touched**. Works next to **JEI** and **REI**: their item list moves out of the panel's way.
 
 ## 🗂️ Organize and find
-
-![Organize](GIF_ORGANIZE)
 
 - **Name your chests** with the ✎ pencil or the **J** key. The name floats in front of the block, with symbols (❤ ⭐ ⚡) and
   item icons (`:apple:`, `:oak_log:`). Shulker boxes keep their name when picked up.
@@ -93,10 +88,14 @@ Items you left cooking or brewing are **never touched**.
 
 ## ⚠️ Known limits
 
-- Client mode and the Litematica slot swap have not been tested in-game yet.
-- NeoForge has no automated tests (same code as Fabric, which is tested).
+- Not tested in-game yet (automated tests only): client mode, the Litematica slot swap with Easy Place, stations using
+  the opener's backpack, and the station panel next to JEI and REI.
+- NeoForge runs fewer automated tests (only the ones for storage from other mods); the rest run on Fabric, with the same code.
+- In storage from other mods, the W key doesn't work in their screens, and reserved slots, names and Organize don't apply.
+  Shulker boxes from other mods don't count.
 - Reserved slots don't apply to hoppers or to mods that change containers directly.
 - Chest names use the game font, so colored emojis (📦) are removed.
+- EMI has no version for Minecraft 26.x yet, so it hasn't been tested.
 
 ## 💬 Feedback
 
