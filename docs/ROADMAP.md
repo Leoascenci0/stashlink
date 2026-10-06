@@ -676,7 +676,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 
 ### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`
-- Último item do plano: só entra depois dos Itens 13–21 **e 23–25** (ordem nova do Eliel, 2026-10-05: o 22 só fecha depois do 25). Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
+- Último item do plano: só entra depois dos Itens 13–21 **e 23–26** (ordem nova do Eliel, 2026-10-05: o 22 só fecha depois do 26, compatibilidade com armazenamento de outros mods). Usa o que o Item 12 já deixou pronto (workflow `release.yml`, `CHANGELOG.md`, README).
 - **Falta (depende do Eliel):** GIFs do README (gravar no jogo), publicar no Modrinth/CurseForge (conta e tokens: o Eliel digita as credenciais, nunca o Claude), testar o workflow criando a tag `v1.0.0`; atualizar o `CHANGELOG.md` com tudo o que entrou nos Itens 13–21 e os limites conhecidos (modo cliente e troca de slot do Litematica sem teste em jogo, NeoForge sem testes automáticos).
 - **Em andamento (2026-10-05):** Item 15 mesclado (PR #46), então os Itens 13–21 estão todos na `main`. Feito: `CHANGELOG.md`
   1.0.0 completo (Itens 13–21 e limites conhecidos), README com as funções novas e lugar para os GIFs, versão `1.0.0` e a
@@ -741,6 +741,31 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 - Rótulos de baú do End: apagar quando o baú some e percorrer só os carregados.
 - Bigorna: ferramenta sempre no 1º slot, mesmo clicando no material primeiro.
 - **Pronto quando:** números antes/depois no PR; bigorna com GameTest da ordem.
+
+## Antes da publicação: armazenamento de outros mods (pedido do Eliel, 2026-10-05)
+
+### Item 26 — Baús e gavetas de outros mods como armazenamento
+- **Branch:** `feat/compat-armazenamento-mods`
+- **Hoje:** só baú, barril e shulker do jogo (e baús que estendem o baú do jogo, como Iron Chests) entram no raio
+  (`NearbyContainers`) e na W (`LootAllService.isSupportedMenu`). Baús e gavetas com bloco próprio (Sophisticated
+  Storage, Storage Drawers, Functional Storage…) ficam de fora.
+- **Ideia:** usar a "tomada padrão" de itens de cada loader, que esses mods já oferecem para funis e canos: no NeoForge a
+  capability de itens do bloco, no Fabric a Transfer API (`ItemStorage.SIDED`). Começar com uma investigação curta
+  (nome exato da API no 26.3 em cada loader, como o Sophisticated Storage a expõe) registrada em `docs/ARCHITECTURE.md`.
+  Interface em `common`, implementação por loader (só cola), API frágil em `compat/mc/`.
+- **Escopo:** N, reabastecer a mão, botão do meio e painel das bancadas passam a enxergar esses blocos. W na tela do baú
+  de outro mod só se der para achar o bloco aberto com segurança; se não, fica registrado como limite.
+- **Regras:** função nova `MOD_STORAGE` no `config/Feature` (liga/desliga + cadeado, `stashlink.feature.mod_storage` e
+  `.tip` nos dois idiomas, `FeatureGate` no servidor). Sempre simular antes de mover (anti-dupe). Container do jogo
+  continua pelo caminho atual; bloco já reconhecido não é contado duas vezes (Iron Chests também expõem a API; baú duplo).
+  Gaveta guarda milhares de um item num "slot": nunca supor stack ≤ 64. Mesmas checagens de distância, claims e baú
+  aberto por outro jogador.
+- **Fora do escopo:** slot travado, rótulos e Organizar (Itens 13, 14, 20) em baú de outro mod; modo cliente (Realms);
+  redes AE2 e Refined Storage (integração por mod, item futuro depois da 1.0).
+- **Pronto quando:** GameTest no Fabric com um bloco de teste que só expõe a API padrão (não é `Container`): N,
+  reabastecer, botão do meio e bancada usam, com a soma de itens conferida; harness de GameTest no **NeoForge** criado e
+  o mesmo teste passando lá; teste com o Sophisticated Storage no NeoForge (e um mod de gavetas, se houver versão
+  26.3); medição no harness de 289 containers sem piora relevante.
 
 ## Como usar este roadmap
 

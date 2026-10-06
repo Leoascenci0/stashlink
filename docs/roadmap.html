@@ -134,7 +134,8 @@ const FEATURES = [
   {id:"F11", name:"Filtro da tecla N", d:"Cada baú e cada categoria de item escolhem se recebem."},
   {id:"F12", name:"Botão do meio puxa o item", d:"Mirando um bloco, traz o item do baú no raio para a hotbar."},
   {id:"F13", name:"Organizar o armazenamento", d:"Ordenar baú e sistema com prévia, desfazer e busca."},
-  {id:"F14", name:"Shift + mouse coleta", d:"Segurar Shift e passar o mouse coleta os itens sem clicar um a um."}
+  {id:"F14", name:"Shift + mouse coleta", d:"Segurar Shift e passar o mouse coleta os itens sem clicar um a um."},
+  {id:"F15", name:"Armazenamento de outros mods", d:"Baús e gavetas de outros mods (Sophisticated Storage, Storage Drawers…) também servem de fonte e destino."}
 ];
 // status: "todo" | "wip" | "done"
 const ITEMS = [
@@ -251,8 +252,12 @@ const ITEMS = [
    do:["Medido (289 baús): bancada aberta reconfere em 0,57 ms a cada 100 ticks — sem problema, não mexeu","Rótulos do baú do End: ciclo 262 → 139 µs (1000 rótulos); rótulo de baú sumido é apagado após 5 min, lista percorrida sem cópia","Bigorna: ferramenta sempre no 1º slot, com GameTest da ordem; 180 GameTests verdes","Não medido (precisa de servidor real): N/Organizar com mod de claims e muitos jogadores"],
    ok:"Números antes e depois no PR; bigorna com teste da ordem."}
 ,
+  {n:26, phase:"Antes da publicação", t:"Baús e gavetas de outros mods como armazenamento", b:"feat/compat-armazenamento-mods", f:["F15"], s:"todo",
+   do:["Hoje só baú, barril e shulker do jogo (e baús que estendem o do jogo, como Iron Chests) entram no raio e na W","Usar a \"tomada padrão\" de itens de cada loader (capability no NeoForge, Transfer API no Fabric), que Sophisticated Storage, Storage Drawers e afins já oferecem","N, reabastecer, botão do meio e painel das bancadas passam a enxergar esses blocos; W só se der para achar o bloco aberto com segurança","Função nova com liga/desliga e cadeado; simular antes de mover; sem contar o mesmo baú duas vezes; gaveta pode ter mais que 64 num slot","Fora: slot travado, rótulos e Organizar em baú de outro mod, modo cliente e redes AE2/Refined Storage (item futuro depois da 1.0)"],
+   ok:"GameTest com bloco de teste só com a API padrão no Fabric e no NeoForge (harness novo), Sophisticated Storage testado e sem piora no harness de 289 containers."}
+,
   {n:22, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"wip",
-   do:["Ordem nova (Eliel, 2026-10-05): só fecha depois dos Itens 23–25","Itens 13–21 e 15 mesclados (2026-10-05)","Feito: CHANGELOG 1.0.0 completo, README, versão 1.0.0, descrição do mod e textos da loja, ícone, nome e revisão em docs/publicacao/","Revisão completa feita (docs/REVISAO-1.0.md): 1 perda de item, 1 dupe, 3 cadeados contornáveis e outros 9 ajustes corrigidos com teste; 171 GameTests verdes","Falta: GIFs, ícone novo, tag v1.0.0 e publicação","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–21 e os limites conhecidos"],
+   do:["Ordem nova (Eliel, 2026-10-05): só fecha depois dos Itens 23–26 (o 26 é a compatibilidade com armazenamento de outros mods)","Itens 13–21 e 15 mesclados (2026-10-05)","Feito: CHANGELOG 1.0.0 completo, README, versão 1.0.0, descrição do mod e textos da loja, ícone, nome e revisão em docs/publicacao/","Revisão completa feita (docs/REVISAO-1.0.md): 1 perda de item, 1 dupe, 3 cadeados contornáveis e outros 9 ajustes corrigidos com teste; 171 GameTests verdes","Falta: GIFs, ícone novo, tag v1.0.0 e publicação","GIFs no README (gravar no jogo), publicação no Modrinth e CurseForge (o Eliel usa as próprias credenciais) e tag v1.0.0 para testar o workflow","CHANGELOG com tudo o que entrou nos Itens 13–21 e os limites conhecidos"],
    ok:"Versão 1.0 publicada e baixável para cada loader."}
 ];
 const RISKS = [
@@ -261,7 +266,8 @@ const RISKS = [
   ["Mexer em baú protegido (claims)","Só tocar container que o jogador poderia abrir","6"],
   ["API do Litematica muda entre versões","Compatibilidade isolada e versão de teste fixa","7"],
   ["Tecla W conflita com andar","Só dentro de telas de container, tecla configurável","9"],
-  ["Formato de item muda entre versões do jogo","Uma única camada de acesso ao conteúdo da shulker","2"]
+  ["Formato de item muda entre versões do jogo","Uma única camada de acesso ao conteúdo da shulker","2"],
+  ["Baú de outro mod com regras próprias (gavetas, upgrades)","Só pela API padrão do loader, sempre simulando antes; teste com bloco de teste e mod real","26"]
 ];
 const PILL = {todo:"A fazer", wip:"Em andamento", done:"Concluído"};
 let filter = null;
