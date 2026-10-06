@@ -38,9 +38,21 @@ class BenchTextTest {
         assertEquals(BenchText.NO_MATCH, contents(BenchText.empty(true, 12)).getKey());
     }
 
+    /** Item 16.5: raio 0 é "usar baús" desligado; a mochila ainda conta, e a mensagem diz isso (não "raio de 0 blocos"). */
     @Test
-    void radiusZeroIsStillReported() {
-        assertArrayEquals(new Object[]{0}, contents(BenchText.empty(false, 0)).getArgs());
+    void radiusZeroTalksAboutTheBackpackOnly() {
+        TranslatableContents msg = contents(BenchText.empty(false, 0));
+        assertEquals(BenchText.EMPTY_BACKPACK, msg.getKey());
+        assertArrayEquals(new Object[]{}, msg.getArgs());
+    }
+
+    @Test
+    void missingBeaconPaymentFollowsTheSameRadiusRule() {
+        TranslatableContents withRadius = contents(BenchText.paymentMissing(16));
+        assertEquals(BenchText.PAYMENT_NONE_RADIUS, withRadius.getKey());
+        assertArrayEquals(new Object[]{16}, withRadius.getArgs());
+        assertEquals(BenchText.PAYMENT_NONE_BACKPACK, contents(BenchText.paymentMissing(0)).getKey());
+        assertEquals(BenchText.PAYMENT_NONE, contents(BenchText.paymentMissing(-1)).getKey());
     }
 
     @Test

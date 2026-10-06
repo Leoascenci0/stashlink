@@ -670,9 +670,31 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   "raio 0": o ajuste estava em Não). O clique tira **da mochila primeiro**; o baú só completa o que faltar. O que sai da mochila
   é do jogador e **não entra no caderno de emprestados** (nunca volta a baú). Rótulo do tooltip: "Disponível" (era "No baú").
 - **Limites conhecidos:** poções (suporte) e as listas de receita (cortador, tear...) continuam contando só o armazenamento; o
-  livro de receitas desconta a mochila da soma para não contar em dobro.
+  livro de receitas desconta a mochila da soma para não contar em dobro. (Resolvido no Item 16.5.)
 - **Correção de layout (print do Eliel, mesmo dia):** janela de ~382 unidades de GUI deixava só 29 de folga (o código pedia 30) e
   a estação não se movia: o painel ficava por cima da fornalha. `BenchPanel.stationLeft` agora encosta o painel na margem quando a estação cabe.
+
+### Item 16.5 — Todas as bancadas usam a mochila de quem abriu ✅
+- **Branch:** `feat/bancadas-mochila-todas` (pedido do Eliel, 2026-10-05: "as bancadas têm que reconhecer o inventário do
+  player como fonte válida, e não só os baús. Tem que resolver em todas as bancadas. E é somente do player que está com a
+  bancada aberta").
+- **Feito:** uma regra só, `BenchPool.take` (mochila primeiro, baú completa; diz quanto saiu de cada lugar), usada por todas
+  as estações: cortador e tear (`BenchResults.craft`, que tirava do baú primeiro e da mochila só uma pilha), suporte de poções
+  (`BenchBrewing`), lápis-lazúli automático (`BenchLapis`; decisão do Eliel: mochila primeiro), clique em item solto e cursor.
+  O caderno de emprestados só registra a parte do baú. Receitas só usam itens comuns (sem nome, dano ou encantamento), a
+  mesma regra do livro de receitas do jogo: a pedra renomeada do jogador nunca vai parar no cortador.
+- **Só a mochila de quem abriu:** tudo usa o `ServerPlayer` que mandou o pedido; estação nunca é fonte. Teste com 2 jogadores
+  (inclusive a mesma fornalha aberta pelos dois) prova que um nunca vê, usa ou perde item da mochila do outro.
+- **Sinalizador (decisão do Eliel):** trocar de minério devolve o pagamento do próprio jogador à mochila (antes ele ficava e a
+  troca não acontecia, o que travaria quem pagou com a mochila); sem lugar na mochila, não troca. Item do jogador nunca vai a baú.
+- **Lista em dia:** o servidor reenvia a lista quando a mochila muda (no máximo a cada 5 ticks, porque cada lista varre os
+  baús); antes ficava até 5 s velha, e o livro de receitas podia contar em dobro o que o jogador tinha acabado de mover.
+- **Textos (pt e en):** "Nada na mochila nem no raio de N blocos"; com baús desligados, "Nada na mochila que sirva aqui (baús
+  desligados)" em vez de "raio de 0 blocos"; o mesmo no sinalizador, no tear e nas dicas das funções da config.
+- **Slots travados** (os que N e W não mexem) continuam valendo para as bancadas (decisão do Eliel), como no livro do jogo.
+- **Testes:** 10 GameTests novos em `BackpackBenchGameTests` (190 no total): item só na mochila em cada estação, mochila + baú
+  (cortador com cliques e com shift no resultado, poções, lápis), sinalizador e 2 jogadores; 2 unitários de texto. Mutação
+  pega: "baú primeiro" (5 testes falham) e "caderno registra a mochila" (2 falham). Falta o teste no jogo do Eliel.
 
 ### Item 22 — Release 1.0 (publicação) 🔄
 - **Branch:** `chore/publicar-1.0`

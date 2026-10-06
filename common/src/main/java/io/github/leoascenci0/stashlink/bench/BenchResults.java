@@ -6,7 +6,7 @@ import io.github.leoascenci0.stashlink.compat.mc.StationRecipes;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
-import io.github.leoascenci0.stashlink.source.ItemSource;
+import io.github.leoascenci0.stashlink.source.StackListSink;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -46,7 +46,7 @@ public final class BenchResults {
 
     /** Os resultados conhecidos (e as cores do tear), na ordem única de {@link BenchOrder}: possíveis antes dos vermelhos. */
     public static List<BenchPoolSync.Entry> list(ServerPlayer player) {
-        List<ItemStack> have = available(player, BenchPool.of(player).contents());
+        List<ItemStack> have = usable(BenchPool.of(player).atHand());
         List<StationRecipes.Option> options = StationRecipes.options(player, player.containerMenu, have);
         List<BenchPoolSync.Entry> ok = new ArrayList<>();
         List<BenchPoolSync.Entry> missing = new ArrayList<>();
@@ -93,21 +93,22 @@ public final class BenchResults {
         return BenchCompat.slotTab(menu, player, stack);
     }
 
-    /** O que o jogador tem à mão para esta estação: o armazenamento já varrido ({@code stored}) e a mochila. */
-    private static List<ItemStack> available(ServerPlayer player, List<BenchPool.Stack> stored) {
-        List<ItemStack> have = new ArrayList<>();
-        for (BenchPool.Stack stack : stored) {
-            have.add(stack.item());
-        }
-        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-            if (!stack.isEmpty()) {
-                have.add(stack);
+    /**
+     * Só os itens comuns (sem dano, encantamento nem nome: a regra do livro de receitas do jogo). Com a mochila na
+     * lista, isso impede a receita de pegar a espada nomeada ou a pedra renomeada do jogador. Mantém a ordem de
+     * {@link BenchPool#atHand()} (mochila antes do armazenamento).
+     */
+    private static List<ItemStack> usable(List<ItemStack> atHand) {
+        List<ItemStack> out = new ArrayList<>(atHand.size());
+        for (ItemStack stack : atHand) {
+            if (BenchCompat.usableForCrafting(stack)) {
+                out.add(stack);
             }
         }
-        return have;
+        return out;
     }
 
-    /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (armazenamento primeiro, mochila se faltar) e a escolhe. */
+    /** Monta a receita de chave {@code id} ({@link #key}): põe cada entrada no slot certo (mochila primeiro, o armazenamento completa) e a escolhe. */
     public static void craft(ServerPlayer player, AbstractContainerMenu menu, int id, ItemStack choice, boolean one) {
         if (BrewingCompat.isBrewing(menu)) {
             // Suporte de poções: a "receita" é a poção escolhida; monta o próximo passo do caminho até ela.
@@ -118,8 +119,7 @@ public final class BenchResults {
         }
         // Uma varredura só por clique: o pool, a lista do que há e o que sai dos baús vêm todos da mesma passada.
         BenchPool pool = BenchPool.of(player);
-        List<BenchPool.Stack> stored = pool.contents();
-        List<ItemStack> have = available(player, stored);
+        List<ItemStack> have = usable(pool.atHand());
         List<StationRecipes.Option> options = StationRecipes.options(player, menu, have);
         StationRecipes.Option option = null;
         for (StationRecipes.Option candidate : options) {
@@ -154,7 +154,7 @@ public final class BenchResults {
             if (slot.hasItem()) {
                 continue;   // já tem um item que serve (talvez de uma receita anterior)
             }
-            if (!fillSlot(player, pool, stored, slot, needs.get(i), one)) {
+            if (!fillSlot(player, pool, have, slot, needs.get(i), one)) {
                 BenchSync.markDirty(player);
                 return;
             }
@@ -164,30 +164,23 @@ public final class BenchResults {
         BenchSync.markDirty(player);
     }
 
-    /** Põe em {@code slot} um item que satisfaz {@code need}: do armazenamento, ou da mochila se não houver lá. */
-    private static boolean fillSlot(ServerPlayer player, BenchPool pool, List<BenchPool.Stack> stored, Slot slot,
+    /**
+     * Põe em {@code slot} um item que satisfaz {@code need}. {@code have} vem com a mochila antes do armazenamento,
+     * então o tipo escolhido é o da mochila quando ela tem; e desse tipo sai da mochila primeiro, o armazenamento só
+     * completa a pilha. Só a parte do armazenamento entra no caderno (a da mochila nunca volta a baú).
+     */
+    private static boolean fillSlot(ServerPlayer player, BenchPool pool, List<ItemStack> have, Slot slot,
                                     java.util.function.Predicate<ItemStack> need, boolean one) {
-        for (BenchPool.Stack stack : stored) {
-            ItemStack model = stack.item();
-            if (need.test(model) && slot.mayPlace(model)) {
-                int want = one ? 1 : Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model));
-                int total = ItemSource.sum(pool.source().take(model, want));
-                if (total > 0) {
-                    slot.set(model.copyWithCount(total));
-                    BenchLedger.record(player, Map.of(model.getItem(), total), pool.origin());
-                    return true;
-                }
+        for (ItemStack model : have) {
+            if (!need.test(model) || !slot.mayPlace(model)) {
+                continue;
             }
-        }
-        var items = player.getInventory().getNonEquipmentItems();
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack stack = items.get(i);
-            if (!stack.isEmpty() && need.test(stack) && slot.mayPlace(stack)) {
-                int move = one ? 1 : Math.min(stack.getCount(), slot.getMaxStackSize(stack));
-                slot.set(stack.copyWithCount(move));
-                stack.shrink(move);
-                if (stack.isEmpty()) {
-                    items.set(i, ItemStack.EMPTY);
+            int want = one ? 1 : Math.min(model.getMaxStackSize(), slot.getMaxStackSize(model));
+            BenchPool.Taken taken = pool.take(model, want);
+            if (taken.total() > 0) {
+                slot.set(model.copyWithCount(taken.total()));
+                if (taken.storage() > 0) {
+                    BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
                 }
                 return true;
             }
@@ -196,11 +189,12 @@ public final class BenchResults {
     }
 
     /**
-     * Botão de pagamento do sinalizador: 1 do item pedido vai do armazenamento para o slot de pagamento (o slot só
-     * guarda 1). Só item que o slot aceita (minério de pagamento); outro pedido é ignorado. Se o slot já tem outro
-     * pagamento que veio do armazenamento, ele volta ao baú antes (trocar de ferro para esmeralda); pagamento do
-     * próprio jogador nunca é mexido. O que entra vai para o caderno: se o efeito não for confirmado, volta ao baú
-     * ao fechar (o jogo jogaria o item no chão).
+     * Botão de pagamento do sinalizador: 1 do item pedido vai para o slot de pagamento (o slot só guarda 1), da
+     * mochila primeiro e do armazenamento se ela não tiver. Só item que o slot aceita (minério de pagamento); outro
+     * pedido é ignorado. Trocar de ferro para esmeralda: o pagamento anterior volta para onde é dele — ao baú se veio
+     * do armazenamento, à mochila se é do jogador (decisão do Eliel, Item 16.5); sem lugar para ele, não troca. Nunca
+     * vai item do jogador para um baú. O que veio do armazenamento vai para o caderno: se o efeito não for
+     * confirmado, volta ao baú ao fechar (o jogo jogaria o item no chão).
      */
     public static void pay(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested) {
         Slot slot = BenchCompat.beaconPaymentSlot(menu);
@@ -216,17 +210,29 @@ public final class BenchResults {
             return;
         }
         if (slot.hasItem() && !ItemStack.isSameItemSameComponents(slot.getItem(), model)) {
-            BenchLedger.returnFromGrid(player, List.of(slot));
-            if (slot.hasItem()) {
-                return;   // o pagamento é do jogador (ou o baú encheu): não troca
+            BenchLedger.returnFromGrid(player, List.of(slot));   // o que veio do armazenamento volta ao baú
+            if (slot.hasItem() && (BenchLedger.owes(player, slot.getItem()) || !backToBackpack(player, slot))) {
+                menu.broadcastChanges();
+                return;   // emprestado que o baú não aceitou, ou mochila sem lugar: não troca
             }
         }
         place(player, menu, model, true);
     }
 
     /**
+     * Pagamento do próprio jogador (não está no caderno): volta para a mochila dele, nunca para baú nem chão. O que
+     * não couber fica no slot. Devolve {@code true} se o slot ficou vazio.
+     */
+    private static boolean backToBackpack(ServerPlayer player, Slot slot) {
+        ItemStack rest = new StackListSink(player.getInventory().getNonEquipmentItems()).give(slot.getItem());
+        slot.set(rest);
+        return rest.isEmpty();
+    }
+
+    /**
      * Clicou num item solto do painel: vai para o primeiro slot <b>da estação</b> que o aceita (corante no slot do
-     * corante, banner no do banner...), do armazenamento. Um stack, ou um só com o botão direito.
+     * corante, banner no do banner...), da mochila primeiro e do armazenamento o que faltar. Um stack, ou um só com
+     * o botão direito.
      */
     public static void place(ServerPlayer player, AbstractContainerMenu menu, ItemStack requested, boolean one) {
         ItemStack model = requested.copyWithCount(1);
@@ -251,17 +257,14 @@ public final class BenchResults {
             if (room <= 0) {
                 continue;
             }
-            int wanted = one ? 1 : room;
             // Mochila primeiro (item do jogador, fora do caderno); o armazenamento só completa o que faltar.
-            int fromBackpack = pool.takeFromBackpack(model, wanted);
-            int fromStorage = wanted > fromBackpack ? ItemSource.sum(pool.source().take(model, wanted - fromBackpack)) : 0;
-            int total = fromBackpack + fromStorage;
-            if (total <= 0) {
+            BenchPool.Taken taken = pool.take(model, one ? 1 : room);
+            if (taken.total() <= 0) {
                 break;   // não há na mochila nem no armazenamento (a lista vai se atualizar)
             }
-            slot.set(model.copyWithCount(inside.getCount() + total));
-            if (fromStorage > 0) {
-                BenchLedger.record(player, Map.of(model.getItem(), fromStorage), pool.origin());
+            slot.set(model.copyWithCount(inside.getCount() + taken.total()));
+            if (taken.storage() > 0) {
+                BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
             }
             menu.broadcastChanges();
             break;

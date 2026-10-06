@@ -641,6 +641,30 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Cliente:** `BenchClient.addTo` desconta a mochila do menu da contagem do livro de receitas (lista traz mochila + baú).
 - Testes: `panelListsTheBackpackAndTakesFromItFirst`; `furnaceKeepsBorrowedItemAndNeverTakesTheOwnersOwn` atualizado (mochila primeiro).
 
+## Item 16.5 — todas as estações usam a mochila de quem abriu (Eliel, 2026-10-05)
+
+- **Uma regra num lugar só: `BenchPool.take(model, n)`** tira da mochila primeiro e o armazenamento completa, e devolve
+  `Taken(backpack, storage)`. Quem chama põe `total()` no destino no mesmo passo e registra **só `storage()`** no caderno.
+  Usam: `BenchResults.place`/`craft` (cortador, tear), `BenchPullService` (cursor), `BenchLapis` e `BenchBrewing`.
+- **Escolher o tipo também é "mochila primeiro":** `BenchPool.atHand()` lista um modelo por tipo, a mochila antes do
+  armazenamento; `fillSlot` (cortador/tear) e as poções pegam o primeiro que serve. As receitas filtram por
+  `BenchCompat.usableForCrafting` (sem nome, dano, encantamento), a mesma regra do livro do jogo, também na lista (o vermelho
+  e o clique concordam).
+- **Por que o gasto sai primeiro do que é do jogador:** o caderno guarda "quantos devo ao baú" e `reconcile` corta esse número
+  para o que ainda está na estação (`min`). Se a entrada tinha 10 do jogador + 54 do baú e o jogador cortou 3, sobram 61 e o
+  caderno continua devendo 54: ao fechar, 54 voltam ao baú e 7 ao jogador. Com o lápis, a mesma conta.
+- **Só a mochila de quem pediu:** `BenchPool` lê `player.getInventory()` do `ServerPlayer` do pacote; a estação (fornalha,
+  suporte, grade) nunca é fonte. Dois jogadores com a mesma fornalha aberta: cada um só põe o que é seu.
+- **Sinalizador:** trocar de pagamento devolve ao baú o emprestado (`returnFromGrid`) e à mochila o do jogador
+  (`StackListSink`, nunca o chão); sem lugar, ou emprestado que o baú não aceitou (`BenchLedger.owes`), não troca.
+- **Lista em dia (`BenchSync.backpackKey`):** soma de hash+quantidade dos 36 slots (trocar de lugar não conta). Mudou e já
+  passaram `BACKPACK_MIN_TICKS` (5) desde a última lista: reenvia. Cada lista nova varre os baús, daí o limite. Isso também
+  fecha a contagem dupla do livro de receitas (`BenchClient.addTo` desconta a mochila **atual** de uma lista velha).
+- **Textos:** `BenchText.empty`/`paymentMissing` com três casos: raio > 0 ("na mochila nem no raio de N"), raio 0 = baús
+  desligados ("só a mochila"), desconhecido (genérico).
+- **Slot travado** (N/W) não protege da bancada (decisão do Eliel): o livro do jogo também usa qualquer slot.
+- Testes: `BackpackBenchGameTests` (10); `beaconSendsThePlayersOwnPaymentBackToTheBackpackAndRespectsTheLock` atualizado.
+
 ## Item 17 — Escolher o que cada baú recebe com a tecla N
 
 - **Dois filtros, duas perguntas.** (a) *Este baú aceita receber com a N?* — é do **baú** (botão na tela dele). (b) *Este
@@ -811,7 +835,7 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 
 - **Estação nova `Station.BEACON`:** o servidor manda a lista do armazenamento (só o que o slot de pagamento aceita, pela regra dos slots), mas **sem painel** (`BenchCompat.usesPanel`): a tela do sinalizador não se desloca.
 - **Botões sobre os ícones do jogo (`client/BenchBeaconButtons`, `Feature.BENCH_BEACON`):** a própria tela do sinalizador já desenha netherite, esmeralda, diamante, ouro e ferro à esquerda do slot de pagamento. Esses ícones viram botões (posições em `BenchCompat.beaconIcons`, a única coisa a ajustar se a tela do jogo mudar). O que não há no raio ganha um véu vermelho translúcido (`fill`, sem textura nova) e a dica diz "não há no raio de N blocos"; com item, a dica mostra "No baú: N".
-- **Servidor (`BenchResults.pay`, `recipeId = PAY` -4):** mesmas travas do painel + `BENCH_BEACON`; só item que o slot de pagamento aceita (`mayPlace`); põe 1 (o slot só guarda 1) via `place`, que registra no caderno. Trocar de minério devolve ao baú o pagamento que veio do armazenamento (`returnFromGrid` no slot) antes de pôr o novo; pagamento posto pelo jogador nunca é mexido. Fechar sem confirmar o efeito devolve ao baú (o jogo jogaria o item no chão); confirmar gasta o item e o caderno se acerta sozinho (`reconcile`).
+- **Servidor (`BenchResults.pay`, `recipeId = PAY` -4):** mesmas travas do painel + `BENCH_BEACON`; só item que o slot de pagamento aceita (`mayPlace`); põe 1 (o slot só guarda 1) via `place`, que registra no caderno. Trocar de minério devolve ao baú o pagamento que veio do armazenamento (`returnFromGrid` no slot) antes de pôr o novo; pagamento posto pelo jogador nunca é mexido (mudou no Item 16.5: agora volta à mochila dele; ver a seção do 16.5). Fechar sem confirmar o efeito devolve ao baú (o jogo jogaria o item no chão); confirmar gasta o item e o caderno se acerta sozinho (`reconcile`).
 
 ## Item 16.3, Fase 3, onda 4 — suporte de poções (2026-10-04)
 

@@ -2,7 +2,6 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BrewingCompat;
 import io.github.leoascenci0.stashlink.network.BenchPoolSync;
-import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -22,28 +21,18 @@ import java.util.Set;
  * suporte está sem combustível); quando o suporte terminar, o próximo clique continua de onde ficou.
  *
  * <p>Integridade: primeiro confere tudo (slots livres ou já certos, material à mão), só depois mexe; cada item que sai
- * de um baú ou da mochila entra no slot no mesmo passo. O suporte guarda o que está nos slots, então o que entra já é
- * do jogador (como na fornalha) e nada vai para o caderno de emprestados.
+ * da mochila ou de um baú entra no slot no mesmo passo, da mochila de quem abriu primeiro (Item 16.5). O suporte guarda
+ * o que está nos slots, então o que entra já é do jogador (como na fornalha) e nada vai para o caderno de emprestados.
  */
 public final class BenchBrewing {
     private BenchBrewing() {
     }
 
-    /** O que o jogador tem para este suporte, numa varredura só. */
-    private record Have(BenchPool pool, List<BenchPool.Stack> stored, List<ItemStack> all) {
+    /** O que o jogador tem para este suporte, numa varredura só; {@code all} traz a mochila antes do armazenamento. */
+    private record Have(BenchPool pool, List<ItemStack> all) {
         static Have of(ServerPlayer player) {
             BenchPool pool = BenchPool.of(player);
-            List<BenchPool.Stack> stored = pool.contents();
-            List<ItemStack> all = new ArrayList<>();
-            for (BenchPool.Stack stack : stored) {
-                all.add(stack.item());
-            }
-            for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
-                if (!stack.isEmpty()) {
-                    all.add(stack);
-                }
-            }
-            return new Have(pool, stored, all);
+            return new Have(pool, pool.atHand());
         }
 
         boolean has(ItemStack model) {
@@ -51,7 +40,7 @@ public final class BenchBrewing {
         }
     }
 
-    /** As garrafas de onde partir: as do suporte primeiro (continuar o que já está lá), depois as dos baús e da mochila. */
+    /** As garrafas de onde partir: as do suporte primeiro (continuar o que já está lá), depois as da mochila e dos baús. */
     private static List<Integer> sources(BrewingCompat.Graph graph, AbstractContainerMenu menu, Have have) {
         Set<Integer> out = new LinkedHashSet<>();
         for (int i = 0; i < BrewingCompat.BOTTLE_SLOTS; i++) {
@@ -163,47 +152,27 @@ public final class BenchBrewing {
 
         // 2) Monta: garrafas, ingrediente, combustível. Cada item sai e entra no mesmo passo.
         for (int i = 0; i < wantBottles && i < empty.size(); i++) {
-            if (!move(player, have, from, empty.get(i))) {
+            if (!move(have, from, empty.get(i))) {
                 break;   // acabaram as garrafas: o suporte trabalha com as que entraram
             }
         }
         if (!ingredientReady) {
-            move(player, have, ingredient, ingredientSlot);
+            move(have, ingredient, ingredientSlot);
         }
         if (needFuel) {
-            move(player, have, BrewingCompat.fuelItem(), fuelSlot);
+            move(have, BrewingCompat.fuelItem(), fuelSlot);
         }
         menu.broadcastChanges();
         BenchSync.markDirty(player);
     }
 
-    /** Põe 1 de {@code model} em {@code slot}: do armazenamento, ou da mochila se lá não houver. */
-    private static boolean move(ServerPlayer player, Have have, ItemStack model, Slot slot) {
+    /** Põe 1 de {@code model} em {@code slot}: da mochila, ou do armazenamento se ela não tiver. */
+    private static boolean move(Have have, ItemStack model, Slot slot) {
         ItemStack one = model.copyWithCount(1);
-        if (!slot.mayPlace(one)) {
+        if (!slot.mayPlace(one) || have.pool().take(one, 1).total() <= 0) {
             return false;
         }
-        for (BenchPool.Stack stack : have.stored()) {
-            if (ItemStack.isSameItemSameComponents(stack.item(), one)) {
-                if (ItemSource.sum(have.pool().source().take(one, 1)) > 0) {
-                    slot.set(one);
-                    return true;
-                }
-                break;
-            }
-        }
-        var items = player.getInventory().getNonEquipmentItems();
-        for (int i = 0; i < items.size(); i++) {
-            ItemStack stack = items.get(i);
-            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, one)) {
-                slot.set(stack.copyWithCount(1));
-                stack.shrink(1);
-                if (stack.isEmpty()) {
-                    items.set(i, ItemStack.EMPTY);
-                }
-                return true;
-            }
-        }
-        return false;
+        slot.set(one);
+        return true;
     }
 }

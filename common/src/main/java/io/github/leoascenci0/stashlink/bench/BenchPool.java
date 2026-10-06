@@ -120,8 +120,9 @@ public final class BenchPool {
     }
 
     /**
-     * Os itens soltos da mochila e da barra (nunca o conteúdo de shulkers, nem armadura/mão), somados por tipo.
-     * Servem só ao painel das estações: o jogo já enxerga a mochila ao craftar, então {@link #contents()} e
+     * Os itens soltos da mochila e da barra (nunca o conteúdo de shulkers, nem armadura/mão), somados por tipo. É
+     * sempre a mochila de quem fez o pedido ({@code player}), nunca a de outro jogador. Servem ao painel, às receitas
+     * e às poções das estações: o jogo já enxerga a mochila ao craftar, então {@link #contents()} e
      * {@link #plainCounts()} continuam sendo só o armazenamento (senão o livro de receitas contaria duas vezes).
      */
     public List<Stack> backpackContents() {
@@ -147,6 +148,37 @@ public final class BenchPool {
         list.sort(Comparator.<Stack, String>comparing(s -> BuiltInRegistries.ITEM.getKey(s.item().getItem()).toString())
                 .thenComparing(Comparator.comparingInt(Stack::count).reversed()));
         return list;
+    }
+
+    /**
+     * O que está à mão para montar receita ou poção: um modelo por tipo, <b>mochila antes do armazenamento</b> (quem
+     * escolhe o item pega o primeiro que serve, então a ordem é a regra "mochila primeiro"). Uma varredura só.
+     */
+    public List<ItemStack> atHand() {
+        List<ItemStack> out = new ArrayList<>();
+        for (List<Stack> part : List.of(backpackContents(), contents())) {
+            for (Stack s : part) {
+                out.add(s.item());
+            }
+        }
+        return out;
+    }
+
+    /** Quanto saiu de cada lugar: a parte da mochila é do jogador; só a do armazenamento vai para o caderno. */
+    public record Taken(int backpack, int storage) {
+        public int total() {
+            return backpack + storage;
+        }
+    }
+
+    /**
+     * Tira até {@code n} iguais a {@code model}: <b>da mochila primeiro</b>, e o armazenamento só completa o que
+     * faltar. Quem chama põe {@code total()} no destino no mesmo passo e registra só {@code storage()} no caderno.
+     */
+    public Taken take(ItemStack model, int n) {
+        int fromBackpack = takeFromBackpack(model, n);
+        int fromStorage = n > fromBackpack ? ItemSource.sum(source.take(model, n - fromBackpack)) : 0;
+        return new Taken(fromBackpack, fromStorage);
     }
 
     /**

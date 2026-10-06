@@ -27,8 +27,6 @@ public final class BenchBeaconButtons {
     private static final int MISSING = 0x80FF2020;
 
     static final String TIP = "stashlink.bench.beacon.tip";
-    static final String NONE = "stashlink.bench.beacon.none";
-    static final String NONE_RADIUS = "stashlink.bench.beacon.none.radius";
 
     private final AbstractContainerMenu menu;
     private final List<BenchCompat.BeaconIcon> icons = BenchCompat.beaconIcons();
@@ -96,8 +94,7 @@ public final class BenchBeaconButtons {
             lines.add(BenchText.inStorage(have));
             lines.add(Component.translatable(TIP));
         } else {
-            int radius = BenchClient.radius();
-            lines.add(radius >= 0 ? Component.translatable(NONE_RADIUS, radius) : Component.translatable(NONE));
+            lines.add(BenchText.paymentMissing(BenchClient.radius()));
         }
         graphics.setComponentTooltipForNextFrame(Minecraft.getInstance().font, lines, mouseX, mouseY);
     }

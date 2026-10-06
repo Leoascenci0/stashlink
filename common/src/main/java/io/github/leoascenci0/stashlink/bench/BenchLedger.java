@@ -165,6 +165,13 @@ public final class BenchLedger {
         }
     }
 
+    /** O caderno da estação aberta ainda deve algum item deste tipo a um baú? (Item do jogador nunca está aqui.) */
+    public static boolean owes(ServerPlayer player, ItemStack stack) {
+        Entry entry = LEDGER.get(player);
+        return entry != null && entry.menu() == player.containerMenu
+                && entry.borrowed.getOrDefault(stack.getItem(), 0) > 0;
+    }
+
     /** Antes de pegar outro item do painel: o que está no cursor e veio do armazenamento volta à origem. */
     public static void returnCursor(ServerPlayer player) {
         Entry entry = LEDGER.get(player);

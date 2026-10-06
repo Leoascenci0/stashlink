@@ -20,14 +20,20 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * Mantém o cliente com o mod sabendo o que o armazenamento tem enquanto uma estação está aberta (Item 16). Manda
- * ao abrir, quando o próprio mod mexeu no armazenamento ({@link #markDirty}) e de tempos em tempos (outro jogador
- * pode ter mexido nos baús). Só reenvia se a lista mudou. Cliente sem o mod nunca recebe nada, e para ele a
- * varredura não se repete.
+ * Mantém o cliente com o mod sabendo o que a mochila e o armazenamento têm enquanto uma estação está aberta (Item 16).
+ * Manda ao abrir, quando o próprio mod mexeu ({@link #markDirty}), quando a mochila do jogador muda e de tempos em
+ * tempos (outro jogador pode ter mexido nos baús). Só reenvia se a lista mudou. Cliente sem o mod nunca recebe nada,
+ * e para ele a varredura não se repete.
  */
 public final class BenchSync {
     /** A cada quantos ticks reconferir o armazenamento com a estação aberta (5 s). */
     static final int REFRESH_TICKS = 100;
+
+    /**
+     * A mochila mudou (o jogador tirou um item da estação, pegou algo do chão...): reenvia, mas no máximo uma vez a cada
+     * este tanto de ticks (0,25 s), porque cada lista nova varre os baús do raio.
+     */
+    static final int BACKPACK_MIN_TICKS = 5;
 
     private static final class State {
         /** Fraca: o valor deste mapa nunca pode segurar o menu (e, por ele, o jogador) vivo. */
@@ -38,6 +44,8 @@ public final class BenchSync {
         int age;
         /** {@link BenchCompat#listKey} da última passada: mudou (item no 1º slot da bigorna) → reenvia já. */
         int listKey;
+        /** {@link #backpackKey} da mochila quando a última lista foi montada. */
+        int backpackKey;
         boolean dirty = true;
         boolean unsupported;
 
@@ -116,11 +124,21 @@ public final class BenchSync {
             state.listKey = listKey;
             state.dirty = true;
         }
-        if (state.unsupported || (!state.dirty && state.age < REFRESH_TICKS)) {
+        if (state.unsupported) {
+            return;
+        }
+        // A lista traz a mochila (Item 16.4/16.5): sem isto ela ficava até 5 s velha, e o livro de receitas, que
+        // desconta a mochila da lista, contaria em dobro o que o jogador acabou de mover.
+        int backpackKey = backpackKey(player);
+        if (backpackKey != state.backpackKey && state.age >= BACKPACK_MIN_TICKS) {
+            state.dirty = true;
+        }
+        if (!state.dirty && state.age < REFRESH_TICKS) {
             return;
         }
         state.dirty = false;
         state.age = 0;
+        state.backpackKey = backpackKey;
         List<BenchPoolSync.Entry> now = snapshot(player);
         int radius = radiusFor(player);
         if (now.equals(state.last) && radius == state.lastRadius) {
@@ -131,6 +149,20 @@ public final class BenchSync {
         if (!Services.PLATFORM.sendIfSupported(player, new BenchPoolSync(menu.containerId, now, radius))) {
             state.unsupported = true;
         }
+    }
+
+    /**
+     * Impressão digital da mochila de {@code player}: tipo, componentes e quantidade de cada slot, somados (trocar
+     * itens de lugar não conta, pois não muda a lista). Barata: 36 slots, sem varrer baú.
+     */
+    static int backpackKey(ServerPlayer player) {
+        int key = 0;
+        for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
+            if (!stack.isEmpty()) {
+                key += ItemStack.hashItemAndComponents(stack) * 31 + stack.getCount();
+            }
+        }
+        return key;
     }
 
     /** O que a estação aberta enxerga e aceita (só o que serve nela), pronto para o pacote. Público para os testes. */
