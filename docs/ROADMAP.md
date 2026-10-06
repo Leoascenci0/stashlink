@@ -786,7 +786,7 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
 ## Antes da publicação: armazenamento de outros mods (pedido do Eliel, 2026-10-05)
 
 ### Item 26 — Baús e gavetas de outros mods como armazenamento ✅
-- **Feito (2026-10-05/06, falta o Eliel testar no jogo):** `Feature.MOD_STORAGE` (liga/desliga + cadeado). Blocos de outros
+- **Feito (2026-10-05/06; aprovado em jogo pelo Eliel em 2026-10-06, Fabric com Storage Drawers):** `Feature.MOD_STORAGE` (liga/desliga + cadeado). Blocos de outros
   mods entram pela "tomada de itens" do loader (`ModStorage` em `common`; `FabricModStorage` e `NeoForgeModStorage` só
   cola). Só entram os da tag `stashlink:mod_storage`, uma lista de **permitidos** (decisão do Eliel): baús `c:chests`,
   barris `c:barrels`, barris limitados do Sophisticated e gavetas do Storage Drawers. Máquinas e controladores ficam de
