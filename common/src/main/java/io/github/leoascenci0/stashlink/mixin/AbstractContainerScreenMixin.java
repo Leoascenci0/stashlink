@@ -128,6 +128,42 @@ public abstract class AbstractContainerScreenMixin {
         PanelZones.clear((AbstractContainerScreen<?>) (Object) this);
     }
 
+    /**
+     * Telas com livro de receitas (as fornalhas) recalculam o {@code leftPos} depois do {@code init}, desfazendo o
+     * deslocamento acima e deixando o painel por cima da estação. Aqui o deslocamento é reaplicado antes de desenhar e de
+     * tratar o mouse (idempotente: só depende da largura da tela e da estação).
+     */
+    @Unique
+    private void stashlink$keepStationShifted() {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (stashlink$benchPanel == null
+                || !(self instanceof net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen<?>)
+                || !io.github.leoascenci0.stashlink.client.BenchClient.expectedFor(self.getMenu())) {
+            return;
+        }
+        int wanted = BenchPanel.stationLeft(self.width, imageWidth, (self.width - imageWidth) / 2);
+        if (leftPos != wanted) {
+            leftPos = wanted;
+        }
+    }
+
+    @Inject(method = "extractContents", at = @At("HEAD"))
+    private void stashlink$shiftBeforeDrawing(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta,
+                                              CallbackInfo ci) {
+        stashlink$keepStationShifted();
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"))
+    private void stashlink$shiftBeforeClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        stashlink$keepStationShifted();
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"))
+    private void stashlink$shiftBeforeScroll(double x, double y, double scrollX, double scrollY,
+                                             CallbackInfoReturnable<Boolean> cir) {
+        stashlink$keepStationShifted();
+    }
+
     /** Os ícones de pagamento clicáveis do sinalizador. */
     @Inject(method = "init", at = @At("TAIL"))
     private void stashlink$addBeaconButtons(CallbackInfo ci) {
