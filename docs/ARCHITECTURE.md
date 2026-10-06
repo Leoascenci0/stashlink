@@ -933,15 +933,21 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Testes.**
   - Cenários **iguais nos dois loaders** em `common/src/gametest` (`ModStorageScenarios`, `Lab` e a gaveta de teste
     `ApiDrawerBlockEntity`). A gaveta de teste não é `Container`: só tem a tomada do loader, 2 slots de até 10 000.
-  - Fabric: `ModStorageGameTests` (9) e `StorageDrawersGameTests` (3, com gavetas de verdade: comum, compactadora e
+  - Fabric: `ModStorageGameTests` (10) e `StorageDrawersGameTests` (3, com gavetas de verdade: comum, compactadora e
     controlador fora).
   - **NeoForge: harness novo** (`./gradlew :neoforge:runGameTestServer`). É um mod só de teste, `stashlink_test`, no source
     set `gametest`: registra os testes (`RegisterGameTestsEvent` + registro `TEST_FUNCTION`), a gaveta e a capability, e
-    usa uma estrutura vazia 8x8x8. Roda os mesmos 9 cenários e mais 5 com o **Sophisticated Storage de verdade** (N, mão,
+    usa uma estrutura vazia 8x8x8. Roda os mesmos 10 cenários e mais 5 com o **Sophisticated Storage de verdade** (N, mão,
     botão do meio, bancada, baú duplo contado uma vez, barril limitado com mais de 64, controlador e shulker fora). O
     jogador simulado do NeoForge precisa de `NetworkRegistry.configureMockConnection` (`Lab.MOCK_CONNECTION`), senão o
     Sophisticated derruba o teste ao mandar um pacote quando ele entra.
   - Unitários: `ModStorageSourceTest` (11, com uma gaveta em memória e fuzz de tirar/devolver).
+  - **Mutação (2026-10-06):** 10 regras estragadas uma por vez (contar a simulação em vez do que saiu, devolver a quem
+    não emprestou, dizer que entrou tudo, N sem "o bloco já tem", ignorar a tela de outro jogador, contar o mesmo bloco
+    duas vezes, simular confirmando de verdade no Fabric e no NeoForge, bancada e Litematica sem devolver à gaveta).
+    As 10 são pegas. A última passava sem teste: o cenário `litematicaSwapReturnsToTheDrawer` foi criado para ela.
+  - **Retomada:** o trabalho foi feito em 2026-10-05 e a sessão parou no limite de uso antes do commit; em 2026-10-06
+    foi rebaseado sobre o Item 16.5 (`BenchPool`), revisado e medido de novo.
 - **Limites.** Shulkers de outros mods ficam fora da lista padrão (decisão do Eliel, por enquanto). Slot travado, rótulos e
   Organizar não valem em bloco de outro mod. Também ficam de fora o modo cliente (Realms) e redes AE2/Refined Storage.
   Gaveta com upgrade de destruir excesso destrói o que a N mandar além do limite: é a regra da própria gaveta, como faria
