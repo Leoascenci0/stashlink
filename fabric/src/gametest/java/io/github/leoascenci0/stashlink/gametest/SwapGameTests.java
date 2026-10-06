@@ -278,21 +278,26 @@ public class SwapGameTests {
 
     // ---------------------------------------------------------------- 2 jogadores
 
-    /** Dois jogadores trocando blocos do MESMO baú: tudo conferido a cada passo; baú aberto por outro não recebe devolução. */
+    /**
+     * Dois jogadores trocando blocos do MESMO baú: tudo conferido a cada passo. Baú aberto por outro não cede item nem
+     * recebe devolução (a mesma regra da N).
+     */
     @GameTest(maxTicks = 300)
     public void twoPlayersSwapOnSameChest(GameTestHelper h) {
         Lab lab = new Lab(h);
         Container c = lab.chest(4, 2, 2);
+        Container other = lab.chest(4, 2, 6);
         Lab.fill(c, 0, Items.COBBLESTONE, 64);
         Lab.fill(c, 1, Items.DIRT, 64);
         Lab.fill(c, 2, Items.OAK_PLANKS, 64);
+        Lab.fill(other, 0, Items.STONE, 64);
         ServerPlayer a = lab.player(3, 2, 4);
         ServerPlayer b = lab.player(5, 2, 4);
         Lab.prefs(a, 12, true);
         Lab.prefs(b, 12, true);
-        List<Container> boxes = List.of(c);
+        List<Container> boxes = List.of(c, other);
         List<ServerPlayer> players = List.of(a, b);
-        Item[] items = {Items.COBBLESTONE, Items.DIRT, Items.OAK_PLANKS};
+        Item[] items = {Items.COBBLESTONE, Items.DIRT, Items.OAK_PLANKS, Items.STONE};
         Runnable conserved = () -> {
             for (Item it : items) {
                 check(h, totalOf(boxes, players, it) == 64, it + ": soma " + totalOf(boxes, players, it));
@@ -305,14 +310,58 @@ public class SwapGameTests {
                     check(h, Lab.count(c, Items.COBBLESTONE) == 64, "A devia ter devolvido a pedra ao baú"); },
                 () -> { pull(b, Items.COBBLESTONE); conserved.run();
                     check(h, Lab.count(c, Items.DIRT) == 64, "B devia ter devolvido a terra ao baú"); },
-                // B está olhando o baú: a devolução de A não pode entrar nele (iria para a mochila de A).
+                // B está olhando o baú: A não pode tirar dele (a terra só existe ali, então nada muda) ...
                 () -> { Lab.open(b, c, 1); },
                 () -> {
                     pull(a, Items.DIRT);
                     conserved.run();
+                    check(h, Lab.count(c, Items.DIRT) == 64, "baú aberto por B cedeu terra a A");
+                    check(h, Lab.carried(a, Items.OAK_PLANKS) == 64 && hotbarFilled(a) == 1,
+                            "pedido impossível mexeu na hotbar de A");
+                },
+                // ... nem a devolução de A entra nele: a pedra vem do outro baú, as tábuas vão para a mochila de A.
+                () -> {
+                    pull(a, Items.STONE);
+                    conserved.run();
+                    check(h, Lab.count(other, Items.STONE) == 0, "A devia ter puxado a pedra do outro baú");
                     check(h, Lab.count(c, Items.OAK_PLANKS) == 0, "baú aberto por B recebeu devolução de A");
                     check(h, a.getInventory().countItem(Items.OAK_PLANKS) == 64, "tábuas de A deviam estar na mochila");
                     check(h, hotbarFilled(a) == 1, "hotbar de A: " + hotbarFilled(a));
+                }));
+    }
+
+    // ---------------------------------------------------------------- hotbar cheia
+
+    /**
+     * Hotbar cheia de coisas do jogador: o cliente já cancelou o Litematica e nada chega, então o jogador é avisado na
+     * barra de ação (sem o aviso o Easy Place só pararia). Item que não existe por perto não avisa: não há o que trazer.
+     */
+    @GameTest(maxTicks = 100)
+    public void fullHotbarWarnsOnlyWhenItemIsNearby(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        Container c = lab.chest(4, 2, 2);
+        Lab.fill(c, 0, Items.COBBLESTONE, 64);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+        Item[] filler = {Items.STICK, Items.TORCH, Items.SAND, Items.GRAVEL, Items.CLAY_BALL, Items.BRICK, Items.BONE,
+                Items.FLINT, Items.FEATHER};
+        for (int i = 0; i < filler.length; i++) {
+            Lab.give(p, i, filler[i], 3);
+        }
+        runSteps(h, lab, List.of(
+                () -> {
+                    pull(p, Items.DIRT);                                   // não há terra por perto
+                    check(h, Lab.overlayKey(p) == null, "avisou sem ter o item por perto: " + Lab.overlayKey(p));
+                },
+                () -> {
+                    pull(p, Items.COBBLESTONE);
+                    check(h, "stashlink.pick_block.hotbar_full".equals(Lab.overlayKey(p)),
+                            "devia avisar hotbar cheia: " + Lab.overlayKey(p));
+                    check(h, Lab.count(c, Items.COBBLESTONE) == 64 && Lab.carried(p, Items.COBBLESTONE) == 0,
+                            "o baú não podia perder nada");
+                    for (int i = 0; i < filler.length; i++) {
+                        check(h, p.getInventory().getItem(i).is(filler[i]), "slot " + i + " da hotbar foi mexido");
+                    }
                 }));
     }
 

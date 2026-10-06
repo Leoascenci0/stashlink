@@ -8,7 +8,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 - **Reabastecer a mão:** quando o item da mão acaba, vem mais de shulkers no inventário e de shulkers, baús e barris colocados perto.
 - **Raio configurável:** baús, barris e bancadas com padrão 16 e até 32 blocos; shulkers colocadas com padrão 32 e até 64. O dono do servidor pode baixar o teto (`maxRadius`).
 - **Botão do meio** mirando um bloco traz o item do armazenamento para a hotbar. Precisa de slot livre e nunca troca um item seu.
-- **Litematica** (Fabric): Easy Place e pick block usam os itens do armazenamento. O bloco novo entra no mesmo slot e o anterior volta ao armazenamento, então a hotbar não enche.
+- **Litematica** (Fabric): Easy Place e pick block usam os itens do armazenamento. O bloco novo entra no mesmo slot e o anterior volta ao armazenamento, então a hotbar não enche. Com a hotbar cheia de itens seus, um aviso na barra de ação explica por que o bloco não veio. O log diz se a integração ligou; se uma versão nova do Litematica não for compatível, ela se desliga com aviso, sem afetar o resto do mod.
 
 ### Teclas e gestos
 - **N** guarda seus itens nos baús por perto que já têm aquele item. **W** puxa tudo do container aberto.
@@ -33,6 +33,7 @@ Primeira versão pública. O StashLink faz o armazenamento por perto funcionar c
 
 ### Segurança e desempenho
 - Toda mudança de item é feita e validada no servidor (distância, permissões e claims).
+- As funções que mexem em baú sem você abri-lo (N, botão do meio, Litematica, reabastecer a mão e bancadas) pulam o baú que outro jogador está olhando, até ele fechar.
 - Pedidos ao servidor com limite de ritmo (travar slot, botão N, rótulo, preferências, bancada) e recusados em telas de outros mods que só imitam um baú. Config quebrada ou de versão futura ganha uma cópia `.bak` antes de ser sobrescrita.
 - Testado em servidor com 2 jogadores, 289 containers e Carpet, sem duplicação nos cenários testados; varredura bem abaixo de 5 ms por operação com raio 32.
 - Revisão completa antes da publicação (`docs/REVISAO-1.0.md`): corrigido o reabastecimento que apagava o balde, a tigela ou a garrafa vazia, e fechados três atalhos pelos quais um cliente adulterado passava por um cadeado.

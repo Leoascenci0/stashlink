@@ -139,7 +139,8 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
 - **Decisão:** um mixin no início desse método (`InventoryUtilsMixin`). Alvo por nome (`targets = "..."`), então
   o Litematica **não** é dependência de compilação; `require = 0` + plugin de mixin
   (`LitematicaMixinPlugin`, liga só se `litematica` estiver carregado) tornam a dependência opcional de verdade.
-  Assinatura mudou numa versão futura → a integração se desliga sozinha (não derruba o jogo).
+  Assinatura mudou numa versão futura → a integração se desliga sozinha (não derruba o jogo); desde o Item 27 o log
+  avisa quando isso acontece.
 - **Fluxo:** cliente sem o item em nenhum slot (nem mão secundária) → `LitematicaPull.onPickBlock` manda
   `PullItemRequest(item, quantidade)` e **cancela** o método do Litematica (evita a shulker ir para a mão). Já tem
   o item → não faz nada, o Litematica troca de slot como sempre. Servidor sem o StashLink
@@ -222,7 +223,8 @@ Contexto: desde 2026 o Minecraft usa numeração `26.x` (sem o "1."). Toda a lin
   e baús de terceiros. Teste de mutação: um dupe injetado em `ContainerSource.take` foi pego por 2 testes.
 - **Política de concorrência.** O servidor roda tudo numa thread, então não há corrida de dados; a invariante "soma de
   itens não muda" se mantém. Só a tecla N pula baú aberto por outro jogador; reabastecer e pedir item podem tirar de
-  baú aberto por outro (como um funil). Baú com bloco em cima ainda é fonte (limite documentado).
+  baú aberto por outro (como um funil) — **mudou no Item 27:** agora todas as funções pulam. Baú com bloco em cima
+  ainda é fonte (limite documentado).
 - **Desempenho** (289 containers, raio 16 — desde o Item 15 o harness mede com 32 —, 100 repetições, média/pior em µs): find 181/1438, findAll 75/231,
   N 297/1770, reabastecer 226/7833 (pior caso = JIT frio), pedir item ausente 403/2263, tick parado ~0. Orçamento:
   média < 5 ms (10% de um tick de 50 ms). Mede custo por operação, não TPS global; fecha o "sem queda de TPS com
@@ -765,7 +767,7 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Achado: baú aberto por outro jogador.** `PlayerSources.operation` (reabastecer/Litematica) nunca conferia
   `QuickStackService.openedByAnother` ao **tirar**, só ao devolver (Item 18). O botão do meio usa
   `PlayerSources.operationSkippingOpened`, que embrulha as entradas com a mesma regra da tecla N. Reabastecer e
-  Litematica não mudaram (decisão a rever, ver handoff).
+  Litematica não mudaram (decisão a rever, ver handoff). **Revisto no Item 27:** os dois também pulam.
 - **Shulker no inventário** vale (mesmas fontes). **Raios:** `PlayerPrefsStore` (16/8 baús, 32 a 64 shulkers).
 - **Modo cliente: não se aplica.** Sem o mod no servidor não existe o gancho; o jogo base continua como é.
 - **Limites.** Só Fabric foi testado no harness (o NeoForge compila com o mesmo mixin comum); Ctrl + botão do meio
@@ -844,3 +846,31 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
 - **Lista (`BenchBrewing.list`, `Feature.BENCH_BREWING`):** a aba 0 ("Poções") deixa de listar garrafas soltas e mostra todas as poções do mapa, em vermelho as sem caminho ou sem combustível (tanque vazio, slot vazio e nenhum pó de blaze à mão). As abas Ingredientes e Combustível continuam com os itens soltos. Desligada: o painel antigo.
 - **Um passo por clique (decisão do Eliel, `BenchBrewing.brew`):** primeiro confere tudo; slot de garrafa com outra poção ou slot de ingrediente com outro item → não mexe e reenvia a lista. Depois põe até 3 garrafas da poção de partida nos slots vazios (direito: 1), 1 ingrediente e, se o suporte está sem combustível, 1 pó de blaze. Cada item sai do baú (ou da mochila, se não houver no baú) e entra no slot no mesmo passo. O suporte guarda os slots, então nada entra no caderno de emprestados. Quando o preparo termina, o próximo clique na mesma poção parte do que ficou no suporte.
 - **Limitação conhecida:** se o único pó de blaze à mão é também o ingrediente do passo (força), ele vai para o ingrediente e o suporte fica sem combustível (a poção aparece possível mesmo assim); com 2 pós funciona.
+
+## Item 27 — Litematica: avisos e baú aberto por outro jogador (2026-10-06)
+
+- **Aviso no log (`LitematicaMixinPlugin.shouldApplyMixin`).** O mixin usa `require = 0` e a config tem
+  `"required": false`, então uma versão nova do Litematica que mudasse `InventoryUtils.schematicWorldPickBlock` nunca
+  travava o jogo, mas a integração parava **sem aviso nenhum**. Agora o plugin lê os bytes da classe antes de aplicar
+  (`MixinService.getService().getBytecodeProvider().getClassNode`, que não carrega a classe nem roda o Litematica) e
+  confere nome + assinatura. Bate: aplica e escreve "Integração com o Litematica X ligada". Não bate: não aplica e avisa
+  que a integração ficou desligada e que o resto do mod funciona. Não deu para ler a classe: aplica como antes (o pior
+  caso continua sendo a integração não funcionar). A assinatura esperada (`HOOK_DESC`) foi conferida com `javap` no
+  0.29.1; ao atualizar o Litematica, conferir de novo junto com o mixin (`UPDATING.md`).
+- **Hotbar cheia (`PullItemService.process`).** O cliente cancela o Litematica sempre que o servidor tem o StashLink
+  (senão o Litematica poria a shulker inteira na mão). Com a hotbar cheia de itens do jogador, o servidor não tem onde
+  pôr o bloco e o Easy Place só parava. Agora, se nada foi puxado **e** o item existe nas fontes, vai o mesmo aviso do
+  botão do meio na barra de ação (`stashlink.pick_block.hotbar_full`). Item que não existe por perto não avisa: não
+  haveria o que trazer. A barra de ação só troca o texto, então o Easy Place pedindo a cada poucos ticks não vira spam.
+- **Baú aberto por outro jogador (decisão do Eliel, 2026-10-06).** Fecha o "a rever" do Item 19: o pedido do
+  Litematica e o reabastecimento da mão usam `PlayerSources.operationSkippingOpened`, como o botão do meio. A regra
+  agora é a mesma em todas as funções que mexem em baú sem o jogador abri-lo (N, botão do meio, Litematica,
+  reabastecer, bancadas): baú que outro jogador está olhando fica de fora. Não era dupe (o servidor roda numa thread
+  só), mas o item sumia da tela do outro jogador. Custo: se o item só existe naquele baú, espera o outro fechar.
+  `PlayerSources.operation`/`of` ficaram sem uso no código principal; não foram apagados para não conflitar com o
+  Item 26, que mexe no mesmo arquivo em paralelo.
+- **Testes.** `SwapGameTests.fullHotbarWarnsOnlyWhenItemIsNearby` (novo); `StashLinkGameTests.refillSkipsChestOpenedByOther`
+  (antes conferia que o reabastecimento **tirava** do baú aberto); `SwapGameTests.twoPlayersSwapOnSameChest` (baú aberto
+  não cede nem recebe); `PickBlockGameTests.fullHotbarDoesNothing` confere o aviso. O jogador simulado (`Lab.player`)
+  guarda a última mensagem da barra de ação (`Lab.overlayKey`). Mutação: desfazer cada mudança derruba exatamente o
+  teste dela.

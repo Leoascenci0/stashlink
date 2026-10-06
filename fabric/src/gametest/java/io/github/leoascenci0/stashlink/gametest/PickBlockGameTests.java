@@ -182,6 +182,7 @@ public class PickBlockGameTests {
         check(h, sameHotbar(before, p), "hotbar cheia: nada podia ser trocado nem sobrescrito");
         check(h, p.getInventory().getSelectedSlot() == 4, "a seleção não podia mudar");
         check(h, Lab.count(chest, Items.MUD_BRICKS) == 64 && Lab.carried(p, Items.MUD_BRICKS) == 0, "o baú não podia perder nada");
+        check(h, "stashlink.pick_block.hotbar_full".equals(Lab.overlayKey(p)), "devia avisar na barra de ação: " + Lab.overlayKey(p));
         finish(h, lab);
     }
 

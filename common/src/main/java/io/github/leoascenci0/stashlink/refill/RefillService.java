@@ -99,7 +99,8 @@ public final class RefillService {
         if (!FeatureGate.allowSilently(player, Feature.REFILL)) {
             return;
         }
-        ItemSource sources = PlayerSources.of(player);
+        // Baú que outro jogador está olhando fica de fora, como na tecla N e no botão do meio.
+        ItemSource sources = PlayerSources.operationSkippingOpened(player).source();
         ItemStack refill = RefillLogic.refill(lastSeen, sources);
         if (refill.isEmpty()) {
             return;

@@ -138,6 +138,11 @@ Confira com o script (ou Modrinth) **antes** de decidir a versão-alvo. Em 26.3:
 Fabric; **não há Forgematica** para NeoForge 26.3 — então a integração Litematica é Fabric-only por ora. Ao subir
 de versão, atualize `"litematica": ">=x.y.z"` no `fabric.mod.json` para a versão mínima testada. O mixin só é
 aplicado se o Litematica estiver presente (`LitematicaMixinPlugin`), então a ausência dele não quebra o mod.
+Desde o Item 27 o plugin também confere a assinatura de `schematicWorldPickBlock` (`HOOK_DESC`) e escreve no log
+"Integração com o Litematica X ligada" ou o motivo de ter ficado desligada. Ao subir o Litematica, rode
+`./gradlew :fabric:runClient -PcompatMods` e procure essa linha no `fabric/runs/client/logs/latest.log`; se o aviso de
+desligada aparecer, confira a função com `javap -s -p -cp <jar> fi.dy.masa.litematica.util.InventoryUtils` e ajuste o
+mixin e o `HOOK_DESC` juntos.
 
 ## 7. Erros que já aconteceram
 
