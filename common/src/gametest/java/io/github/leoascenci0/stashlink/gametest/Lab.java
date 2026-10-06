@@ -38,6 +38,13 @@ import java.util.WeakHashMap;
 
 /** Ferramentas comuns dos cenários: monta o "laboratório" (baús, jogadores, contagem de itens) no mundo real do teste. */
 final class Lab {
+    /**
+     * Preparo da conexão falsa do jogador simulado, se o loader pedir. O NeoForge recusa pacote de mod para conexão que
+     * não negociou os canais (o Sophisticated Storage manda um ao jogador entrar); o harness dele troca isto.
+     */
+    static java.util.function.Consumer<Connection> MOCK_CONNECTION = connection -> {
+    };
+
     final GameTestHelper helper;
     final ServerLevel level;
     /** Tudo o que este teste colocou no mundo; é removido no fim para não atrapalhar os outros testes. */
@@ -77,6 +84,7 @@ final class Lab {
         };
         Connection connection = new Connection(PacketFlow.SERVERBOUND);
         new EmbeddedChannel(connection);
+        MOCK_CONNECTION.accept(connection);
         server.getPlayerList().placeNewPlayer(connection, p, cookie);
         p.setPos(helper.absoluteVec(new Vec3(x, y, z)));
         // Raio 8 por padrão (baús e shulkers): os testes rodam lado a lado no mesmo mundo, e com o padrão do servidor
@@ -109,12 +117,31 @@ final class Lab {
         return pos;
     }
 
+    /** Coloca um estado de bloco qualquer (ex.: metade de baú duplo de outro mod) e o remove no fim do teste. */
+    BlockPos state(BlockState state, int x, int y, int z) {
+        BlockPos pos = helper.absolutePos(new BlockPos(x, y, z));
+        level.setBlock(pos, state, 3);
+        placed.add(pos);
+        return pos;
+    }
+
     /** Coloca um bloco comum (sem container), por exemplo uma bancada, e o remove no fim do teste. */
     BlockPos bare(Block block, int x, int y, int z) {
         BlockPos pos = helper.absolutePos(new BlockPos(x, y, z));
         level.setBlock(pos, block.defaultBlockState(), 3);
         placed.add(pos);
         return pos;
+    }
+
+    /** Item 26: a "gaveta" de teste, bloco que só tem a tomada de itens do loader (não é {@code Container}). */
+    ApiDrawerBlockEntity apiDrawer(int x, int y, int z) {
+        BlockPos pos = helper.absolutePos(new BlockPos(x, y, z));
+        level.setBlock(pos, TestBlocks.API_DRAWER.defaultBlockState(), 3);
+        placed.add(pos);
+        if (!(level.getBlockEntity(pos) instanceof ApiDrawerBlockEntity drawer)) {
+            throw new IllegalStateException("sem gaveta de teste em " + pos);
+        }
+        return drawer;
     }
 
     Container chest(int x, int y, int z) {

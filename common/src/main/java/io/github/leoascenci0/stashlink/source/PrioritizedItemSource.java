@@ -28,7 +28,7 @@ public final class PrioritizedItemSource implements ItemSource {
 
     @Override
     public int available(ItemStack item) {
-        int total = 0;
+        long total = 0;
         for (ItemSource source : sources) {
             try {
                 total += source.available(item);
@@ -36,7 +36,8 @@ public final class PrioritizedItemSource implements ItemSource {
                 // fonte com problema conta como vazia
             }
         }
-        return total;
+        // Gavetas de outros mods guardam bilhões: a soma trava no máximo em vez de "dar a volta" (Item 26).
+        return ModStorageSource.saturated(total);
     }
 
     @Override

@@ -1,5 +1,8 @@
 package io.github.leoascenci0.stashlink.source;
 
+import io.github.leoascenci0.stashlink.compat.mc.StorageCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.platform.Services;
 import net.minecraft.core.BlockPos;
@@ -37,14 +40,24 @@ import java.util.Set;
  * metades viram <b>um</b> {@link net.minecraft.world.CompoundContainer} (54 slots), que é o mesmo objeto que o
  * jogo usa ao abrir o baú duplo.
  *
+ * <p><b>Outros mods (Item 26):</b> na mesma passada, blocos da tag {@code stashlink:mod_storage}
+ * ({@link StorageCompat}) viram {@link ModStorageSource.Entry}, lidos pela "tomada de itens" do loader. Baú, barril e
+ * shulker do jogo (e baús que estendem o do jogo, como Iron Chests) continuam só pelo caminho de sempre, então nunca
+ * contam duas vezes. Seguem o raio dos baús e o ajuste "usar baús como fonte", e só com a função {@code MOD_STORAGE}.
+ *
  * <p>Nunca força carregar chunk: chunk descarregado simplesmente não conta.
  */
 public final class NearbyContainers {
     private NearbyContainers() {
     }
 
-    /** Containers achados, mais próximos primeiro. */
-    public record Found(List<ContainerSource.Entry> shulkers, List<ContainerSource.Entry> storage) {
+    /** Containers achados, mais próximos primeiro; {@code modStorage} são os blocos de outros mods (Item 26). */
+    public record Found(List<ContainerSource.Entry> shulkers, List<ContainerSource.Entry> storage,
+                        List<ModStorageSource.Entry> modStorage) {
+    }
+
+    /** Para guardar itens (tecla N): os containers do jogo todos juntos e os blocos de outros mods. */
+    public record Stash(List<ContainerSource.Entry> containers, List<ModStorageSource.Entry> modStorage) {
     }
 
     /** Para o reabastecimento: baús e barris só entram se a config ({@code includeChests}) mandar. */
@@ -54,20 +67,39 @@ public final class NearbyContainers {
 
     /** Igual a {@link #find(ServerPlayer)}, mas quem chama decide se baús e barris entram (a bancada, Item 16). */
     public static Found find(ServerPlayer player, boolean chests) {
+        return find(player, chests, chests && FeatureGate.allowSilently(player, Feature.MOD_STORAGE));
+    }
+
+    /**
+     * Quem chama decide também se os blocos de outros mods entram. A devolução usa {@code true}: o item volta a quem
+     * o emprestou mesmo que a função tenha sido desligada no meio.
+     */
+    public static Found find(ServerPlayer player, boolean chests, boolean mods) {
         List<Hit> shulkers = new ArrayList<>();
         List<Hit> storage = new ArrayList<>();
-        collect(player, chests, shulkers, storage);
-        return new Found(entries(player, shulkers), entries(player, storage));
+        List<ModHit> modded = new ArrayList<>();
+        collect(player, chests, shulkers, storage, mods ? modded : null);
+        return new Found(entries(player, shulkers), entries(player, storage), modEntries(player, modded));
     }
 
     /** Para guardar itens (tecla N): shulkers colocadas, baús e barris, todos juntos, do mais perto ao mais longe. */
     public static List<ContainerSource.Entry> findAllStorage(ServerPlayer player) {
         List<Hit> all = new ArrayList<>();
-        collect(player, true, all, all);
+        collect(player, true, all, all, null);
         return entries(player, all);
     }
 
-    private static void collect(ServerPlayer player, boolean chests, List<Hit> shulkers, List<Hit> storage) {
+    /** Como {@link #findAllStorage}, numa passada só, e mais os blocos de outros mods (se a função estiver ligada). */
+    public static Stash findStash(ServerPlayer player) {
+        List<Hit> all = new ArrayList<>();
+        List<ModHit> modded = new ArrayList<>();
+        boolean mods = FeatureGate.allowSilently(player, Feature.MOD_STORAGE);
+        collect(player, true, all, all, mods ? modded : null);
+        return new Stash(entries(player, all), modEntries(player, modded));
+    }
+
+    private static void collect(ServerPlayer player, boolean chests, List<Hit> shulkers, List<Hit> storage,
+                                List<ModHit> modded) {
         // Baús e barris têm um raio; shulkers colocadas, outro (maior). Varre os chunks do maior e confere cada tipo.
         int chestRadius = PlayerPrefsStore.radius(player);
         int shulkerRadius = PlayerPrefsStore.shulkerRadius(player);
@@ -86,21 +118,29 @@ public final class NearbyContainers {
                     continue;
                 }
                 for (BlockEntity be : chunk.getBlockEntities().values()) {
-                    if (be.isRemoved() || !(be instanceof RandomizableContainerBlockEntity box) || !usable(box)) {
+                    if (be.isRemoved()) {
                         continue;
                     }
-                    if (be instanceof ShulkerBoxBlockEntity) {
+                    if (be instanceof ShulkerBoxBlockEntity box) {
                         double distSq = distSq(player, box.getBlockPos());
-                        if (distSq <= shulkerMaxSq) {
+                        if (usable(box) && distSq <= shulkerMaxSq) {
                             shulkers.add(Hit.single(box, box.getBlockPos(), distSq));
                         }
-                    } else if (chests && be instanceof BarrelBlockEntity) {
+                    } else if (be instanceof BarrelBlockEntity box) {
                         double distSq = distSq(player, box.getBlockPos());
-                        if (distSq <= maxSq) {
+                        if (chests && usable(box) && distSq <= maxSq) {
                             storage.add(Hit.single(box, box.getBlockPos(), distSq));
                         }
-                    } else if (chests && be instanceof ChestBlockEntity chest) {
-                        chestHit(player, level, chest, maxSq, seenHalves, storage);
+                    } else if (be instanceof ChestBlockEntity chest && chest.getBlockState().getBlock() instanceof ChestBlock) {
+                        if (chests && usable(chest)) {
+                            chestHit(player, level, chest, maxSq, seenHalves, storage);
+                        }
+                    } else if (modded != null && StorageCompat.isModStorageBlock(be)
+                            && (!(be instanceof RandomizableContainerBlockEntity box) || usable(box))) {
+                        double distSq = distSq(player, be.getBlockPos());
+                        if (distSq <= maxSq) {
+                            modded.add(new ModHit(be, distSq));
+                        }
                     }
                 }
             }
@@ -164,6 +204,9 @@ public final class NearbyContainers {
         }
     }
 
+    private record ModHit(BlockEntity be, double distSq) {
+    }
+
     private static List<ContainerSource.Entry> entries(ServerPlayer player, List<Hit> hits) {
         hits.sort(Comparator.comparingDouble(Hit::distSq));
         List<ContainerSource.Entry> out = new ArrayList<>(hits.size());
@@ -171,6 +214,28 @@ public final class NearbyContainers {
             BlockPos pos = hit.pos();
             // A permissão (claims etc.) é perguntada só se este container tiver o item — ver ContainerSource.
             out.add(new ContainerSource.Entry(hit.container(), () -> Services.PLATFORM.canPlayerUseBlock(player, pos), hit.where()));
+        }
+        return out;
+    }
+
+    /** Pergunta ao loader a "tomada de itens" de cada bloco achado; quem não oferece nenhuma fica de fora. */
+    private static List<ModStorageSource.Entry> modEntries(ServerPlayer player, List<ModHit> hits) {
+        if (hits.isEmpty() || !(player.level() instanceof ServerLevel level)) {
+            return List.of();
+        }
+        hits.sort(Comparator.comparingDouble(ModHit::distSq));
+        List<ModStorageSource.Entry> out = new ArrayList<>(hits.size());
+        for (ModHit hit : hits) {
+            BlockPos pos = hit.be().getBlockPos();
+            ModStorage storage;
+            try {
+                storage = Services.PLATFORM.modStorageAt(level, pos, hit.be().getBlockState(), hit.be());
+            } catch (RuntimeException e) {
+                continue;   // mod com defeito: o bloco simplesmente não conta
+            }
+            if (storage != null) {
+                out.add(new ModStorageSource.Entry(storage, () -> Services.PLATFORM.canPlayerUseBlock(player, pos), Set.of(pos)));
+            }
         }
         return out;
     }

@@ -61,7 +61,9 @@ public enum Feature {
     /** Sinalizador: os ícones de pagamento viram botões que puxam o minério do armazenamento (Item 16.3). */
     BENCH_BEACON("bench_beacon"),
     /** Suporte de poções: lista as poções possíveis e monta o próximo passo com um clique (Item 16.3). */
-    BENCH_BREWING("bench_brewing");
+    BENCH_BREWING("bench_brewing"),
+    /** Baús e gavetas de outros mods (Sophisticated Storage, gavetas…) entram no armazenamento por perto (Item 26). */
+    MOD_STORAGE("mod_storage");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.quickstack;
 
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
+import io.github.leoascenci0.stashlink.compat.mc.StorageCompat;
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
@@ -8,7 +9,9 @@ import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ContainerInsert;
 import io.github.leoascenci0.stashlink.source.ContainerSource;
+import io.github.leoascenci0.stashlink.source.ModStorageSource;
 import io.github.leoascenci0.stashlink.source.NearbyContainers;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -21,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 /**
  * Trata a tecla N no servidor. O cliente só <i>pede</i>; aqui o servidor revalida quem pede e com que
@@ -59,8 +64,9 @@ public final class QuickStackService {
         }
         LAST_REQUEST.put(player, now);
 
+        NearbyContainers.Stash found = NearbyContainers.findStash(player);
         List<ContainerSource.Entry> targets = new ArrayList<>();
-        for (ContainerSource.Entry entry : NearbyContainers.findAllStorage(player)) {
+        for (ContainerSource.Entry entry : found.containers()) {
             // Além da permissão (claim), ninguém pode estar com este container aberto agora: mexer por baixo
             // de quem está olhando o baú geraria confusão (e é a brecha clássica de duplicação).
             targets.add(new ContainerSource.Entry(entry.container(),
@@ -70,13 +76,23 @@ public final class QuickStackService {
         Inventory inventory = player.getInventory();
         // Só a mochila e a hotbar (36 slots); armadura e mão secundária ficam fora. Hotbar e slots travados
         // nunca são esvaziados.
-        QuickStackLogic.Result result = QuickStackLogic.stack(inventory.getNonEquipmentItems(),
-                slot -> slot < Inventory.getSelectionSize() || PlayerPrefsStore.isSlotLocked(player, slot),
-                stack -> categoryOff(player, stack), targets);
+        IntPredicate skip = slot -> slot < Inventory.getSelectionSize() || PlayerPrefsStore.isSlotLocked(player, slot);
+        Predicate<ItemStack> excluded = stack -> categoryOff(player, stack);
+        QuickStackLogic.Result result = QuickStackLogic.stack(inventory.getNonEquipmentItems(), skip, excluded, targets);
+        // Item 26: depois os baús e gavetas de outros mods, com a mesma regra ("o bloco já contém o item").
+        int moved = result.itemsMoved();
+        int used = result.containersUsed();
+        for (ModStorageSource.Entry entry : guard(player, found.modStorage())) {
+            int here = ModStorageSource.stashInto(entry, inventory.getNonEquipmentItems(), skip, excluded);
+            if (here > 0) {
+                moved += here;
+                used++;
+            }
+        }
 
-        if (result.itemsMoved() > 0) {
+        if (moved > 0) {
             player.sendOverlayMessage(Component.translatableWithFallback("stashlink.quick_stack.done",
-                    "%s items stored in %s containers", result.itemsMoved(), result.containersUsed()));
+                    "%s items stored in %s containers", moved, used));
         } else {
             player.sendOverlayMessage(Component.translatableWithFallback("stashlink.quick_stack.nothing",
                     "Nothing to store nearby"));
@@ -90,6 +106,32 @@ public final class QuickStackService {
     public static boolean categoryOff(ServerPlayer player, ItemStack stack) {
         ItemCategory category = ItemCategory.of(stack);
         return category != null && !PlayerPrefsStore.featureEnabled(player, category.feature());
+    }
+
+    /**
+     * Item 26: a tela de um bloco de outro mod não diz de que bloco ela é. Então, por segurança, o bloco fica de fora
+     * se algum <b>outro</b> jogador está perto o bastante e com uma tela que pode ser a dele ({@link StorageCompat#couldBeViewing}).
+     */
+    public static boolean anotherScreenNear(ServerPlayer player, BlockPos pos) {
+        for (ServerPlayer other : McCompat.playersOnServer(player)) {
+            if (other != player && other.containerMenu != other.inventoryMenu && other.level() == player.level()
+                    && StorageCompat.couldBeViewing(other, pos)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A mesma regra da N para blocos de outros mods: permissão (claims) e ninguém olhando. */
+    public static List<ModStorageSource.Entry> guard(ServerPlayer player, List<ModStorageSource.Entry> entries) {
+        List<ModStorageSource.Entry> out = new ArrayList<>(entries.size());
+        for (ModStorageSource.Entry entry : entries) {
+            out.add(new ModStorageSource.Entry(entry.storage(),
+                    () -> entry.where().stream().noneMatch(pos -> anotherScreenNear(player, pos))
+                            && entry.allowed().getAsBoolean(),
+                    entry.where()));
+        }
+        return out;
     }
 
     /** {@code true} se algum <b>outro</b> jogador está com uma GUI aberta que mostra este container. */

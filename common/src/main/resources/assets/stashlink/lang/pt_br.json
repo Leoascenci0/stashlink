@@ -109,6 +109,8 @@
   "stashlink.bench.tab.ores": "Minérios",
   "stashlink.feature.bench_brewing": "Poções possíveis (suporte)",
   "stashlink.feature.bench_brewing.tip": "No suporte de poções, a aba Poções lista todas as poções que dá para fazer com o que há na mochila e por perto (em vermelho as que faltam). Um clique monta o próximo passo: garrafas, ingrediente e pó de blaze se faltar.",
+  "stashlink.feature.mod_storage": "Baús e gavetas de outros mods",
+  "stashlink.feature.mod_storage.tip": "Baús e gavetas de outros mods (Sophisticated Storage, gavetas...) contam como armazenamento: a N guarda neles, e a mão, o botão do meio e as bancadas tiram deles. O W na tela deles não funciona.",
   "stashlink.bench.beacon.tip": "Clique: põe 1 no pagamento, da mochila ou do armazenamento.",
   "stashlink.bench.beacon.none": "Não há deste na mochila nem no armazenamento",
   "stashlink.bench.beacon.none.radius": "Não há deste na mochila nem no raio de %s blocos",

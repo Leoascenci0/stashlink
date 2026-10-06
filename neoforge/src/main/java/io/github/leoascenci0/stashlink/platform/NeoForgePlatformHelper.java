@@ -1,9 +1,16 @@
 package io.github.leoascenci0.stashlink.platform;
 
 import io.github.leoascenci0.stashlink.platform.services.IPlatformHelper;
+import io.github.leoascenci0.stashlink.source.ModStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.minecraft.util.TriState;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
@@ -44,6 +51,13 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, payload);
         return true;
+    }
+
+    @Override
+    public ModStorage modStorageAt(ServerLevel level, BlockPos pos, BlockState state, BlockEntity blockEntity) {
+        // Lado null = o inventário inteiro, sem as restrições de lado (as de funil).
+        ResourceHandler<ItemResource> handler = level.getCapability(Capabilities.Item.BLOCK, pos, state, blockEntity, null);
+        return handler == null ? null : new NeoForgeModStorage(handler);
     }
 
     @Override

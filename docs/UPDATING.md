@@ -86,6 +86,8 @@ sem reflexão.
 | `McCompat.sendHeldSlot` | pacote `ClientboundSetHeldSlotPacket` | estável |
 | `McCompat.readContainerComponent` / `writeContainerComponent` | componente `DataComponents.CONTAINER` da shulker | estável desde 1.20.5 |
 | `McCompat.resetDamage` | componente `DataComponents.DAMAGE` | estável desde 1.20.5 |
+| `StorageCompat.MOD_STORAGE` / `isModStorageBlock` | tag de bloco `stashlink:mod_storage` (`TagKey`, `BlockState.is`) e o id do tipo de block entity | estável; Item 26 |
+| `StorageCompat.couldBeViewing` | `Player.isWithinBlockInteractionRange(pos, 4.0)` (a distância com que o jogo fecha tela de bloco) e o registro `MENU` | estável; Item 26 |
 | `ClientCompat.hasScreenOpen` | `Minecraft.screen` virou `mc.gui.screen()` | **26.3** |
 | `ClientCompat.keyCategory` | `KeyMapping.Category.register` | 1.21.9 |
 | `ClientCompat.keyMatches` | `KeyMapping.matches(KeyEvent)` | 1.21.9 |
@@ -94,7 +96,10 @@ sem reflexão.
 
 Fora do compat, de propósito: a "cola" dos loaders (`fabric/`, `neoforge/`) — usa API do Fabric/NeoForge (eventos,
 registro de pacotes, teclas), que muda com versões *deles*, não do Minecraft. Se quebrar, conserte lá mesmo; ela
-já é a camada fina por design. A integração Litematica (`fabric/.../compat/litematica`; os mixins ficam no subpacote `mixin`, porque o Mixin proíbe chamar diretamente classes do pacote que ele possui) depende de classes de outro
+já é a camada fina por design. Item 26: a "tomada de itens" de blocos de outros mods fica em `FabricModStorage`
+(`ItemStorage.SIDED`, `Storage<ItemVariant>`, `Transaction.openOuter`) e `NeoForgeModStorage`
+(`Capabilities.Item.BLOCK`, `ResourceHandler<ItemResource>`, `Transaction.openRoot`); essa API do NeoForge substituiu
+o antigo `IItemHandler` há pouco tempo, então é ali que costuma mudar. A integração Litematica (`fabric/.../compat/litematica`; os mixins ficam no subpacote `mixin`, porque o Mixin proíbe chamar diretamente classes do pacote que ele possui) depende de classes de outro
 mod: se o Litematica mudar, é lá. Também fora: os tipos do Minecraft usados como dado (`ItemStack`, `Container`,
 `BlockPos`...) — são o vocabulário do mod e raramente mudam de nome.
 

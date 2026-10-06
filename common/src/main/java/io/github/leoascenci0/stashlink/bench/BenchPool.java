@@ -9,6 +9,7 @@ import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.source.ContainerSource;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.LazyItemSource;
+import io.github.leoascenci0.stashlink.source.ModStorageSource;
 import io.github.leoascenci0.stashlink.source.NearbyContainers;
 import io.github.leoascenci0.stashlink.source.PrioritizedItemSource;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -47,17 +48,22 @@ public final class BenchPool {
     private final ServerPlayer player;
     /** A fonte de baús e barris, criada só quando a varredura acontece; guarda o que foi tocado (a origem). */
     private ContainerSource storage;
+    /** Baús e gavetas de outros mods (Item 26), da mesma varredura; também guarda o que foi tocado. */
+    private ModStorageSource modStorage;
 
     private BenchPool(ServerPlayer player) {
         this.player = player;
         // Só baús e barris (decisão do Eliel): shulkers, no inventário ou colocadas, nunca servem às bancadas. E vale o
-        // ajuste "Usar baús como fonte": com ele em Não, a bancada não enxerga armazenamento nenhum.
+        // ajuste "Usar baús como fonte": com ele em Não, a bancada não enxerga armazenamento nenhum. Baús e gavetas de
+        // outros mods (Item 26) vêm depois, na mesma varredura.
         Supplier<NearbyContainers.Found> nearby = memo(() -> {
             SCANS++;
             return NearbyContainers.find(player, PlayerPrefsStore.includeChests(player));
         });
         this.source = new PrioritizedItemSource(List.of(
-                new LazyItemSource(() -> storage = new ContainerSource(guard(player, nearby.get().storage())))));
+                new LazyItemSource(() -> storage = new ContainerSource(guard(player, nearby.get().storage()))),
+                new LazyItemSource(() -> modStorage = new ModStorageSource(
+                        QuickStackService.guard(player, nearby.get().modStorage())))));
     }
 
     public static int scanCount() {
@@ -79,6 +85,9 @@ public final class BenchPool {
         if (storage != null) {
             positions.addAll(storage.touchedPositions());
         }
+        if (modStorage != null) {
+            positions.addAll(modStorage.touchedPositions());
+        }
         return new Origin(false, McCompat.dimensionOf(player), positions);
     }
 
@@ -88,9 +97,11 @@ public final class BenchPool {
     public static ItemSource returnTarget(ServerPlayer player, Origin origin) {
         List<ItemSource> targets = new ArrayList<>();
         if (!origin.positions().isEmpty() && origin.dimension().equals(McCompat.dimensionOf(player))) {
-            // Devolver vale mesmo que o ajuste "usar baús" tenha sido desligado no meio: o item volta a quem o emprestou.
-            NearbyContainers.Found found = NearbyContainers.find(player, true);
+            // Devolver vale mesmo que o ajuste "usar baús" (ou a função de outros mods) tenha sido desligado no meio: o
+            // item volta a quem o emprestou.
+            NearbyContainers.Found found = NearbyContainers.find(player, true, true);
             targets.add(ContainerSource.returningTo(guard(player, found.storage()), origin.positions()));
+            targets.add(ModStorageSource.returningTo(QuickStackService.guard(player, found.modStorage()), origin.positions()));
         }
         return new PrioritizedItemSource(targets);
     }
@@ -112,7 +123,7 @@ public final class BenchPool {
         Map<BenchCompat.Key, Stack> sums = new LinkedHashMap<>();
         source.forEachStack(stack -> sums.merge(BenchCompat.keyOf(stack),
                 new Stack(stack.copyWithCount(1), stack.getCount()),
-                (a, b) -> new Stack(a.item(), a.count() + b.count())));
+                (a, b) -> new Stack(a.item(), add(a.count(), b.count()))));
         List<Stack> list = new ArrayList<>(sums.values());
         list.sort(Comparator.<Stack, String>comparing(s -> BuiltInRegistries.ITEM.getKey(s.item().getItem()).toString())
                 .thenComparing(Comparator.comparingInt(Stack::count).reversed()));
@@ -130,7 +141,7 @@ public final class BenchPool {
         for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
             if (!stack.isEmpty()) {
                 sums.merge(BenchCompat.keyOf(stack), new Stack(stack.copyWithCount(1), stack.getCount()),
-                        (a, b) -> new Stack(a.item(), a.count() + b.count()));
+                        (a, b) -> new Stack(a.item(), add(a.count(), b.count())));
             }
         }
         return new ArrayList<>(sums.values());
@@ -141,7 +152,7 @@ public final class BenchPool {
         Map<BenchCompat.Key, Stack> sums = new LinkedHashMap<>();
         for (List<Stack> part : List.of(backpackContents(), contents())) {
             for (Stack s : part) {
-                sums.merge(BenchCompat.keyOf(s.item()), s, (a, b) -> new Stack(a.item(), a.count() + b.count()));
+                sums.merge(BenchCompat.keyOf(s.item()), s, (a, b) -> new Stack(a.item(), add(a.count(), b.count())));
             }
         }
         List<Stack> list = new ArrayList<>(sums.values());
@@ -208,10 +219,15 @@ public final class BenchPool {
         Map<Item, Integer> out = new LinkedHashMap<>();
         for (Stack s : contents()) {
             if (BenchCompat.usableForCrafting(s.item())) {
-                out.merge(s.item().getItem(), s.count(), Integer::sum);
+                out.merge(s.item().getItem(), s.count(), BenchPool::add);
             }
         }
         return out;
+    }
+
+    /** Soma que trava no máximo: uma gaveta de outro mod pode guardar mais itens do que cabe num {@code int}. */
+    private static int add(int a, int b) {
+        return ModStorageSource.saturated((long) a + b);
     }
 
     private static <T> Supplier<T> memo(Supplier<T> factory) {
