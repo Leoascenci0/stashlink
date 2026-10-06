@@ -6,6 +6,8 @@ import io.github.leoascenci0.stashlink.bench.BenchSync;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
+import io.github.leoascenci0.stashlink.network.PullItemRequest;
+import io.github.leoascenci0.stashlink.pull.PullItemService;
 import io.github.leoascenci0.stashlink.quickstack.QuickStackService;
 import io.github.leoascenci0.stashlink.refill.RefillService;
 import io.github.leoascenci0.stashlink.source.NearbyContainers;
@@ -121,6 +123,32 @@ public final class ModStorageScenarios {
         check(h, inHand(p, Items.HONEYCOMB_BLOCK) == 64, "a mão devia ter 64, tem " + inHand(p, Items.HONEYCOMB_BLOCK));
         check(h, drawer.stock(Items.HONEYCOMB_BLOCK) + Lab.carried(p, Items.HONEYCOMB_BLOCK) == 3_000, "favo duplicou ou sumiu");
         finish(h, lab);
+    }
+
+    /**
+     * Litematica (Item 18): o mod troca o bloco no mesmo slot e o anterior volta à <b>gaveta</b> de onde veio, não à
+     * mochila. Os pedidos do mesmo jogador só são aceitos a cada 4 ticks, por isso os passos andam de 5 em 5.
+     */
+    public static void litematicaSwapReturnsToTheDrawer(GameTestHelper h) {
+        Lab lab = new Lab(h);
+        ApiDrawerBlockEntity drawer = lab.apiDrawer(2, 2, 2);
+        drawer.put(0, Items.PURPUR_PILLAR, 2_000);
+        drawer.put(1, Items.RED_NETHER_BRICKS, 2_000);
+        ServerPlayer p = lab.player(4, 2, 4);
+        Lab.prefs(p, 8, true);
+
+        h.runAfterDelay(5, () -> PullItemService.handle(p, new PullItemRequest(Items.PURPUR_PILLAR, 64)));
+        h.runAfterDelay(10, () -> {
+            check(h, Lab.carried(p, Items.PURPUR_PILLAR) == 64, "o 1º pedido devia trazer 64 da gaveta: " + Lab.carried(p, Items.PURPUR_PILLAR));
+            PullItemService.handle(p, new PullItemRequest(Items.RED_NETHER_BRICKS, 64));
+        });
+        h.runAfterDelay(15, () -> {
+            check(h, Lab.carried(p, Items.RED_NETHER_BRICKS) == 64, "o 2º pedido devia trazer 64 da gaveta: " + Lab.carried(p, Items.RED_NETHER_BRICKS));
+            check(h, Lab.carried(p, Items.PURPUR_PILLAR) == 0, "o bloco anterior devia sair da mão do jogador (ficou na mochila?)");
+            check(h, drawer.stock(Items.PURPUR_PILLAR) == 2_000, "o bloco anterior devia voltar à gaveta: " + drawer.stock(Items.PURPUR_PILLAR));
+            check(h, drawer.stock(Items.RED_NETHER_BRICKS) + Lab.carried(p, Items.RED_NETHER_BRICKS) == 2_000, "tijolo vermelho duplicou ou sumiu");
+            finish(h, lab);
+        });
     }
 
     /** Bancada: o painel lista a gaveta (mais de 64), o livro de receitas tira dela e, ao fechar, o resto volta a ela. */

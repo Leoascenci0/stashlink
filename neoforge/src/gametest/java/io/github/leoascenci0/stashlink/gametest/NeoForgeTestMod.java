@@ -40,6 +40,7 @@ public final class NeoForgeTestMod {
         add("quick_stack_stores_into_the_drawer", ModStorageScenarios::quickStackStoresIntoTheDrawer);
         add("refill_takes_from_the_drawer", ModStorageScenarios::refillTakesFromTheDrawer);
         add("middle_click_pulls_from_the_drawer", ModStorageScenarios::middleClickPullsFromTheDrawer);
+        add("litematica_swap_returns_to_the_drawer", ModStorageScenarios::litematicaSwapReturnsToTheDrawer);
         add("bench_uses_the_drawer_and_gives_back_on_close", ModStorageScenarios::benchUsesTheDrawerAndGivesBackOnClose);
         add("feature_off_ignores_the_drawer", ModStorageScenarios::featureOffIgnoresTheDrawer);
         add("another_players_screen_nearby_keeps_the_drawer_untouched", ModStorageScenarios::anotherPlayersScreenNearbyKeepsTheDrawerUntouched);

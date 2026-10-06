@@ -20,6 +20,11 @@ public class ModStorageGameTests {
         ModStorageScenarios.middleClickPullsFromTheDrawer(h);
     }
 
+    @GameTest(maxTicks = 100)
+    public void litematicaSwapReturnsToTheDrawer(GameTestHelper h) {
+        ModStorageScenarios.litematicaSwapReturnsToTheDrawer(h);
+    }
+
     @GameTest
     public void benchUsesTheDrawerAndGivesBackOnClose(GameTestHelper h) {
         ModStorageScenarios.benchUsesTheDrawerAndGivesBackOnClose(h);
