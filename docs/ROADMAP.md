@@ -715,6 +715,19 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   `docs/publicacao/roteiro-gifs.md`). Ícone novo = baú com corrente recortado do banner (jogo, README e lojas); banner no
   topo do README e das páginas da loja; ilustrações na galeria das lojas, com legenda dizendo que são ilustrações. O Claude
   envia às lojas pelo navegador do Eliel, já logado (sem digitar senha ou token), com a confirmação dele antes do envio.
+- **Release no GitHub publicado (2026-10-06):** PR #58 mesclado, tag `v1.0.0`, o `release.yml` funcionou na primeira vez
+  e o release está no ar com um jar por loader (ícone novo e versão 1.0.0 conferidos dentro dos dois):
+  https://github.com/Leoascenci0/stashlink/releases/tag/v1.0.0. Achado no caminho: o `.gitattributes` (`* text eol=lf`)
+  tratava `.jpg` como texto e corrompia as imagens no commit; agora `.jpg`, `.jpeg`, `.webp` e `.nbt` são binários.
+- **Modrinth — enviado para revisão (2026-10-06):** https://modrinth.com/mod/stashlink (conta "Frosther", do Eliel;
+  só criou o projeto depois de o e-mail ser confirmado). Versões `1.0.0+fabric` (Fabric API obrigatória, Litematica
+  opcional) e `1.0.0+neoforge`, com os mesmos jars do release; ambiente "opcional nos dois, melhor nos dois"; categorias
+  Storage e Utility; MIT; galeria com legendas em inglês · português; aviso de conteúdo gerado por IA marcado (código,
+  imagens e texto). Fica público quando um moderador aprovar.
+- **Lojas — pendente:** **CurseForge**: o formulário novo falha no logo com
+  "id must be a string", tanto pela extensão quanto escolhendo o arquivo à mão (erro do site, sem chegar ao servidor);
+  tentar outro dia ou abrir chamado no suporte deles. O logo da CurseForge precisa ter no máximo 100 KB (o nosso tem 70 KB).
+  O que colar em cada campo está em `docs/publicacao/roteiro-gifs.md` (checklist e legendas em inglês e português).
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
 ## Antes da publicação (achados da revisão, `docs/REVISAO-1.0.md`)

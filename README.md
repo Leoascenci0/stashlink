@@ -5,8 +5,8 @@
 Mod de qualidade de vida para Minecraft 26.3: **Fabric** e **NeoForge**. O armazenamento por perto funciona como se
 estivesse na sua mochila.
 
-**Baixar:** [Modrinth](https://modrinth.com/mod/stashlink) · [CurseForge](https://www.curseforge.com/minecraft/mc-mods/stashlink) ·
-[GitHub Releases](https://github.com/Leoascenci0/stashlink/releases)
+**Baixar:** [GitHub Releases](https://github.com/Leoascenci0/stashlink/releases/latest) (um jar para Fabric e um para
+NeoForge). Modrinth e CurseForge: em breve.
 
 <!-- GIFs (depois da 1.0): gravar no jogo seguindo docs/publicacao/roteiro-gifs.md e trocar este comentário por:
 | Reabastecer e tecla N | Bancadas com armazenamento | Organizar e buscar |

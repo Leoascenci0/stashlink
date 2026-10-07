@@ -22,20 +22,25 @@ Campos iguais nas duas; o Eliel digita login/token e clica em publicar.
 - **Nome:** StashLink · **Resumo:** frase de abertura de `pagina-loja-en.md` (≤ 256 caracteres no Modrinth).
 - **Descrição:** colar `pagina-loja-en.md` sem o comentário do topo (o banner já vem do GitHub). Versão em português: `pagina-loja-pt.md`.
 - **Categorias:** Utility, Storage (Modrinth) · Inventory/Utility (CurseForge).
-- **Versão do jogo:** 26.3 · **Loader:** um arquivo por loader.
+- **Versão do jogo:** 26.3 · **Loader:** um arquivo por loader, com número `1.0.0+fabric` e `1.0.0+neoforge` (assim no Modrinth).
+- **Ambiente (Modrinth):** "Client and server → Optional on both, works best when installed on both sides" (só cliente:
+  modo cliente; só servidor: reabastecer funciona com cliente sem o mod).
+- **Aviso de IA (Modrinth → Disclosures):** "Contains AI-generated content" marcado, com Code, Assets e Text. A CurseForge
+  também pergunta: responder igual.
 - **Fabric:** `stashlink-fabric-26.3-1.0.0.jar` — dependência **obrigatória** Fabric API; **opcional** Litematica.
 - **NeoForge:** `stashlink-neoforge-26.3-1.0.0.jar` — sem dependências; **sem** Litematica (diga isso na página).
 - **Licença:** MIT · **Ambiente:** cliente e servidor.
 - **Links:** código `https://github.com/Leoascenci0/stashlink`, problemas `.../issues`.
 - **Ícone:** `docs/img/icon.png` (400×400, 70 KB, PNG de 256 cores: a CurseForge pede no mínimo 400 px e no máximo 100 KB).
   É o baú com corrente recortado do banner; o mesmo desenho, em 256×256, é o ícone dentro do jogo.
-- **Galeria** (ilustrações, não capturas do jogo: a legenda diz isso para não enganar quem baixa):
+- **Galeria** (ilustrações, não capturas do jogo: a legenda diz isso para não enganar quem baixa). Título e legenda nas
+  **duas línguas**, inglês e português, separadas por " · " (pedido do Eliel, 2026-10-06). Colar exatamente assim:
 
   | Arquivo | Título | Legenda |
   |---|---|---|
-  | `docs/img/banner.jpg` (destaque) | StashLink | Storage within reach. |
-  | `docs/img/galeria/visao-geral.jpg` | Storage within reach | Illustration: items come from nearby chests and shulker boxes straight to your hotbar. |
-  | `docs/img/galeria/reabastecer.jpg` | Hand refill | Illustration: keep building; when your stack runs out, more comes from a shulker box or a nearby chest. |
-  | `docs/img/galeria/bancadas.jpg` | Stations use your storage | Illustration: crafting table, furnace, anvil, enchanting table and more take ingredients from nearby storage. |
-  | `docs/img/galeria/armazenamento.jpg` | Name, organize and find | Illustration: name your chests (in game the name floats as a hologram), organize them and search for an item. |
+  | `docs/img/banner.jpg` (destaque) | StashLink | Storage within reach. · Seu armazenamento, sempre à mão. |
+  | `docs/img/galeria/visao-geral.jpg` | Storage within reach · Armazenamento ao alcance | Illustration: items come from nearby chests and shulker boxes straight to your hotbar. · Ilustração: os itens vêm dos baús e shulkers por perto direto para a sua hotbar. |
+  | `docs/img/galeria/reabastecer.jpg` | Hand refill · Reabastecer a mão | Illustration: keep building; when your stack runs out, more comes from a shulker box or a nearby chest. · Ilustração: continue construindo; quando a pilha acaba, vem mais de uma shulker ou de um baú por perto. |
+  | `docs/img/galeria/bancadas.jpg` | Stations use your storage · Estações usam seu armazenamento | Illustration: crafting table, furnace, anvil, enchanting table and more take ingredients from nearby storage. · Ilustração: bancada, fornalha, bigorna, mesa de encantamento e outras pegam os ingredientes do armazenamento por perto. |
+  | `docs/img/galeria/armazenamento.jpg` | Name, organize and find · Nomeie, organize e encontre | Illustration: name your chests (in game the name floats as a hologram), organize them and search for an item. · Ilustração: dê nome aos baús (no jogo o nome flutua como holograma), organize e busque um item. |
 - **Changelog da versão:** seção 1.0.0 do `CHANGELOG.md`. Não prometer o que está em "Limites conhecidos".

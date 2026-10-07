@@ -7,10 +7,10 @@
 Refill, store, craft and organize from the chests around you, as if everything were in your backpack.</p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/Minecraft-26.3-62B47A?style=flat-square">
-<img src="https://img.shields.io/badge/Fabric-supported-DBD0B4?style=flat-square">
-<img src="https://img.shields.io/badge/NeoForge-supported-D7742F?style=flat-square">
-<img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square">
+<img src="https://img.shields.io/badge/Minecraft-26.3-62B47A?style=flat-square" alt="Minecraft 26.3">
+<img src="https://img.shields.io/badge/Fabric-supported-DBD0B4?style=flat-square" alt="Fabric supported">
+<img src="https://img.shields.io/badge/NeoForge-supported-D7742F?style=flat-square" alt="NeoForge supported">
+<img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License MIT">
 </p>
 
 ---
