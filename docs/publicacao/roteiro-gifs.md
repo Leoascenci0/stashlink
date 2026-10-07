@@ -22,7 +22,11 @@ Campos iguais nas duas; o Eliel digita login/token e clica em publicar.
 - **Nome:** StashLink · **Resumo:** frase de abertura de `pagina-loja-en.md` (≤ 256 caracteres no Modrinth).
 - **Descrição:** colar `pagina-loja-en.md` sem o comentário do topo (o banner já vem do GitHub). Versão em português: `pagina-loja-pt.md`.
 - **Categorias:** Utility, Storage (Modrinth) · Inventory/Utility (CurseForge).
-- **Versão do jogo:** 26.3 · **Loader:** um arquivo por loader.
+- **Versão do jogo:** 26.3 · **Loader:** um arquivo por loader, com número `1.0.0+fabric` e `1.0.0+neoforge` (assim no Modrinth).
+- **Ambiente (Modrinth):** "Client and server → Optional on both, works best when installed on both sides" (só cliente:
+  modo cliente; só servidor: reabastecer funciona com cliente sem o mod).
+- **Aviso de IA (Modrinth → Disclosures):** "Contains AI-generated content" marcado, com Code, Assets e Text. A CurseForge
+  também pergunta: responder igual.
 - **Fabric:** `stashlink-fabric-26.3-1.0.0.jar` — dependência **obrigatória** Fabric API; **opcional** Litematica.
 - **NeoForge:** `stashlink-neoforge-26.3-1.0.0.jar` — sem dependências; **sem** Litematica (diga isso na página).
 - **Licença:** MIT · **Ambiente:** cliente e servidor.
