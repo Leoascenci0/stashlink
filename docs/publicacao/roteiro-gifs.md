@@ -30,6 +30,10 @@ Campos iguais nas duas; o Eliel digita login/token e clica em publicar.
 - **Fabric:** `stashlink-fabric-26.3-1.0.0.jar` — dependência **obrigatória** Fabric API; **opcional** Litematica.
 - **NeoForge:** `stashlink-neoforge-26.3-1.0.0.jar` — sem dependências; **sem** Litematica (diga isso na página).
 - **Licença:** MIT · **Ambiente:** cliente e servidor.
+- **CurseForge (o que deu certo em 2026-10-06):** descrição no modo **Markdown** (o seletor fica acima do editor); aba
+  Source → GitHub `Leoascenci0/stashlink`; License → MIT e "Allow distribution to 3rd party"; por arquivo: Environment
+  Client + Server, Modloader, Java 25, Minecraft 26.3, "Publish this file automatically once approved". Ao enviar o
+  segundo arquivo o formulário vem com o loader do anterior marcado: conferir antes de "Add File".
 - **Links:** código `https://github.com/Leoascenci0/stashlink`, problemas `.../issues`.
 - **Ícone:** `docs/img/icon.png` (400×400, 70 KB, PNG de 256 cores: a CurseForge pede no mínimo 400 px e no máximo 100 KB).
   É o baú com corrente recortado do banner; o mesmo desenho, em 256×256, é o ícone dentro do jogo.
