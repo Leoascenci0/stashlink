@@ -724,9 +724,13 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   opcional) e `1.0.0+neoforge`, com os mesmos jars do release; ambiente "opcional nos dois, melhor nos dois"; categorias
   Storage e Utility; MIT; galeria com legendas em inglês · português; aviso de conteúdo gerado por IA marcado (código,
   imagens e texto). Fica público quando um moderador aprovar.
-- **Lojas — pendente:** **CurseForge**: o formulário novo falha no logo com
-  "id must be a string", tanto pela extensão quanto escolhendo o arquivo à mão (erro do site, sem chegar ao servidor);
-  tentar outro dia ou abrir chamado no suporte deles. O logo da CurseForge precisa ter no máximo 100 KB (o nosso tem 70 KB).
+- **CurseForge — enviado para revisão (2026-10-06):** projeto 1731080 (endereço `stashlink`). O logo, que falhava com
+  "id must be a string", entrou numa nova tentativa do Eliel. Descrição em Markdown igual à do Modrinth, código-fonte
+  apontando para o GitHub, MIT, distribuição liberada, categorias Storage + Utility & QoL, galeria com legendas em
+  inglês · português, e os dois arquivos (Fabric com Fabric API obrigatória e Litematica opcional; NeoForge sem
+  dependências), publicação automática quando aprovados. Os jars baixados do CDN da CurseForge têm o mesmo SHA-256 do
+  release do GitHub.
+- **Falta para fechar:** aprovação do Modrinth e da CurseForge; depois, os links das duas páginas no README.
   O que colar em cada campo está em `docs/publicacao/roteiro-gifs.md` (checklist e legendas em inglês e português).
 - **Pronto quando:** versão 1.0 publicada e baixável para cada loader.
 
