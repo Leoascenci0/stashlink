@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.1 — ainda não lançada
+## 1.0.1 — Minecraft 26.3 (Fabric e NeoForge), 2026-11-14
 
 Correções da segunda revisão completa (`docs/REVISAO-1.1.md`). Nada duplicava nem sumia; eram regras com furo.
 
