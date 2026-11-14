@@ -864,8 +864,11 @@ sugerida (do que protege o jogador para o que é conforto); cada item continua s
   3 baús perto, agachar segurando um bloco logo depois de apertar: nenhum bloco é colocado; (3) mundo local, travar um
   slot na config, Shift + arrastar por cima dele com um baú aberto: o item fica.
 
-### Item 29 — Release 1.0.1 (correções da revisão) ⬜
+### Item 29 — Release 1.0.1 (correções da revisão) ✅
 - **Branch:** `chore/release-1.0.1`
+- **Feito (2026-11-14):** versão 1.0.1 no `gradle.properties` e no `fabric.mod.json` dos testes, seção 1.0.1 do
+  `CHANGELOG.md` fechada, tag `v1.0.1` criada; o workflow gera a release (rascunho) com um jar por loader. Publicar o
+  rascunho e enviar os jars ao Modrinth fica com o Eliel (credenciais dele). CurseForge fica para depois do PR #60.
 - Subir `version` para 1.0.1 (`gradle.properties` e o `fabric.mod.json` dos testes), fechar a seção 1.0.1 do
   `CHANGELOG.md`, criar a tag `v1.0.1` (o workflow agora recusa tag diferente da versão) e enviar os dois jars ao
   Modrinth (e ao CurseForge, se o envio do PR #60 já tiver sido aprovado).
