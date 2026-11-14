@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -24,3 +25,13 @@ jobs:
             fabric/build/libs/*.jar
             neoforge/build/libs/*.jar
       - run: ./gradlew build --no-daemon
+      # Se algum teste falhar, os relatórios ficam para baixar (sem eles, uma falha que só acontece no CI é um mistério).
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: relatorios-de-teste
+          path: |
+            **/build/reports/tests
+            **/build/test-results
+            fabric/build/run/**/logs/latest.log
+          if-no-files-found: ignore

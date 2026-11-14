@@ -35,6 +35,12 @@ public final class BenchLedger {
         /** Fraca: o valor deste mapa nunca pode segurar o menu (e, por ele, o jogador) vivo. */
         private final WeakReference<AbstractContainerMenu> menuRef;
         final Map<Item, Integer> borrowed = new LinkedHashMap<>();
+        /**
+         * Como era cada item emprestado (1 de cada, com os componentes). O cursor só volta ao baú se ainda for um
+         * destes: o resultado da bigorna (renomeado, encantado) e a ferramenta própria do jogador são do mesmo tipo,
+         * mas não são o item que o baú emprestou.
+         */
+        final List<ItemStack> lent = new java.util.ArrayList<>();
         Origin origin;
 
         Entry(AbstractContainerMenu menu) {
@@ -44,6 +50,21 @@ public final class BenchLedger {
         AbstractContainerMenu menu() {
             return menuRef.get();
         }
+
+        void remember(ItemStack model) {
+            if (!isLent(model)) {
+                lent.add(model.copyWithCount(1));
+            }
+        }
+
+        boolean isLent(ItemStack stack) {
+            for (ItemStack model : lent) {
+                if (ItemStack.isSameItemSameComponents(model, stack)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     /** Por identidade do jogador; sai daqui no logout ({@link #release}) e o valor não segura o menu. */
@@ -52,7 +73,19 @@ public final class BenchLedger {
     private BenchLedger() {
     }
 
-    /** O mod acabou de pôr {@code got} na estação aberta, vindo de {@code origin}. */
+    /** O mod acabou de pôr {@code count} de {@code model} (com estes componentes) na estação aberta. */
+    public static void record(ServerPlayer player, ItemStack model, int count, Origin origin) {
+        if (count <= 0 || model.isEmpty()) {
+            return;
+        }
+        record(player, Map.of(model.getItem(), count), origin);
+        Entry entry = LEDGER.get(player);
+        if (entry != null) {
+            entry.remember(model);
+        }
+    }
+
+    /** O mod acabou de pôr {@code got} (itens comuns, sem componentes próprios) na estação aberta, vindo de {@code origin}. */
     public static void record(ServerPlayer player, Map<Item, Integer> got, Origin origin) {
         if (got.isEmpty()) {
             return;
@@ -68,6 +101,7 @@ public final class BenchLedger {
         }
         for (Map.Entry<Item, Integer> e : got.entrySet()) {
             entry.borrowed.merge(e.getKey(), e.getValue(), Integer::sum);
+            entry.remember(new ItemStack(e.getKey()));
         }
         entry.origin = entry.origin == null ? origin : entry.origin.merge(origin);
     }
@@ -181,8 +215,8 @@ public final class BenchLedger {
         }
         ItemStack carried = menu.getCarried();
         Integer owed = entry.borrowed.get(carried.getItem());
-        if (carried.isEmpty() || owed == null) {
-            return;
+        if (carried.isEmpty() || owed == null || !entry.isLent(carried)) {
+            return;   // item do jogador (ou resultado da estação) do mesmo tipo: nunca vai para o baú
         }
         int move = Math.min(carried.getCount(), owed);
         ItemSource target = BenchPool.returnTarget(player, entry.origin);
@@ -217,7 +251,7 @@ public final class BenchLedger {
             Map.Entry<Item, Integer> e = it.next();
             int held = 0;
             ItemStack carried = entry.menu().getCarried();
-            if (carried.is(e.getKey())) {
+            if (carried.is(e.getKey()) && entry.isLent(carried)) {
                 held += carried.getCount();
             }
             ItemStack probe = new ItemStack(e.getKey());

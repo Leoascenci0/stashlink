@@ -180,7 +180,7 @@ public final class BenchResults {
             if (taken.total() > 0) {
                 slot.set(model.copyWithCount(taken.total()));
                 if (taken.storage() > 0) {
-                    BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
+                    BenchLedger.record(player, model, taken.storage(), pool.origin());
                 }
                 return true;
             }
@@ -264,7 +264,7 @@ public final class BenchResults {
             }
             slot.set(model.copyWithCount(inside.getCount() + taken.total()));
             if (taken.storage() > 0) {
-                BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
+                BenchLedger.record(player, model, taken.storage(), pool.origin());
             }
             menu.broadcastChanges();
             break;

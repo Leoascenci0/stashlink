@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.organize;
 
 import io.github.leoascenci0.stashlink.Constants;
 import io.github.leoascenci0.stashlink.compat.mc.OrganizeCompat;
+import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
@@ -66,7 +67,6 @@ public final class OrganizeService {
     }
 
     private static void process(ServerPlayer player, OrganizeRequest request) {
-        OrganizeCompat.ensureOrder(player);
         int action = request.action();
         if (action < 0 || action >= COOLDOWN.length || !player.isAlive() || player.isSpectator()) {
             return;
@@ -84,6 +84,8 @@ public final class OrganizeService {
             return;
         }
         last[action] = now;
+        // Só depois do cadeado e do intervalo: montar a ordem do criativo é caro e não pode ser repetido por pacote.
+        OrganizeCompat.ensureOrder(player);
 
         switch (action) {
             case OrganizeRequest.CHEST -> chest(player, request);
@@ -157,6 +159,15 @@ public final class OrganizeService {
     }
 
     /** Só mexe com a mochila/inventário "fechado": com outro menu aberto o jogador já está mexendo em itens. */
+    /**
+     * O item como vai no pacote. Item "pesado" (shulker cheia, livro escrito grande) vai só como o tipo, sem os
+     * componentes: com até {@link OrganizeSync#MAX_ROWS} linhas, o pacote nunca chega perto do teto do jogo (1 MiB),
+     * que derrubaria a conexão de quem pediu. A linha é só para mostrar; nada é movido por ela.
+     */
+    public static ItemStack icon(ServerPlayer player, ItemStack model) {
+        return BenchCompat.packetSize(player, model) > OrganizeSync.MAX_ITEM_BYTES ? new ItemStack(model.getItem()) : model;
+    }
+
     private static boolean idle(ServerPlayer player) {
         return player.containerMenu == player.inventoryMenu;
     }
@@ -174,7 +185,7 @@ public final class OrganizeService {
             }
             BlockPos from = anchor(move.from());
             BlockPos to = anchor(move.to());
-            rows.add(new OrganizeSync.Row(move.item(), move.count(), from, to, name(player, from), name(player, to)));
+            rows.add(new OrganizeSync.Row(icon(player, move.item()), move.count(), from, to, name(player, from), name(player, to)));
         }
         int message = plan.isEmpty() ? OrganizeSync.MSG_NOTHING
                 : plan.moves().size() > rows.size() ? OrganizeSync.MSG_TOO_MANY : OrganizeSync.MSG_NONE;
@@ -183,10 +194,10 @@ public final class OrganizeService {
     }
 
     private static void apply(ServerPlayer player) {
-        Pending pending = PENDING.remove(player);
         if (!idle(player)) {
-            return;
+            return;   // com outra tela aberta nada é aplicado, e a prévia continua valendo
         }
+        Pending pending = PENDING.remove(player);
         if (pending == null || !pending.dimension().equals(McCompat.dimensionOf(player))
                 || !OrganizeSystem.apply(pending.plan(), entries(player))) {
             state(player, OrganizeSync.MSG_STALE, false);
@@ -295,7 +306,7 @@ public final class OrganizeService {
             BlockPos anchor = anchor(entry.where());
             String name = name(player, anchor);
             for (int i = 0; i < models.size(); i++) {
-                hits.add(new Hit(entry.where(), new OrganizeSync.Row(models.get(i), counts.get(i), anchor, anchor, name, name)));
+                hits.add(new Hit(entry.where(), new OrganizeSync.Row(icon(player, models.get(i)), counts.get(i), anchor, anchor, name, name)));
             }
         }
         return hits;

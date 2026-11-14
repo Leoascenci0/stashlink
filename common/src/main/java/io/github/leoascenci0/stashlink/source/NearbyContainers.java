@@ -207,13 +207,23 @@ public final class NearbyContainers {
     private record ModHit(BlockEntity be, double distSq) {
     }
 
+    private static boolean allowedAll(ServerPlayer player, Set<BlockPos> where) {
+        for (BlockPos pos : where) {
+            if (!Services.PLATFORM.canPlayerUseBlock(player, pos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static List<ContainerSource.Entry> entries(ServerPlayer player, List<Hit> hits) {
         hits.sort(Comparator.comparingDouble(Hit::distSq));
         List<ContainerSource.Entry> out = new ArrayList<>(hits.size());
         for (Hit hit : hits) {
-            BlockPos pos = hit.pos();
+            Set<BlockPos> where = hit.where();
             // A permissão (claims etc.) é perguntada só se este container tiver o item — ver ContainerSource.
-            out.add(new ContainerSource.Entry(hit.container(), () -> Services.PLATFORM.canPlayerUseBlock(player, pos), hit.where()));
+            // Baú duplo: as DUAS metades precisam estar liberadas (uma delas pode estar no terreno de outro jogador).
+            out.add(new ContainerSource.Entry(hit.container(), () -> allowedAll(player, where), where));
         }
         return out;
     }

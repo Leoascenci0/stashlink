@@ -284,6 +284,21 @@ public final class StashLinkConfig {
     }
 
     /**
+     * Grava o texto num arquivo vizinho e só então troca pelo definitivo. Se o jogo cair (ou o disco encher) no meio
+     * da gravação, o arquivo antigo continua inteiro, em vez de ficar cortado pela metade.
+     */
+    public static void writeAtomically(Path file, String text) throws IOException {
+        Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+        Files.writeString(tmp, text, StandardCharsets.UTF_8);
+        try {
+            Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+            Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /**
      * Grava o arquivo (cria a pasta se preciso). Erro de disco só vai para o log. Se o arquivo estava quebrado ou era de
      * versão futura (ver {@link #load}), guarda antes uma cópia {@code .bak}; se a cópia falha, não sobrescreve.
      */
@@ -296,7 +311,7 @@ public final class StashLinkConfig {
                 Constants.LOG.warn("Guardei a config anterior em {} antes de sobrescrever {}", bak, file);
             }
             backupBeforeSave = null;
-            Files.writeString(file, toJson() + System.lineSeparator(), StandardCharsets.UTF_8);
+            writeAtomically(file, toJson() + System.lineSeparator());
             return true;
         } catch (IOException e) {
             Constants.LOG.warn("Não consegui gravar {}: {}", file, e.toString());

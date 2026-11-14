@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.source;
 
 import io.github.leoascenci0.stashlink.slotlock.SlotLocks;
+import io.github.leoascenci0.stashlink.mixin.CompoundContainerAccessor;
 import net.minecraft.world.CompoundContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
@@ -82,10 +83,25 @@ public final class ContainerInsert {
         return rest;
     }
 
-    /** {@code outer} é {@code inner} ou (baú duplo) contém {@code inner} como uma das metades. */
+    /**
+     * Os dois containers são o mesmo ou dividem alguma metade. Baú duplo: cada tela aberta e cada varredura criam o
+     * seu próprio {@link CompoundContainer} para o mesmo par de blocos, então comparar os dois objetos não basta;
+     * comparam-se as metades de cada lado.
+     */
     public static boolean isOrContains(Container outer, Container inner) {
-        return outer == inner || (outer instanceof CompoundContainer compound && compound.contains(inner))
-                || (inner instanceof CompoundContainer compound && compound.contains(outer));
+        if (outer == inner) {
+            return true;
+        }
+        // O acesso às metades vem de um mixin; sem ele (testes unitários) vale o "contains" do jogo, que só enxerga
+        // metade contra baú duplo.
+        if (outer instanceof CompoundContainerAccessor halves) {
+            return isOrContains(halves.stashlink$first(), inner) || isOrContains(halves.stashlink$second(), inner);
+        }
+        if (inner instanceof CompoundContainerAccessor halves) {
+            return isOrContains(outer, halves.stashlink$first()) || isOrContains(outer, halves.stashlink$second());
+        }
+        return (outer instanceof CompoundContainer compound && compound.contains(inner))
+                || (inner instanceof CompoundContainer other && other.contains(outer));
     }
 
     /** Quantos itens iguais ao modelo (mesmo item e componentes) o container tem. */

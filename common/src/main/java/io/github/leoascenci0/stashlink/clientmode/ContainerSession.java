@@ -137,6 +137,12 @@ public final class ContainerSession {
             finish(mc);
             return;
         }
+        // Agachado, o clique de "usar" não abre o baú: usa o item da mão na face dele (coloca bloco, despeja balde).
+        // Com outra tela aberta (o jogador apertou E no intervalo), o baú abriria sem ninguém cuidando dele.
+        if (ClientCompat.isSneaking(mc.player) || ClientCompat.hasScreenOpen(mc)) {
+            abort(mc, "jogador agachou ou abriu outra tela entre dois containers");
+            return;
+        }
         current = queue.poll();
         if (!ClientCompat.withinReach(mc.player, current.pos())) {
             // Jogador andou: este já não alcança; tenta o próximo.

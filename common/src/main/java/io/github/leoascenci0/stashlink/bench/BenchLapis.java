@@ -62,7 +62,7 @@ public final class BenchLapis {
         }
         slot.set(model.copyWithCount(inside.getCount() + taken.total()));
         if (taken.storage() > 0) {
-            BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
+            BenchLedger.record(player, model, taken.storage(), pool.origin());
         }
         menu.broadcastChanges();
         BenchSync.markDirty(player);

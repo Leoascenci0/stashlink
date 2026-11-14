@@ -28,7 +28,7 @@ Analogia: é como o quadro de cargas de um projeto — mudou a norma, você atua
 | `docs/ARCHITECTURE.md` | seção de decisões | registre a decisão e a data |
 
 Se criar uma chave nova no `gradle.properties`, ela precisa entrar no `expandProps` de
-`buildSrc/src/main/groovy/multiloader-common.gradle` (aviso no topo do arquivo).
+`build-logic/src/main/groovy/multiloader-common.gradle` (aviso no topo do arquivo).
 
 ## 2. Como achar as versões certas
 
@@ -41,7 +41,7 @@ Se criar uma chave nova no `gradle.properties`, ela precisa entrar no `expandPro
   — formato `<minecraft>-<n>`.
 - **MultiLoader-Template** (https://github.com/jaredlll08/MultiLoader-Template): há um *branch* por versão do
   Minecraft. Compare o branch novo com o nosso (`git diff` ou pela interface do GitHub) para ver mudanças em
-  `build.gradle`, `buildSrc` e no Gradle wrapper — são elas que costumam quebrar o build, não o nosso código.
+  `build.gradle`, `build-logic` e no Gradle wrapper — são elas que costumam quebrar o build, não o nosso código.
 - **Litematica / Forgematica**: Modrinth (`litematica`, `forgematica`) — o script já confere. Se não houver build
   para a nova versão, a integração fica ausente (ver seção 6).
 

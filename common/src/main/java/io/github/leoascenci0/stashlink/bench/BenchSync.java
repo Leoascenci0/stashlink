@@ -207,6 +207,11 @@ public final class BenchSync {
         if (!BenchCompat.relevant(menu, player, item)) {
             return false;
         }
+        // Sinalizador: o pagamento é uma função própria; trancada/desligada, nada aparece nem vem para o cursor.
+        if (BenchCompat.stationOf(menu) == BenchCompat.Station.BEACON
+                && !FeatureGate.allowSilently(player, Feature.BENCH_BEACON)) {
+            return false;
+        }
         // Lápis automático ligado: o lápis não aparece no painel (o servidor o põe sozinho).
         if (autoLapis && BenchCompat.isLapisFor(menu, item)) {
             return false;

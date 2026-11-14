@@ -313,5 +313,6 @@ class QuickStackLogicTest {
         assertTrue(ContainerInsert.isOrContains(a, both));
         assertTrue(ContainerInsert.isOrContains(a, a));
         assertFalse(ContainerInsert.isOrContains(both, other));
+        // Baú duplo contra baú duplo (duas telas do mesmo par de blocos) depende do mixin: Review2GameTests cobre.
     }
 }

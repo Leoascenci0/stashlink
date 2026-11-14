@@ -842,6 +842,125 @@ curta (como o Sophisticated Storage / o jogo base resolvem) registrada em `docs/
   o mesmo teste passando lá; teste com o Sophisticated Storage no NeoForge (e um mod de gavetas, se houver versão
   26.3); medição no harness de 289 containers sem piora relevante.
 
+## Depois da 1.0: segunda revisão completa (2026-11-14, `docs/REVISAO-1.1.md`)
+
+Pedido do Eliel: revisar o mod inteiro, corrigir os furos e transformar as melhorias em roadmap. A ordem abaixo é a
+sugerida (do que protege o jogador para o que é conforto); cada item continua sendo uma branch e um PR.
+
+### Item 28 — Segunda revisão completa e correções pequenas ✅
+- **Branch:** `claude/serene-curie-13bx0r`
+- **Feito (2026-11-14):** seis áreas revisadas; nenhum dupe, perda de item ou queda de servidor. Corrigidos com teste:
+  baú duplo aberto por outro jogador não era detectado (a regra só funcionava no baú simples); permissão de terreno só
+  conferia uma metade do baú duplo; reabastecer a mão disparava ao só mover o item no inventário; cadeado do sinalizador
+  contornável pelo pedido de cursor; resultado da bigorna no cursor ia para o baú ao fechar; prévia/busca do Organizar
+  podia estourar o pacote e derrubar a conexão. Também: Aplicar não apaga mais a prévia com outra tela aberta; configs
+  gravadas de forma segura; modo cliente não abre baú à toa com balde vazio e para se o jogador agachar no meio da N;
+  Shift + passar respeita os slots travados do mundo local; o release confere a tag contra a versão; o CI guarda os
+  relatórios de teste quando falha.
+- **Testes:** 7 GameTests novos (`Review2GameTests`, 211 no Fabric) e 220 unitários verdes. Mutação: desfeitas as 5
+  correções de comportamento, os 5 testes correspondentes falham.
+- **Sem teste em jogo:** as três correções do cliente (balde no modo cliente, agachar no meio da N, Shift + passar com
+  slot travado). Roteiro: (1) servidor sem o mod, baú ao lado, usar o último balde de água: nenhum baú abre; (2) N com
+  3 baús perto, agachar segurando um bloco logo depois de apertar: nenhum bloco é colocado; (3) mundo local, travar um
+  slot na config, Shift + arrastar por cima dele com um baú aberto: o item fica.
+
+### Item 29 — Release 1.0.1 (correções da revisão) ⬜
+- **Branch:** `chore/release-1.0.1`
+- Subir `version` para 1.0.1 (`gradle.properties` e o `fabric.mod.json` dos testes), fechar a seção 1.0.1 do
+  `CHANGELOG.md`, criar a tag `v1.0.1` (o workflow agora recusa tag diferente da versão) e enviar os dois jars ao
+  Modrinth (e ao CurseForge, se o envio do PR #60 já tiver sido aprovado).
+- **Pronto quando:** release 1.0.1 no GitHub e no Modrinth, com um jar por loader.
+
+### Item 30 — Modo cliente seguro em servidores de terceiros ⬜
+- **Branch:** `fix/modo-cliente-seguro`
+- **Por quê:** em servidor sem o mod, a W e o Shift + passar aceitam qualquer tela com cara de baú. Lojas e kits de
+  servidores (Paper/Spigot) são telas de baú: a W clicaria em tudo (comprar ou resgatar tudo). No servidor com o mod isso
+  já foi fechado (Item 23); no cliente falta.
+- **Fazer:** (1) no modo cliente, W e Shift + passar só agem se a tela foi aberta a partir de um baú/barril/shulker que
+  o cliente vê no mundo (o `ClientContainers.keysAt` já sabe dizer isso para o bloco mirado); (2) só abrir container
+  com linha de visão livre até ele; (3) cliques por tick configuráveis, com padrão mais baixo (hoje 5 na N/W e 4 no
+  Shift + passar) e um perfil "servidor com anticheat"; (4) decidir com o Eliel se baú com armadilha entra (abrir dispara
+  redstone, mas é comum em paredes de baús); (5) aviso na tela quando o servidor recusar cliques seguidos.
+- **Pronto quando:** teste unitário da regra "tela veio de bloco de armazenamento"; em servidor de teste com plugin de
+  loja, W e Shift + passar não fazem nada na loja; roteiro em jogo num Realms.
+
+### Item 31 — Caderno das bancadas à prova de morte, queda e troca de dimensão ⬜
+- **Branch:** `fix/caderno-bancadas`
+- **Fazer:** (1) GameTests de morrer e de trocar de dimensão com a estação aberta e item emprestado na grade e no
+  cursor (nunca testado; se o jogo não fechar a tela na morte, chamar `BenchSync.release`); (2) caderno por pilha
+  (item + componentes) em todos os caminhos, não só no cursor: o livro encantado emprestado e não usado volta ao baú em
+  vez da mochila (hoje é limite aceito, #20 da revisão 1.0); (3) diário gravado no mundo para devolver o emprestado se
+  o servidor cair com a estação aberta; (4) anti-flood de 1–2 ticks também nos pedidos de cursor e "pôr no slot", que
+  varrem o raio; (5) "pôr no slot" passa pelo mesmo filtro do cursor (`BenchSync.listed`).
+- **Pronto quando:** fuzz das bancadas com itens encantados/renomeados, morte e dimensão, conferindo a soma depois de
+  cada ação; mutação pega.
+
+### Item 32 — Slots travados e reservas valendo em todas as funções ⬜
+- **Branch:** `fix/travas-em-todas-as-funcoes`
+- **Fazer:** (1) os slots travados do jogador (que N e W já respeitam) também no botão do meio, no Litematica e em
+  toda devolução à mochila (`PullLogic.chooseSlot`, `StackListSink`, recipiente vazio do reabastecimento); (2) conferir
+  no jogo se o shift-clique completa uma pilha num slot reservado para outro item e, se sim, barrar; (3) Organizar:
+  Aplicar e Desfazer reconferem travas, botão N e categorias que mudaram depois da prévia.
+- **Pronto quando:** GameTest por caminho (slot travado nunca recebe nem perde item) e reserva criada entre a prévia e
+  o Aplicar invalida o plano.
+
+### Item 33 — Uma guarda só para todos os pedidos ao servidor ⬜
+- **Branch:** `refactor/guarda-de-pedidos`
+- **Fazer:** juntar num ajudante o que hoje está copiado em nove serviços (vivo, não espectador, tela certa, anti-flood
+  **antes** do aviso de função trancada, `try/catch`, permissão nas duas metades); o aviso de "função trancada" com
+  intervalo por jogador; mesma regra de operador na tela e no comando (hoje nível 1 tranca pela tela e não pelo
+  comando); mandar os cadeados ao entrar, renascer e trocar de dimensão, sem depender do pacote de preferências; pedido
+  da bancada por índice da última lista enviada, em vez de um item inteiro vindo do cliente.
+- **Pronto quando:** GameTest de rajada por tipo de pedido com função trancada (uma resposta por intervalo) e nenhum
+  serviço com validação própria fora do ajudante.
+
+### Item 34 — Dados gravados que sobrevivem a mods removidos e a outros mods ⬜
+- **Branch:** `fix/dados-gravados`
+- **Fazer:** leitura das travas de slot tolerante (um item que não existe mais não apaga as outras travas do baú);
+  rótulo e botão N na shulker mesclados aos outros dados do item em vez de sobrescrever; unir dois baús com rótulos
+  diferentes avisa (hoje um some até separar); teto de rótulos de baú do End por jogador e índice por chunk; ordem do
+  criativo do Organizar sem reconstruir a lista compartilhada com o cliente e refeita quando os dados do servidor
+  recarregam; `PrioritizedItemSource` não perde o que já tirou se uma fonte de outro mod lançar erro no meio.
+- **Pronto quando:** teste unitário de carga com item desconhecido; GameTest de shulker com dados de outro mod.
+
+### Item 35 — Desempenho: uma varredura por tick e Organizar mais leve ⬜
+- **Branch:** `perf/varredura-compartilhada`
+- **Medir antes** (harness de 289 containers e `spark` num servidor real): prévia do Organizar com centenas de tipos de
+  item; várias funções do mesmo jogador no mesmo tick; bancada aberta (lista + lápis + cliques varrem cada um por si).
+- **Só se o número mostrar:** varredura do raio guardada por jogador durante o tick; mapa "item → quantidade" por baú
+  no Organizar; planejar sobre uma cópia em vez de mexer nos baús de verdade e restaurar.
+- **Pronto quando:** números antes/depois no PR, sem mudar nenhuma validação.
+
+### Item 36 — CI e release mais firmes ⬜
+- **Branch:** `chore/ci-release`
+- **Fazer:** rodar `:neoforge:runGameTestServer` no CI (hoje os testes do NeoForge só rodam à mão); teste unitário de
+  idioma (mesmas chaves em pt_br e en_us, toda `Feature` com texto e dica, nenhuma chave sem uso); checagem de que
+  `ROADMAP.md` e `roadmap.html` têm os mesmos status; release sem depender de baixar mods de teste na hora (os jars já
+  foram testados na `main`); notas do release só com a seção da versão; publicar no Modrinth pelo workflow (token em
+  segredo do GitHub, digitado pelo Eliel); ações fixadas por versão exata.
+- **Pronto quando:** CI verde com os dois loaders e uma tag de teste gerando o rascunho completo.
+
+### Item 37 — Acabamento do cliente ⬜
+- **Branch:** `feat/acabamento-cliente`
+- **Fazer:** W não dispara digitando na busca do JEI/REI; botões Organizar/Sistema e o lápis como zonas de exclusão;
+  redimensionar a janela mantém a prévia do Organizar e o rótulo em edição; estado limpo ao desconectar (cadeados do
+  servidor anterior, espera do rótulo); a W só vale dentro de telas, para não aparecer em conflito com "andar para
+  frente" nos Controles; lápis do rótulo usa o baú da tela aberta, não o bloco mirado; plugin JEI/REI no NeoForge e EMI
+  quando sair para o 26.x; pendências de teste em jogo dos Itens 10.2, 10.3 e 18; GIFs do README.
+- **Pronto quando:** roteiro manual em GUI 2 e 3 com JEI e com REI, nos dois loaders.
+
+### Item 38 — Ideias novas (escolher com o Eliel antes de começar) ⬜
+- **Branch:** uma por ideia (`feat/...`); cada uma entra no enum `Feature` com liga/desliga e cadeado.
+- **Radar de armazenamento:** segurando a tecla N (ou O), destacar no mundo os baús que receberiam os itens ou que têm
+  o item da mão, antes de agir.
+- **Modo cliente discreto:** linha de progresso ("guardando 3/8"), tecla de cancelar e sem a tela do baú piscando.
+- **Rótulo privado:** opção para o holograma do nome só aparecer para quem pode abrir o baú (hoje aparece através de
+  paredes para todos a 32 blocos).
+- **Poções com quantidade:** escolher quantas poções e o mod encadeia os passos (hoje é um passo por clique).
+- **Mais recipientes como fonte:** trouxas (bundles) e mochilas de outros mods no inventário, além da shulker.
+- **Redes de armazenamento:** AE2 e Refined Storage como fonte e destino (ficou fora do Item 26).
+- **Pronto quando:** o Eliel escolher a ordem; cada ideia vira um item numerado com investigação própria.
+
 ## Como usar este roadmap
 
 1. Começar cada sessão: `git status` + `git fetch origin --prune` (regra 7 do Eliel).

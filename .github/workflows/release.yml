@@ -14,6 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # A tag tem de bater com a versão do gradle.properties; senão o release sairia com os jars da versão antiga.
+      - name: Confere a tag contra a versão do mod
+        run: |
+          version="$(grep '^version=' gradle.properties | cut -d= -f2)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::A tag $GITHUB_REF_NAME não bate com version=$version no gradle.properties"
+            exit 1
+          fi
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

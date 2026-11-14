@@ -126,7 +126,7 @@ public final class ClientPrefs {
             d.clientModeEnabled = clientModeEnabled;
             d.disabledFeatures = disabledFeatures;
             Files.createDirectories(file.getParent());
-            Files.writeString(file, GSON.toJson(d) + System.lineSeparator(), StandardCharsets.UTF_8);
+            StashLinkConfig.writeAtomically(file, GSON.toJson(d) + System.lineSeparator());
         } catch (IOException e) {
             Constants.LOG.warn("Não consegui gravar {}: {}", file, e.toString());
         }

@@ -36,6 +36,9 @@ public record OrganizeSync(int kind, List<Row> rows, boolean canApply, boolean c
     /** Teto de linhas por pacote. */
     public static final int MAX_ROWS = 256;
 
+    /** Teto de bytes de um item numa linha; acima disso vai só o tipo do item (256 linhas x 2 KiB fica longe de 1 MiB). */
+    public static final int MAX_ITEM_BYTES = 2048;
+
     /** Um item (contagem 1, só o ícone), quanto e entre quais containers ({@code *Name} = rótulo do baú, pode ser vazio). */
     public record Row(ItemStack item, int count, BlockPos from, BlockPos to, String fromName, String toName) {
     }
