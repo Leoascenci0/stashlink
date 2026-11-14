@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1 — ainda não lançada
+
+Correções da segunda revisão completa (`docs/REVISAO-1.1.md`). Nada duplicava nem sumia; eram regras com furo.
+
+- **Baú duplo aberto por outro jogador** agora é pulado por todas as funções (antes só o baú simples era).
+- Baú duplo na divisa de um terreno protegido: as duas metades precisam estar liberadas.
+- **Reabastecer a mão** não puxa mais do baú quando você só muda o item de lugar no inventário.
+- Bigorna: o item renomeado ou encantado que está no cursor ao fechar fica com você (ia para o baú).
+- Cadeado do sinalizador vale para todo tipo de pedido.
+- Organizar: baús com shulkers cheias ou livros grandes não derrubam mais a conexão ao pedir a prévia ou a busca.
+- Modo cliente: não abre baú à toa ao usar o último balde, e para se você agachar ou abrir outra tela no meio da N.
+- Shift + passar o mouse respeita os slots travados do mundo local.
+- Arquivos de config gravados de forma segura (queda no meio não corta o arquivo).
+
 ## 1.0.0 — Minecraft 26.3 (Fabric e NeoForge)
 
 Primeira versão pública. O StashLink faz o armazenamento por perto funcionar como se estivesse na sua mochila.

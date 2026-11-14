@@ -3,6 +3,7 @@ package io.github.leoascenci0.stashlink.client;
 import io.github.leoascenci0.stashlink.clientmode.Click;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
+import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -89,7 +90,11 @@ public final class HoverCollectClient {
 
     /** Slot da mochila que o jogador travou na config: esse item fica onde está. */
     private static boolean isLockedInventorySlot(Minecraft mc, Slot slot) {
-        return slot.container == mc.player.getInventory()
-                && ClientPrefs.lockedSlots.contains(slot.getContainerSlot());
+        if (slot.container != mc.player.getInventory()) {
+            return false;
+        }
+        // Mundo local: a tela de config grava os slots travados na config do mundo (stashlink.json), não nas pessoais.
+        return ClientPrefs.lockedSlots.contains(slot.getContainerSlot())
+                || (ClientCompat.isIntegratedServer(mc) && StashLinkConfig.isSlotLocked(slot.getContainerSlot()));
     }
 }

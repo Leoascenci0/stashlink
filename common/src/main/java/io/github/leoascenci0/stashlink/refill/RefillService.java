@@ -34,6 +34,9 @@ public final class RefillService {
         final HandWatcher mainHand = new HandWatcher();
         final HandWatcher offHand = new HandWatcher();
         int drops;
+        /** Quantos itens do tipo de cada mão o jogador tinha no inventário inteiro no tick anterior. */
+        int mainTotal;
+        int offTotal;
 
         PlayerState(ServerPlayer owner) {
             this.owner = owner;
@@ -85,13 +88,37 @@ public final class RefillService {
 
         ItemStack mainGone = state.mainHand.observe(inventory.getSelectedSlot(), mainNow, active);
         ItemStack offGone = state.offHand.observe(0, offNow, active);
+        int mainTotalBefore = state.mainTotal;
+        int offTotalBefore = state.offTotal;
 
-        if (!mainGone.isEmpty() && !RefillLogic.movedToOtherHand(mainGone, offBefore, offNow)) {
+        // Mão vazia com o item ainda todo no inventário = o jogador só mudou o item de lugar (shift-clique ou tecla
+        // numérica com a própria mochila aberta, que o servidor não distingue de "sem tela"). Não é esgotamento.
+        if (!mainGone.isEmpty() && !RefillLogic.movedToOtherHand(mainGone, offBefore, offNow)
+                && countOf(inventory, mainGone) < mainTotalBefore) {
             refillHand(player, InteractionHand.MAIN_HAND, mainGone);
         }
-        if (!offGone.isEmpty() && !RefillLogic.movedToOtherHand(offGone, mainBefore, mainNow)) {
+        if (!offGone.isEmpty() && !RefillLogic.movedToOtherHand(offGone, mainBefore, mainNow)
+                && countOf(inventory, offGone) < offTotalBefore) {
             refillHand(player, InteractionHand.OFF_HAND, offGone);
         }
+        // Conta depois do reabastecimento: é o ponto de partida do próximo tick.
+        state.mainTotal = countOf(inventory, player.getItemInHand(InteractionHand.MAIN_HAND));
+        state.offTotal = countOf(inventory, player.getItemInHand(InteractionHand.OFF_HAND));
+    }
+
+    /** Quantos itens deste tipo há no inventário inteiro (mochila, hotbar, armadura e mão secundária). */
+    private static int countOf(Inventory inventory, ItemStack model) {
+        if (model.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (ItemStack.isSameItem(stack, model)) {
+                total += stack.getCount();
+            }
+        }
+        return total;
     }
 
     private static void refillHand(ServerPlayer player, InteractionHand hand, ItemStack lastSeen) {

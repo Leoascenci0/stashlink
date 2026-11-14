@@ -265,7 +265,40 @@ const ITEMS = [
 ,
   {n:22, phase:"Release", t:"Release 1.0 (publicação)", b:"chore/publicar-1.0", f:[], s:"wip",
    do:["Ordem nova (Eliel, 2026-10-05): só fecha depois dos Itens 23–26 (o 26 é a compatibilidade com armazenamento de outros mods)","Itens 13–21 e 15 mesclados (2026-10-05)","Feito: CHANGELOG 1.0.0 completo, README, versão 1.0.0, descrição do mod e textos da loja, ícone, nome e revisão em docs/publicacao/","Revisão completa feita (docs/REVISAO-1.0.md): 1 perda de item, 1 dupe, 3 cadeados contornáveis e outros 9 ajustes corrigidos com teste; 171 GameTests verdes","Publicar sem testes em jogo pendentes e sem GIFs (decisão do Eliel, 2026-10-06): ícone novo recortado do banner, banner no README e nas lojas, ilustrações na galeria com legenda em inglês e português","Release no GitHub publicado (2026-10-06): tag v1.0.0, workflow funcionou na primeira vez, um jar por loader","Achado: .gitattributes corrompia .jpg (eol=lf); agora jpg, webp e nbt são binários","Modrinth enviado para revisão (2026-10-06): modrinth.com/mod/stashlink, versões 1.0.0+fabric e 1.0.0+neoforge, galeria com legendas em inglês e português, aviso de IA marcado","Falta: aprovação do Modrinth e a CurseForge (formulário falha no logo: 'id must be a string')","GIFs reais ficam para depois da 1.0 (roteiro em docs/publicacao/roteiro-gifs.md)"],
-   ok:"Versão 1.0 publicada e baixável para cada loader."}
+   ok:"Versão 1.0 publicada e baixável para cada loader."},
+  {n:28, phase:"Depois da 1.0", t:"Segunda revisão completa e correções pequenas", b:"claude/serene-curie-13bx0r", f:[], s:"done",
+   do:["Seis áreas revisadas (docs/REVISAO-1.1.md): nenhum dupe, perda de item ou queda de servidor","Baú duplo aberto por outro jogador agora é detectado (a regra só funcionava no baú simples)","Permissão de terreno confere as duas metades do baú duplo","Reabastecer a mão não dispara mais ao só mover o item no inventário","Cadeado do sinalizador vale para o pedido de cursor; resultado da bigorna no cursor fica com o jogador","Prévia e busca do Organizar não estouram mais o pacote com shulkers cheias ou livros grandes","Configs gravadas de forma segura; modo cliente não abre baú à toa nem usa o item da mão se o jogador agachar","Release confere a tag contra a versão; CI guarda os relatórios quando falha"],
+   ok:"211 GameTests no Fabric (7 novos) e 220 unitários verdes; desfeitas as correções, os 5 testes correspondentes falham."},
+  {n:29, phase:"Depois da 1.0", t:"Release 1.0.1 (correções da revisão)", b:"chore/release-1.0.1", f:[], s:"todo",
+   do:["Subir a versão para 1.0.1 e fechar a seção 1.0.1 do CHANGELOG","Tag v1.0.1 (o workflow recusa tag diferente da versão)","Enviar os dois jars ao Modrinth e ao CurseForge"],
+   ok:"Release 1.0.1 no GitHub e no Modrinth, com um jar por loader."},
+  {n:30, phase:"Depois da 1.0", t:"Modo cliente seguro em servidores de terceiros", b:"fix/modo-cliente-seguro", f:["F5","F14"], s:"todo",
+   do:["W e Shift + passar só agem em tela aberta a partir de baú, barril ou shulker do mundo (lojas e kits são telas de baú: hoje a W clicaria em tudo)","Só abrir container com linha de visão livre","Cliques por tick configuráveis, padrão mais baixo e perfil para servidor com anticheat","Decidir se baú com armadilha entra","Aviso quando o servidor recusar cliques seguidos"],
+   ok:"Teste da regra da tela; em servidor com plugin de loja, W e Shift + passar não fazem nada na loja; roteiro em Realms."},
+  {n:31, phase:"Depois da 1.0", t:"Caderno das bancadas à prova de morte, queda e dimensão", b:"fix/caderno-bancadas", f:["F10"], s:"todo",
+   do:["GameTests de morrer e trocar de dimensão com a estação aberta","Caderno por pilha (item + componentes) em todos os caminhos: o livro encantado emprestado volta ao baú","Diário gravado no mundo: devolve o emprestado se o servidor cair","Anti-flood também nos pedidos de cursor e pôr no slot","Pôr no slot usa o mesmo filtro do cursor"],
+   ok:"Fuzz das bancadas com itens encantados, morte e dimensão, soma conferida a cada ação; mutação pega."},
+  {n:32, phase:"Depois da 1.0", t:"Slots travados e reservas valendo em todas as funções", b:"fix/travas-em-todas-as-funcoes", f:["F7","F12","F13"], s:"todo",
+   do:["Slots travados do jogador também no botão do meio, no Litematica e nas devoluções à mochila","Conferir e barrar shift-clique que completa pilha em slot reservado para outro item","Organizar: Aplicar e Desfazer reconferem travas e filtros criados depois da prévia"],
+   ok:"GameTest por caminho; reserva criada entre a prévia e o Aplicar invalida o plano."},
+  {n:33, phase:"Depois da 1.0", t:"Uma guarda só para todos os pedidos ao servidor", b:"refactor/guarda-de-pedidos", f:["F6"], s:"todo",
+   do:["Um ajudante no lugar da validação copiada em nove serviços","Anti-flood antes do aviso de função trancada; aviso com intervalo por jogador","Mesma regra de operador na tela e no comando","Cadeados enviados ao entrar, renascer e trocar de dimensão","Pedido da bancada por índice da lista, não por item vindo do cliente"],
+   ok:"GameTest de rajada por tipo de pedido com função trancada; nenhuma validação fora do ajudante."},
+  {n:34, phase:"Depois da 1.0", t:"Dados gravados que sobrevivem a mods removidos", b:"fix/dados-gravados", f:["F7","F8"], s:"todo",
+   do:["Travas de slot com leitura tolerante (um item que sumiu não apaga as outras)","Rótulo na shulker mesclado aos outros dados do item","Aviso ao unir baús com rótulos diferentes","Teto de rótulos de baú do End por jogador","Ordem do criativo sem mexer em lista compartilhada com o cliente","Fonte de outro mod que lança erro no meio não perde o que já saiu"],
+   ok:"Teste de carga com item desconhecido; GameTest de shulker com dados de outro mod."},
+  {n:35, phase:"Depois da 1.0", t:"Desempenho: uma varredura por tick e Organizar mais leve", b:"perf/varredura-compartilhada", f:["F3","F13"], s:"todo",
+   do:["Medir antes: prévia do Organizar com centenas de tipos, várias funções no mesmo tick, bancada aberta","Só se o número mostrar: varredura guardada por jogador durante o tick, mapa de itens por baú, plano sobre cópia"],
+   ok:"Números antes e depois no PR, sem mudar nenhuma validação."},
+  {n:36, phase:"Depois da 1.0", t:"CI e release mais firmes", b:"chore/ci-release", f:[], s:"todo",
+   do:["GameTests do NeoForge no CI","Teste automático de idioma (chaves iguais, toda função com texto e dica)","Checagem de ROADMAP.md contra roadmap.html","Release sem depender de baixar mods de teste; notas só da versão","Publicar no Modrinth pelo workflow (token digitado pelo Eliel)"],
+   ok:"CI verde com os dois loaders e uma tag de teste gerando o rascunho completo."},
+  {n:37, phase:"Depois da 1.0", t:"Acabamento do cliente", b:"feat/acabamento-cliente", f:["F5","F8","F13"], s:"todo",
+   do:["W não dispara digitando na busca do JEI/REI","Botões Organizar/Sistema e lápis como zonas de exclusão","Redimensionar mantém a prévia do Organizar e o rótulo em edição","Estado limpo ao desconectar","Plugin JEI/REI no NeoForge; EMI quando sair para o 26.x","Testes em jogo pendentes (modo cliente, troca do Litematica) e GIFs do README"],
+   ok:"Roteiro manual em GUI 2 e 3 com JEI e REI, nos dois loaders."},
+  {n:38, phase:"Depois da 1.0", t:"Ideias novas (escolher com o Eliel)", b:"feat/...", f:[], s:"todo",
+   do:["Radar de armazenamento: destacar os baús que receberiam os itens antes de apertar N","Modo cliente discreto: progresso, cancelar e sem tela piscando","Rótulo privado: holograma só para quem pode abrir o baú","Poções com quantidade: o mod encadeia os passos","Trouxas e mochilas de outros mods como fonte","Redes AE2 e Refined Storage"],
+   ok:"O Eliel escolhe a ordem; cada ideia vira um item numerado com investigação própria."}
 ];
 const RISKS = [
   ["Duplicar ou perder item em corrida","Simular a operação antes de aplicar; testes automáticos","5"],
@@ -274,7 +307,9 @@ const RISKS = [
   ["API do Litematica muda entre versões","Compatibilidade isolada e versão de teste fixa","7"],
   ["Tecla W conflita com andar","Só dentro de telas de container, tecla configurável","9"],
   ["Formato de item muda entre versões do jogo","Uma única camada de acesso ao conteúdo da shulker","2"],
-  ["Baú de outro mod com regras próprias (gavetas, upgrades)","Só pela API padrão do loader, sempre simulando antes; teste com bloco de teste e mod real","26"]
+  ["Baú de outro mod com regras próprias (gavetas, upgrades)","Só pela API padrão do loader, sempre simulando antes; teste com bloco de teste e mod real","26"],
+  ["Tela de loja ou kit confundida com baú no modo cliente","Só agir em tela aberta a partir de bloco de armazenamento","30"],
+  ["Item emprestado na bancada quando o servidor cai","Diário gravado no mundo, devolvido ao iniciar","31"]
 ];
 const PILL = {todo:"A fazer", wip:"Em andamento", done:"Concluído"};
 let filter = null;

@@ -16,6 +16,7 @@
       "io.github.leoascenci0.stashlink.gametest.PickBlockGameTests",
       "io.github.leoascenci0.stashlink.gametest.OrganizeGameTests",
       "io.github.leoascenci0.stashlink.gametest.ReviewGameTests",
+      "io.github.leoascenci0.stashlink.gametest.Review2GameTests",
       "io.github.leoascenci0.stashlink.gametest.BackpackBenchGameTests",
       "io.github.leoascenci0.stashlink.gametest.ModStorageGameTests",
       "io.github.leoascenci0.stashlink.gametest.StorageDrawersGameTests"

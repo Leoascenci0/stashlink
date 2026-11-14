@@ -103,7 +103,7 @@ public final class BenchPullService {
         menu.setCarried(model.copyWithCount(carried.getCount() + taken.total()));
         menu.broadcastChanges();
         if (taken.storage() > 0) {
-            BenchLedger.record(player, Map.of(model.getItem(), taken.storage()), pool.origin());
+            BenchLedger.record(player, model, taken.storage(), pool.origin());
         }
         BenchSync.markDirty(player);
     }

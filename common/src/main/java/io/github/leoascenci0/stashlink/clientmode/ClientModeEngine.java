@@ -178,7 +178,9 @@ public final class ClientModeEngine {
         ItemStack offNow = ClientCompat.offHand(player);
         ItemStack gone = mainWatcher.observe(ClientCompat.selectedSlot(player), mainNow, allowed);
         offWatcher.observe(0, offNow, false);
-        if (gone.isEmpty() || RefillLogic.movedToOtherHand(gone, offBefore, offNow)) {
+        // Mão com o recipiente vazio (balde, tigela, garrafa): o modo cliente só repõe com a mão vazia, então abrir
+        // um baú aqui seria só um pisca-pisca de tela a cada balde usado.
+        if (gone.isEmpty() || !mainNow.isEmpty() || RefillLogic.movedToOtherHand(gone, offBefore, offNow)) {
             return ItemStack.EMPTY;
         }
         return gone;
