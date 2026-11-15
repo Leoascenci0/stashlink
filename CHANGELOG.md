@@ -10,7 +10,7 @@ Bancadas: o que veio dos baús nunca se perde nem fica com você por engano (Ite
   mochila). Um item seu do mesmo tipo nunca é levado ao baú por engano.
 - **Se o servidor cair** com a bancada aberta, o que estava emprestado na grade e na mão volta ao baú quando você entrar
   de novo (o mundo guarda um diário disso).
-- Sair do jogo com a grade cheia e o baú lotado não leva mais itens seus ao baú.
+- Sair do jogo com a grade da bancada cheia não leva mais ao baú itens seus do mesmo tipo.
 - Pedidos do painel ao cursor e "pôr no slot" com intervalo mínimo (protege o servidor de rajadas), e "pôr no slot" só
   aceita o que o painel mostraria.
 
