@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -50,7 +51,7 @@ public final class QuickStackJob implements Job {
         }
         List<Click> clicks = new ArrayList<>();
         for (int slot : slots) {
-            if (clicks.size() >= ClientModeEngine.CLICKS_PER_TICK) {
+            if (clicks.size() >= ClientPrefs.clickPace.clicksPerTick()) {
                 break;
             }
             tried.add(slot);

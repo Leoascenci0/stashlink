@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.clientmode;
 
 import io.github.leoascenci0.stashlink.quickstack.ItemCategory;
 import io.github.leoascenci0.stashlink.client.ClientFeatures;
+import io.github.leoascenci0.stashlink.client.ClientMode;
 import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
@@ -31,8 +32,6 @@ import java.util.function.IntPredicate;
  * ignora (nada de empilhar pedidos).
  */
 public final class ClientModeEngine {
-    /** Cliques por tick dentro de um container (poucos: não parecer uma rajada de pacotes). */
-    public static final int CLICKS_PER_TICK = 5;
     /** Máximo de containers abertos por aperto da N. */
     static final int MAX_CONTAINERS_QUICK_STACK = 8;
     /** Máximo de containers abertos para reabastecer a mão (cada um é visível na tela: não varrer o mundo). */
@@ -46,6 +45,10 @@ public final class ClientModeEngine {
     private static final Map<Long, Long> FAILED_UNTIL = new HashMap<>();
 
     private static ContainerSession session;
+    // Modo seguro: de onde veio a tela aberta (ver ScreenOrigin).
+    private static ScreenOrigin origin = new ScreenOrigin();
+    private static AbstractContainerMenu seenMenu;
+    private static AbstractContainerMenu trustedMenu;
     private static ClientLevel level;
     // Reabastecer a mão: vigias das duas mãos (a mão secundária só serve para detectar a troca com F).
     private static HandWatcher mainWatcher = new HandWatcher();
@@ -84,6 +87,8 @@ public final class ClientModeEngine {
         if (player == null) {
             return;
         }
+        // Antes da sessão: ela pergunta "esta tela é confiável?" e precisa que o menu novo já tenha sido visto.
+        trackMenu(mc, player);
         // O vigia roda todo tick (mesmo com sessão em andamento) para sempre saber o que havia na mão.
         ItemStack exhausted = watchHands(mc, player);
         if (session != null) {
@@ -111,6 +116,52 @@ public final class ClientModeEngine {
         FAILED_UNTIL.clear();
         learnMenu = null;
         learnKeys = null;
+        origin = new ScreenOrigin();
+        seenMenu = null;
+        trustedMenu = null;
+    }
+
+    // ------------------------------------------------------------------ de onde veio a tela (modo seguro)
+
+    /** O jogador (ou o mod, que passa pelo mesmo caminho) usou o bloco {@code pos}: anota se ele guarda coisas. */
+    public static void onBlockUsed(BlockPos pos) {
+        ClientLevel lvl = Minecraft.getInstance().level;
+        if (lvl != null) {
+            origin.blockUsed(lvl.getGameTime(), ClientContainers.storageSlotsAt(lvl, pos));
+        }
+    }
+
+    /** Clicou numa entidade (lojas de NPC abrem assim): nenhuma tela seguinte vem de bloco. */
+    public static void onEntityUsed() {
+        origin.entityUsed();
+    }
+
+    /** Esta é a tela que abriu a partir de um bloco de armazenamento (e já foi vista pelo tick)? */
+    public static boolean isTrustedMenu(AbstractContainerMenu menu) {
+        return menu != null && menu == trustedMenu;
+    }
+
+    /**
+     * Uma vez por tick: se apareceu um menu novo, pergunta ao {@link ScreenOrigin} se veio de um bloco de
+     * armazenamento. O veredito fica guardado para este menu; sem veredito (ainda não visto), ninguém confia.
+     */
+    private static void trackMenu(Minecraft mc, LocalPlayer player) {
+        AbstractContainerMenu menu = ClientCompat.menu(player);
+        if (menu == seenMenu) {
+            return;
+        }
+        seenMenu = menu;
+        if (menu == ClientCompat.inventoryMenu(player) || mc.level == null) {
+            trustedMenu = null;
+            return;
+        }
+        int containerSlots = 0;
+        for (MenuEntry e : MenuSnapshot.of(menu, player.getInventory())) {
+            if (!e.isPlayerSlot()) {
+                containerSlots++;
+            }
+        }
+        trustedMenu = origin.menuOpened(mc.level.getGameTime(), containerSlots) ? menu : null;
     }
 
     // ------------------------------------------------------------------ teclas
@@ -152,6 +203,12 @@ public final class ClientModeEngine {
         }
         AbstractContainerMenu menu = ClientCompat.screenMenu(mc);
         if (menu == null || menu != ClientCompat.menu(mc.player) || !LootAllService.isSupportedMenu(menu)) {
+            return;
+        }
+        if (!ClientMode.screenAllowed(menu)) {
+            // Loja ou kit de plugin com cara de baú: a W clicaria em tudo. Não age e diz por quê.
+            say(mc, Component.translatableWithFallback("stashlink.client_mode.not_storage",
+                    "This screen is not from a chest in the world: W does nothing here (safe client mode)"));
             return;
         }
         session = ContainerSession.attached(mc, new PullJob(lockedPredicate(), !ClientPrefs.lockedSlots.isEmpty(), CACHE));

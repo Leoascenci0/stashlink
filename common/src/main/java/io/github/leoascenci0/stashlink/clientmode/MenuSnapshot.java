@@ -39,4 +39,20 @@ public final class MenuSnapshot {
         }
         return out;
     }
+
+    /**
+     * "Impressão digital" do menu: um número que muda quando qualquer slot (item, componentes ou quantidade) ou o
+     * cursor muda. Serve para o {@link ClickRefusals} perceber que o servidor desfez os nossos cliques.
+     */
+    public static int fingerprint(AbstractContainerMenu menu) {
+        int h = 1;
+        for (Slot slot : menu.slots) {
+            h = 31 * h + stackHash(slot.getItem());
+        }
+        return 31 * h + stackHash(menu.getCarried());
+    }
+
+    private static int stackHash(ItemStack stack) {
+        return stack.isEmpty() ? 0 : 31 * ItemStack.hashItemAndComponents(stack) + stack.getCount();
+    }
 }

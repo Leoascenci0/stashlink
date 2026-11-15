@@ -5,7 +5,7 @@ package io.github.leoascenci0.stashlink.client;
  * shift-clique. Não conhece o Minecraft (só números), para poder ser testada sem abrir o jogo.
  *
  * <p>Regras: um clique por passagem (só quando o mouse <i>entra</i> num slot diferente do anterior; ficar parado em
- * cima não repete); no máximo {@link #MAX_CLICKS_PER_TICK} cliques por tick; e depois de {@link #MAX_FAILURES}
+ * cima não repete); no máximo {@link #MAX_CLICKS_PER_TICK} cliques por tick (ou o teto dado); e depois de {@link #MAX_FAILURES}
  * cliques seguidos que não moveram nada (destino cheio) para até soltar o Shift.
  */
 public final class HoverCollectPass {
@@ -17,8 +17,12 @@ public final class HoverCollectPass {
     private int clicksThisTick;
     private int failures;
 
-    /** O mouse está sobre {@code slot} (-1 = fora de qualquer slot) neste {@code tick}. Pode clicar agora? */
-    public boolean shouldClick(int slot, long currentTick) {
+    /**
+     * O mouse está sobre {@code slot} (-1 = fora de qualquer slot) neste {@code tick}. Pode clicar agora?
+     *
+     * @param maxPerTick teto de cliques neste tick (o ritmo escolhido pelo jogador no modo cliente)
+     */
+    public boolean shouldClick(int slot, long currentTick, int maxPerTick) {
         if (slot != lastSlot) {
             lastSlot = slot;
             if (slot < 0) {
@@ -28,7 +32,7 @@ public final class HoverCollectPass {
                 tick = currentTick;
                 clicksThisTick = 0;
             }
-            if (failures >= MAX_FAILURES || clicksThisTick >= MAX_CLICKS_PER_TICK) {
+            if (failures >= MAX_FAILURES || clicksThisTick >= maxPerTick) {
                 return false;
             }
             clicksThisTick++;

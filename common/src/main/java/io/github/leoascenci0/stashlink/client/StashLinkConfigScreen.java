@@ -282,6 +282,16 @@ public class StashLinkConfigScreen extends Screen {
                 rebuildWidgets();
             }).bounds(x, y, WIDTH, 20).build());
             y += ROW;
+            // Ritmo dos cliques (só vale no modo cliente, por isso fica junto do botão dele): cada clique troca para o
+            // próximo (rápido, normal, anticheat). Grava ao sair da tela, como o resto.
+            Button pace = Button.builder(clickPaceLabel(), b -> {
+                ClientPrefs.clickPace = ClientPrefs.clickPace.next();
+                b.setMessage(clickPaceLabel());
+            }).bounds(x, y, WIDTH, 20).build();
+            pace.setTooltip(Tooltip.create(Component.translatableWithFallback("stashlink.config.click_pace.tip",
+                    "How fast client mode clicks. On a server with an anticheat, use the slowest option")));
+            addRenderableWidget(pace);
+            y += ROW;
             if (clientModeActive) {
                 infoY = y;
                 y += 12;
@@ -395,6 +405,12 @@ public class StashLinkConfigScreen extends Screen {
         if (!noWorld) {
             ClientPrefs.sync();
         }
+    }
+
+    private Component clickPaceLabel() {
+        String id = ClientPrefs.clickPace.id();
+        return Component.translatableWithFallback("stashlink.config.click_pace", "Click pace: %s",
+                Component.translatable("stashlink.config.click_pace." + id));
     }
 
     private Component clientModeLabel() {

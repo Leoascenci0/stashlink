@@ -1,5 +1,6 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -59,7 +60,7 @@ public final class PullJob implements Job {
                 continue; // não cabe: nem gasta clique
             }
             clicks.addAll(plan);
-            if (anyLocked || clicks.size() >= ClientModeEngine.CLICKS_PER_TICK) {
+            if (anyLocked || clicks.size() >= ClientPrefs.clickPace.clicksPerTick()) {
                 break;
             }
         }

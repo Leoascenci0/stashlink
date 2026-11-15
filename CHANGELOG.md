@@ -1,5 +1,16 @@
 # Changelog
 
+## Não lançado
+
+Modo cliente (servidor sem o mod) mais seguro em servidores de terceiros (Item 30).
+
+- **Modo cliente seguro** (opção nova, ligada): a W e o Shift + passar o mouse só agem em telas abertas a partir de um
+  baú, barril, shulker ou baú do End do mundo. Em lojas e kits com cara de baú não clicam em nada.
+- O mod só abre baús que você enxerga (sem parede no caminho).
+- **Ritmo dos cliques** na tela de config: Rápido, Normal (novo padrão, mais lento que antes) e Servidor com anticheat.
+- **Não abrir baús com armadilha** (opção nova, ligada): a N e o reabastecimento pulam esses baús.
+- Se o servidor recusar os cliques duas vezes seguidas, o mod para e avisa.
+
 ## 1.0.1 — Minecraft 26.3 (Fabric e NeoForge), 2026-11-14
 
 Correções da segunda revisão completa (`docs/REVISAO-1.1.md`). Nada duplicava nem sumia; eram regras com furo.

@@ -14,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -118,14 +119,46 @@ public final class ClientCompat {
     }
 
     /**
+     * Linha de visão até o bloco: lança raios do olho do jogador até o centro do bloco e até o centro deslocado 0,3
+     * em cada eixo (7 pontos, todos dentro da forma de um baú) e devolve o primeiro que <b>acerta o próprio bloco</b>
+     * (com o ponto e a face reais do raio), ou {@code null} se há parede no caminho em todos. É o "enxergo o baú?"
+     * do modo cliente seguro: um jogador de verdade não abre baú atrás de parede.
+     */
+    public static BlockHitResult sightHit(Player player, BlockPos pos) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 center = Vec3.atCenterOf(pos);
+        double d = 0.3;
+        Vec3[] targets = {
+                center,
+                center.add(d, 0, 0), center.add(-d, 0, 0),
+                center.add(0, d, 0), center.add(0, -d, 0),
+                center.add(0, 0, d), center.add(0, 0, -d)
+        };
+        for (Vec3 target : targets) {
+            BlockHitResult hit = player.level().clip(new ClipContext(eye, target, ClipContext.Block.OUTLINE,
+                    ClipContext.Fluid.NONE, player));
+            if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pos)) {
+                return hit;
+            }
+        }
+        return null;
+    }
+
+    /**
      * "Clica com o botão direito" no bloco, como um jogador: manda o pacote de uso de bloco pelo
-     * {@code MultiPlayerGameMode}. O ponto de clique é o centro da face voltada para o jogador (o servidor
+     * {@code MultiPlayerGameMode}. Com o bloco à vista usa o ponto e a face reais do raio ({@link #sightHit}), o que
+     * é igual ao que um jogador mandaria; sem visão cai no centro da face voltada para o jogador (o servidor
      * confere que o ponto está dentro do bloco e que o jogador alcança). Se o bloco for um container que
      * abre, o servidor responde abrindo o menu.
      */
     public static void useBlock(Minecraft mc, BlockPos pos) {
         LocalPlayer player = mc.player;
         if (player == null || mc.gameMode == null) {
+            return;
+        }
+        BlockHitResult sight = sightHit(player, pos);
+        if (sight != null) {
+            mc.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, sight);
             return;
         }
         Vec3 center = Vec3.atCenterOf(pos);
