@@ -874,8 +874,30 @@ sugerida (do que protege o jogador para o que é conforto); cada item continua s
   Modrinth (e ao CurseForge, se o envio do PR #60 já tiver sido aprovado).
 - **Pronto quando:** release 1.0.1 no GitHub e no Modrinth, com um jar por loader.
 
-### Item 30 — Modo cliente seguro em servidores de terceiros ⬜
+### Item 30 — Modo cliente seguro em servidores de terceiros ✅
 - **Branch:** `fix/modo-cliente-seguro`
+- **Feito (2026-11-15):** opção nova **Modo cliente seguro** (`client_safe`, ligada por padrão). (1) A W e o Shift +
+  passar só agem se a tela abriu logo depois de o jogador usar um baú, barril, shulker ou baú do End que o cliente vê
+  no mundo, e com o tamanho que aquele bloco abre (27 ou 54 slots). Loja por comando, NPC, página 2 de loja ou tela de
+  outro tamanho: nada acontece, e a W avisa por quê. A regra é `clientmode/ScreenOrigin` (pura), alimentada por um
+  mixin de cliente que anota cada "usar bloco" e "usar entidade". (2) O mod só abre baú com linha de visão livre
+  (`ClientCompat.sightHit`, 7 raios do olho até o bloco) e clica no ponto e na face reais do raio. (3) Ritmo dos
+  cliques na tela de config (`clientmode/ClickPace`): Rápido (5 por tick, o de antes), **Normal (3, novo padrão)** e
+  Servidor com anticheat (1 por tick e pausa dobrada entre baús); no Shift + passar, 4, 2 e 1. (4) Baú com armadilha:
+  opção **Não abrir baús com armadilha** (`client_skip_trapped`, ligada por padrão; vale para o que o mod abre sozinho,
+  N e reabastecer). **Padrão a confirmar com o Eliel.** (5) `clientmode/ClickRefusals`: se o menu volta duas vezes
+  seguidas ao estado de antes dos cliques, o mod para e avisa "O servidor recusou os cliques".
+- **Testes:** unitários novos `ScreenOriginTest` (10), `ClickRefusalsTest`, `ClickPaceTest` e um caso a mais no
+  `HoverCollectPassTest`. Nesta sessão o Gradle não baixou as dependências; o `common` foi compilado e os 241 unitários
+  rodaram com `javac` + JUnit direto contra o jar do jogo. Fabric, NeoForge e GameTests ficam por conta do CI do PR.
+- **Sem teste em jogo (falta para fechar o "Pronto quando"):** (a) servidor Paper com plugin de loja: abrir a loja por
+  comando e por NPC, apertar W e arrastar com Shift: nada é clicado e a W mostra o aviso; (b) Realms: abrir baú simples,
+  duplo, barril, shulker e baú do End à mão e usar W e Shift + passar (têm de funcionar); N com um baú atrás de uma
+  parede (é pulado) e com baú com armadilha (pulado); trocar o ritmo e conferir a velocidade; (c) baú só de leitura
+  (plugin de proteção): a W para com o aviso de recusa.
+- **Limites aceitos:** carrinho e barco com baú (abrem por entidade) deixam de aceitar W no modo cliente seguro; baú de
+  outro mod com tamanho diferente de 27/54 também; plugin que abre uma tela de 27/54 slots quando se clica num baú de
+  verdade (caixas de recompensa) ainda passa. Desligar a opção volta ao comportamento antigo.
 - **Por quê:** em servidor sem o mod, a W e o Shift + passar aceitam qualquer tela com cara de baú. Lojas e kits de
   servidores (Paper/Spigot) são telas de baú: a W clicaria em tudo (comprar ou resgatar tudo). No servidor com o mod isso
   já foi fechado (Item 23); no cliente falta.

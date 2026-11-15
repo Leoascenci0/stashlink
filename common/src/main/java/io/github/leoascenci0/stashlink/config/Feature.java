@@ -63,7 +63,11 @@ public enum Feature {
     /** Suporte de poções: lista as poções possíveis e monta o próximo passo com um clique (Item 16.3). */
     BENCH_BREWING("bench_brewing"),
     /** Baús e gavetas de outros mods (Sophisticated Storage, gavetas…) entram no armazenamento por perto (Item 26). */
-    MOD_STORAGE("mod_storage");
+    MOD_STORAGE("mod_storage"),
+    /** Modo cliente seguro: W e Shift + passar o mouse só agem em telas de bloco de armazenamento; só abre o que se enxerga. */
+    CLIENT_SAFE("client_safe"),
+    /** Modo cliente: a N e o reabastecimento não abrem baús com armadilha (abrir dispara redstone). */
+    CLIENT_SKIP_TRAPPED("client_skip_trapped");
 
     public static final int ALL_MASK = (1 << values().length) - 1;
 

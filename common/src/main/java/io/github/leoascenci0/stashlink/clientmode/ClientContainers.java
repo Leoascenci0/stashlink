@@ -1,6 +1,8 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
+import io.github.leoascenci0.stashlink.client.ClientFeatures;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -9,6 +11,8 @@ import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.EnderChestBlockEntity;
+import net.minecraft.world.level.block.entity.TrappedChestBlockEntity;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
@@ -50,6 +54,9 @@ public final class ClientContainers {
         BlockPos center = player.blockPosition();
         double capSq = maxDistance > 0 ? maxDistance * maxDistance : Double.MAX_VALUE;
         Set<BlockPos> seenHalves = new HashSet<>();
+        // Modo seguro: só mexe no que o jogador enxerga. Baú com armadilha: abrir dispara redstone, então pulamos.
+        boolean needSight = ClientFeatures.enabled(Feature.CLIENT_SAFE);
+        boolean skipTrapped = ClientFeatures.enabled(Feature.CLIENT_SKIP_TRAPPED);
         for (int cx = (center.getX() - scan) >> 4; cx <= (center.getX() + scan) >> 4; cx++) {
             for (int cz = (center.getZ() - scan) >> 4; cz <= (center.getZ() + scan) >> 4; cz++) {
                 LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
@@ -62,8 +69,11 @@ public final class ClientContainers {
                     }
                     BlockPos pos = be.getBlockPos();
                     if (be instanceof ShulkerBoxBlockEntity || (includeChests && be instanceof BarrelBlockEntity)) {
-                        add(out, player, pos, null, capSq);
+                        add(out, player, pos, null, capSq, needSight);
                     } else if (includeChests && be instanceof ChestBlockEntity chest) {
+                        if (skipTrapped && be instanceof TrappedChestBlockEntity) {
+                            continue;
+                        }
                         BlockPos other = otherHalf(chest.getBlockState(), pos);
                         if (seenHalves.contains(pos)) {
                             continue;
@@ -76,7 +86,7 @@ public final class ClientContainers {
                             seenHalves.add(pos);
                             seenHalves.add(other);
                         }
-                        add(out, player, pos, other, capSq);
+                        add(out, player, pos, other, capSq, needSight);
                     }
                 }
             }
@@ -100,6 +110,22 @@ public final class ClientContainers {
         return null;
     }
 
+    /**
+     * Quantos slots tem a tela que este bloco abre quando usado: 27 (baú simples, com armadilha, barril, shulker,
+     * baú do End), 54 (baú duplo) ou 0 (não é armazenamento: nada que o modo seguro deva confiar). Não muda o
+     * contrato de {@link #keysAt}, que devolve {@code null} para o baú do End por causa do cache.
+     */
+    public static int storageSlotsAt(ClientLevel level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof ShulkerBoxBlockEntity || be instanceof BarrelBlockEntity || be instanceof EnderChestBlockEntity) {
+            return 27;
+        }
+        if (be instanceof ChestBlockEntity chest) {
+            return otherHalf(chest.getBlockState(), pos) == null ? 27 : 54;
+        }
+        return 0;
+    }
+
     /** Posição da outra metade se for baú duplo, senão {@code null}. */
     private static BlockPos otherHalf(BlockState state, BlockPos pos) {
         if (state.getBlock() instanceof ChestBlock && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
@@ -108,10 +134,15 @@ public final class ClientContainers {
         return null;
     }
 
-    /** Aceita o container se alguma metade está ao alcance; a metade ao alcance mais perto é onde clicamos. */
-    private static void add(List<Candidate> out, LocalPlayer player, BlockPos pos, BlockPos other, double capSq) {
+    /**
+     * Aceita o container se alguma metade está ao alcance (e, no modo seguro, à vista); a metade válida mais perto é
+     * onde clicamos.
+     */
+    private static void add(List<Candidate> out, LocalPlayer player, BlockPos pos, BlockPos other, double capSq,
+                            boolean needSight) {
         double d1 = player.distanceToSqr(Vec3.atCenterOf(pos));
-        boolean ok1 = d1 <= capSq && ClientCompat.withinReach(player, pos);
+        boolean ok1 = d1 <= capSq && ClientCompat.withinReach(player, pos)
+                && (!needSight || ClientCompat.sightHit(player, pos) != null);
         if (other == null) {
             if (ok1) {
                 out.add(new Candidate(pos, null, d1));
@@ -119,7 +150,8 @@ public final class ClientContainers {
             return;
         }
         double d2 = player.distanceToSqr(Vec3.atCenterOf(other));
-        boolean ok2 = d2 <= capSq && ClientCompat.withinReach(player, other);
+        boolean ok2 = d2 <= capSq && ClientCompat.withinReach(player, other)
+                && (!needSight || ClientCompat.sightHit(player, other) != null);
         if (ok1 && (!ok2 || d1 <= d2)) {
             out.add(new Candidate(pos, other, d1));
         } else if (ok2) {

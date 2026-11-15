@@ -1,12 +1,15 @@
 package io.github.leoascenci0.stashlink.client;
 
+import io.github.leoascenci0.stashlink.clientmode.ClickRefusals;
 import io.github.leoascenci0.stashlink.clientmode.Click;
+import io.github.leoascenci0.stashlink.clientmode.MenuSnapshot;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +21,12 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class HoverCollectClient {
     private static final HoverCollectPass PASS = new HoverCollectPass();
+    /** Modo cliente: percebe o servidor desfazendo os nossos cliques (anticheat). Zera ao soltar o botão/Shift. */
+    private static final ClickRefusals REFUSALS = new ClickRefusals();
+    /** Último tick do jogo em que olhamos o menu (a tela desenha várias vezes por tick; a conta é por tick). */
+    private static long lastObserveTick = Long.MIN_VALUE;
+    /** O servidor recusou cliques demais: para de clicar até soltar o botão/Shift. */
+    private static boolean refusedStop;
     /** O botão esquerdo está apertado (avisado pelo mixin da tela)? */
     private static boolean leftDown;
     /** Quando (ms) o jogo entregou o último "arrastou com o botão apertado"; sem isso o botão não está de fato apertado. */
@@ -47,10 +56,24 @@ public final class HoverCollectClient {
     /** Chamado a cada quadro da tela de container, com o slot sob o mouse (ou {@code null}). */
     public static void onHover(Minecraft mc, AbstractContainerScreen<?> screen, Slot hovered) {
         AbstractContainerMenu menu = screen.getMenu();
+        boolean clientMode = ClientMode.active();
+        if (clientMode && mc.level != null && LootAllService.isSupportedMenu(menu)) {
+            long now = mc.level.getGameTime();
+            if (now != lastObserveTick) {
+                lastObserveTick = now;
+                if (REFUSALS.observe(MenuSnapshot.fingerprint(menu)) && !refusedStop) {
+                    refusedStop = true;
+                    ClientCompat.overlay(mc, Component.translatableWithFallback("stashlink.client_mode.refused",
+                            "The server refused the clicks: StashLink stopped here"));
+                }
+            }
+        }
         if (mc.player == null || mc.level == null || mc.player.isSpectator() || !ClientCompat.isShiftDown(mc)
                 || !ClientFeatures.enabled(Feature.HOVER_COLLECT) || !LootAllService.isSupportedMenu(menu)
-                || !menu.getCarried().isEmpty() || !leftDown) {
+                || !ClientMode.screenAllowed(menu) || !menu.getCarried().isEmpty() || !leftDown) {
             PASS.reset();
+            REFUSALS.reset();
+            refusedStop = false;
             wasLeftDown = false;
             return;
         }
@@ -61,13 +84,18 @@ public final class HoverCollectClient {
             PASS.arm(hovered == null ? -1 : hovered.index);
             return;
         }
+        if (refusedStop) {
+            return;   // o servidor recusou: só volta a clicar depois de soltar o botão/Shift
+        }
         // Entrar em outro slot exige mover o mouse, e mover com o botão apertado gera "arrastou". Sem isso (botão solto
         // que o jogo não avisou), só passar o mouse com Shift não coleta nada.
         if (System.currentTimeMillis() - lastDragMs > DRAG_WINDOW_MS) {
             return;   // não zera o estado: segurar o botão parado e só depois arrastar tem de continuar valendo
         }
         // Fora de qualquer slot só "esquece" o slot anterior: voltar a ele depois é uma nova passagem.
-        if (!PASS.shouldClick(hovered == null ? -1 : hovered.index, mc.level.getGameTime()) || hovered == null) {
+        // Com o mod no servidor nada muda (teto de 4); no modo cliente vale o ritmo escolhido pelo jogador.
+        int maxPerTick = clientMode ? ClientPrefs.clickPace.hoverPerTick() : HoverCollectPass.MAX_CLICKS_PER_TICK;
+        if (!PASS.shouldClick(hovered == null ? -1 : hovered.index, mc.level.getGameTime(), maxPerTick) || hovered == null) {
             return;
         }
         if (!hovered.hasItem() || !hovered.mayPickup(mc.player) || isResultLike(hovered)
@@ -76,7 +104,13 @@ public final class HoverCollectClient {
         }
         int before = hovered.getItem().getCount();
         ItemStack kind = hovered.getItem().copy();
+        if (clientMode) {
+            REFUSALS.beforeClicks(MenuSnapshot.fingerprint(menu));
+        }
         ClientCompat.click(mc, menu, Click.quickMove(hovered.index));
+        if (clientMode) {
+            REFUSALS.afterClicks(MenuSnapshot.fingerprint(menu));
+        }
         // O cliente aplica o clique na hora (previsão): se o slot não mudou, o destino não tinha onde caber.
         boolean moved = !hovered.hasItem() || !ItemStack.isSameItemSameComponents(kind, hovered.getItem())
                 || hovered.getItem().getCount() < before;

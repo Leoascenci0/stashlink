@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.clientmode.ClickPace;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.PlayerPrefs;
 import io.github.leoascenci0.stashlink.config.StashLinkConfig;
@@ -35,6 +36,9 @@ public final class ClientPrefs {
     public static TreeSet<Integer> lockedSlots = new TreeSet<>();
     /** Modo cliente: em servidor sem o mod, o cliente faz o trabalho sozinho. Ligado por padrão. */
     public static boolean clientModeEnabled = true;
+
+    /** Ritmo dos cliques do modo cliente (servidor com anticheat pede o cuidadoso). */
+    public static ClickPace clickPace = ClickPace.NORMAL;
 
     /** Funções que ESTE jogador desligou para si ({@link Feature#bit()}). Tudo ligado por padrão. */
     public static int disabledFeatures = 0;
@@ -79,6 +83,8 @@ public final class ClientPrefs {
         boolean clientModeEnabled = true;
         // Máscara de funções desligadas; arquivo antigo sem o campo = tudo ligado.
         int disabledFeatures = 0;
+        // Gravado como texto; arquivo antigo sem o campo = normal.
+        String clickPace = ClickPace.NORMAL.id();
     }
 
     private static Path path() {
@@ -110,6 +116,7 @@ public final class ClientPrefs {
             lockedSlots = slots;
             clientModeEnabled = d.clientModeEnabled;
             disabledFeatures = d.disabledFeatures & Feature.ALL_MASK;
+            clickPace = ClickPace.byId(d.clickPace);
         } catch (IOException | JsonSyntaxException e) {
             Constants.LOG.warn("Preferências {} ilegíveis, usando padrões: {}", file, e.toString());
         }
@@ -125,6 +132,7 @@ public final class ClientPrefs {
             d.lockedSlots = lockedSlots.stream().mapToInt(Integer::intValue).toArray();
             d.clientModeEnabled = clientModeEnabled;
             d.disabledFeatures = disabledFeatures;
+            d.clickPace = clickPace.id();
             Files.createDirectories(file.getParent());
             StashLinkConfig.writeAtomically(file, GSON.toJson(d) + System.lineSeparator());
         } catch (IOException e) {

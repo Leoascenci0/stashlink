@@ -21,6 +21,7 @@
     "GrindstoneScreenMixin",
     "AbstractContainerScreenMixin",
     "HoverCollectScreenMixin",
+    "MultiPlayerGameModeMixin",
     "ContainerScreenOrganizeMixin",
     "RecipeBookComponentMixin"
   ],

@@ -1,11 +1,16 @@
 package io.github.leoascenci0.stashlink.clientmode;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.client.ClientFeatures;
+import io.github.leoascenci0.stashlink.client.ClientMode;
+import io.github.leoascenci0.stashlink.client.ClientPrefs;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.lootall.LootAllService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.util.ArrayDeque;
@@ -35,8 +40,6 @@ public final class ContainerSession {
     static final int OPEN_TIMEOUT_TICKS = 20;
     /** Ticks de espera depois de abrir, para o conteúdo chegar. */
     static final int SETTLE_TICKS = 2;
-    /** Pausa entre um container e o próximo. */
-    static final int DELAY_TICKS = 3;
     /** Teto de ticks trabalhando num container só. */
     static final int WORK_TIMEOUT_TICKS = 100;
     /** Ticks sem clicar antes de dar o container por terminado: dá tempo de o servidor corrigir a previsão. */
@@ -55,6 +58,8 @@ public final class ContainerSession {
     private AbstractContainerMenu menu;
     private int ticks;
     private int sinceClick = 99;
+    /** Percebe o servidor desfazendo os nossos cliques; um por container aberto. */
+    private ClickRefusals refusals = new ClickRefusals();
 
     private ContainerSession(Minecraft mc, Job job, List<Candidate> candidates, boolean attached,
                              Consumer<Candidate> onOpenFailed) {
@@ -79,6 +84,7 @@ public final class ContainerSession {
         s.menu = ClientCompat.menu(mc.player);
         s.state = State.WORKING;
         s.ticks = 0;
+        s.refusals = new ClickRefusals();
         s.job.onOpened(mc, null, MenuSnapshot.of(s.menu, mc.player.getInventory()));
         return s;
     }
@@ -150,6 +156,12 @@ public final class ContainerSession {
             openNext(mc);
             return;
         }
+        if (ClientFeatures.enabled(Feature.CLIENT_SAFE) && ClientCompat.sightHit(mc.player, current.pos()) == null) {
+            // Modo seguro: parede no caminho. Um jogador de verdade não abriria; trata como "fora de alcance".
+            onOpenFailed.accept(current);
+            openNext(mc);
+            return;
+        }
         ClientCompat.useBlock(mc, current.pos());
         state = State.OPENING;
         ticks = 0;
@@ -166,6 +178,12 @@ public final class ContainerSession {
         if (opened) {
             if (!LootAllService.isSupportedMenu(now)) {
                 // Abriu algo que não é um baú/shulker (um bloco de outro mod...): fecha e pula.
+                ClientCompat.closeContainer(mc);
+                failCurrent(mc);
+                return;
+            }
+            if (!ClientMode.screenAllowed(now)) {
+                // Modo seguro: a tela não veio de um bloco de armazenamento (ou o tick ainda não a viu): fecha e pula.
                 ClientCompat.closeContainer(mc);
                 failCurrent(mc);
                 return;
@@ -188,6 +206,7 @@ public final class ContainerSession {
         }
         if (--ticks <= 0) {
             job.onOpened(mc, current, MenuSnapshot.of(menu, player.getInventory()));
+            refusals = new ClickRefusals();
             state = State.WORKING;
             sinceClick = VERIFY_TICKS;
             ticks = 0;
@@ -204,10 +223,23 @@ public final class ContainerSession {
             abort(mc, "out of reach");
             return;
         }
+        // Antes de clicar: o servidor desfez os cliques do tick anterior (menu voltou ao que era)? Duas vezes seguidas
+        // = anticheat ou limite de pacotes. Para aqui em vez de insistir.
+        if (refusals.observe(MenuSnapshot.fingerprint(menu))) {
+            abort(mc, "server refused clicks");
+            // Depois do abort: o onFinish(aborted) pode escrever "cancelado"; a mensagem de recusa tem de ficar por último.
+            ClientModeEngine.say(mc, Component.translatableWithFallback("stashlink.client_mode.refused",
+                    "The server refused the clicks: StashLink stopped here"));
+            return;
+        }
         List<MenuEntry> entries = MenuSnapshot.of(menu, player.getInventory());
         Job.Step step = job.step(mc, entries, menu.getCarried());
-        for (Click click : step.clicks()) {
-            ClientCompat.click(mc, menu, click);
+        if (!step.clicks().isEmpty()) {
+            refusals.beforeClicks(MenuSnapshot.fingerprint(menu));
+            for (Click click : step.clicks()) {
+                ClientCompat.click(mc, menu, click);
+            }
+            refusals.afterClicks(MenuSnapshot.fingerprint(menu));
         }
         sinceClick = step.clicks().isEmpty() ? sinceClick + 1 : 0;
         // "Acabou" só vale depois de uns ticks sem clicar: assim a foto final já tem a correção do servidor.
@@ -220,7 +252,7 @@ public final class ContainerSession {
             ClientCompat.closeContainer(mc);
             menu = null;
             state = State.DELAY;
-            ticks = DELAY_TICKS;
+            ticks = ClientPrefs.clickPace.pauseTicks();
         }
     }
 
@@ -239,7 +271,7 @@ public final class ContainerSession {
         onOpenFailed.accept(current);
         current = null;
         state = State.DELAY;
-        ticks = DELAY_TICKS;
+        ticks = ClientPrefs.clickPace.pauseTicks();
         if (!job.wantsMore() || queue.isEmpty()) {
             finish(mc);
         }

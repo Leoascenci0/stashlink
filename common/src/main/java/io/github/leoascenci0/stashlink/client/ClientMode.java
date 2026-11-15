@@ -2,7 +2,9 @@ package io.github.leoascenci0.stashlink.client;
 
 import io.github.leoascenci0.stashlink.clientmode.ClientModeEngine;
 import io.github.leoascenci0.stashlink.compat.mc.ClientCompat;
+import io.github.leoascenci0.stashlink.config.Feature;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.util.function.BooleanSupplier;
 
@@ -46,6 +48,15 @@ public final class ClientMode {
                 && !ClientCompat.isIntegratedServer(mc)
                 && ClientPrefs.clientModeEnabled
                 && !serverHasMod.getAsBoolean();
+    }
+
+    /**
+     * Esta tela de container pode receber cliques automáticos (W, Shift + passar o mouse)? Fora do modo cliente
+     * sempre; no modo cliente com o modo seguro ligado, só se ela abriu a partir de um bloco de armazenamento do
+     * mundo (nunca uma loja ou kit de plugin com cara de baú).
+     */
+    public static boolean screenAllowed(AbstractContainerMenu menu) {
+        return !active() || !ClientFeatures.enabled(Feature.CLIENT_SAFE) || ClientModeEngine.isTrustedMenu(menu);
     }
 
     /** Tecla N sem o mod no servidor: a cola chama isto no lugar de mandar o pacote. */

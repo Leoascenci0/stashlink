@@ -953,6 +953,26 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   Gaveta com upgrade de destruir excesso destrói o que a N mandar além do limite: é a regra da própria gaveta, como faria
   com um funil. Functional Storage ainda não tem versão 26.3 (os blocos dele não estão na lista).
 
+## Item 30 — Modo cliente seguro
+
+- **Problema.** Em servidor sem o mod, loja e kit de plugin são telas de baú (`ChestMenu`). O cliente não recebe "de que
+  bloco é esta tela", então a W e o Shift + passar clicavam em qualquer uma.
+- **Regra (`clientmode/ScreenOrigin`, pura).** Um mixin de cliente em `MultiPlayerGameMode` anota cada "usar bloco"
+  (tick e quantos slots aquele bloco abre: 27, 54 ou 0 se não é armazenamento) e apaga a anotação a cada "usar
+  entidade". Quando um menu novo aparece, ele só é confiável se a anotação existe, tem no máximo 30 ticks e o tamanho
+  bate. A anotação vale para uma tela só. Falha fechada: sem veredito, ninguém clica.
+- **Onde vale.** `ClientMode.screenAllowed(menu)`: W (`ClientModeEngine.startLootAll`), Shift + passar
+  (`HoverCollectClient`) e as telas que a própria sessão abre (`ContainerSession.tickOpening`). Fora do modo cliente
+  nada muda (o servidor com o mod já confere com `isWorldStorage`).
+- **Linha de visão.** `ClientCompat.sightHit`: 7 raios do olho até o bloco; sem nenhum acertar o próprio bloco, o baú
+  não é candidato. O clique usa o ponto e a face do raio.
+- **Ritmo (`ClickPace`).** Preferência do cliente (`stashlink-client.json`), não é `Feature`: não há servidor para
+  trancar. Com o mod no servidor o Shift + passar segue com 4 por tick.
+- **Recusas (`ClickRefusals`).** Compara a impressão digital do menu antes e depois dos cliques; menu de volta ao
+  "antes" = recusa. Duas seguidas param a sessão. Limite: recusa parcial (parte aceita) não é detectada.
+- **Cadeado.** `client_safe` e `client_skip_trapped` estão no enum `Feature` como as outras, mas o cadeado não tem
+  efeito prático: o modo cliente só existe onde o servidor não tem o mod.
+
 ## Item 31 — Caderno das bancadas à prova de morte, queda e troca de dimensão (2026-11-15)
 
 O caderno (`bench/BenchLedger`) é a lista do que o mod tirou do armazenamento e pôs na estação aberta (grade, slot de entrada,
