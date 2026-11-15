@@ -45,6 +45,14 @@ public final class McCompat {
         return player.level().dimension();
     }
 
+    /**
+     * Nome gravável de uma dimensão vinda de {@link #dimensionOf} (ex.: {@code minecraft:the_nether}), para dados que
+     * vão ao disco; {@code ""} se não for uma chave de dimensão.
+     */
+    public static String dimensionId(Object dimension) {
+        return dimension instanceof net.minecraft.resources.ResourceKey<?> key ? key.identifier().toString() : "";
+    }
+
     /** Lista de jogadores do servidor onde {@code player} está. */
     public static List<ServerPlayer> playersOnServer(ServerPlayer player) {
         return player.level().getServer().getPlayerList().getPlayers();

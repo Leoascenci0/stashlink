@@ -972,3 +972,53 @@ Depois de testar em jogo, duas decisões que **substituem** as anteriores deste 
   "antes" = recusa. Duas seguidas param a sessão. Limite: recusa parcial (parte aceita) não é detectada.
 - **Cadeado.** `client_safe` e `client_skip_trapped` estão no enum `Feature` como as outras, mas o cadeado não tem
   efeito prático: o modo cliente só existe onde o servidor não tem o mod.
+
+## Item 31 — Caderno das bancadas à prova de morte, queda e troca de dimensão (2026-11-15)
+
+O caderno (`bench/BenchLedger`) é a lista do que o mod tirou do armazenamento e pôs na estação aberta (grade, slot de entrada,
+cursor). Este item fecha os buracos que a revisão 1.1 (#17) apontou.
+
+- **Morte** (`mixin/ServerPlayerMixin`). Conferido no código do jogo (26.3): `ServerPlayer.die` não fecha a tela (só
+  derruba o inventário). Antes, o emprestado da grade ficava na estação do jogador morto e o do cursor caía no chão
+  com o resto; o baú ficava desfalcado. Agora, no começo de `die`, `BenchSync.releaseStaying` fecha a estação (avisando o
+  cliente) e devolve o emprestado ao baú; o que é do jogador segue a regra normal (vai para a mochila e cai com ela).
+- **Troca de dimensão: o jogo já trata.** `ServerPlayer.teleport` para outro mundo chama
+  `removePlayerImmediately(CHANGED_DIMENSION)`, e `Player.remove` fecha a tela (`doCloseContainer`) ainda no mundo antigo;
+  o `beforeClose` de sempre devolve o emprestado. Cheguei a pôr um gancho também no `teleport`, mas a mutação mostrou que
+  ele era redundante (sem ele o teste passava) e foi tirado; o GameTest ficou, para pegar se uma versão nova do jogo
+  mudar isso.
+- **Caderno por pilha** (item + componentes). Cada empréstimo é um `Loan(model, count)`; casar é `isSameItemSameComponents`,
+  em todos os caminhos (grade, cursor, fechar, acerto da mochila, `owes`). O livro encantado emprestado e não usado agora
+  volta ao baú (antes `Inventory.isUsableForCrafting` o barrava e ele ia para a mochila: limite #20 da revisão 1.0). E um
+  item do jogador do mesmo tipo mas diferente (o livro dele com outro encantamento) nunca é confundido com o emprestado.
+- **Logout com a grade cheia (bug achado).** `release` tirava a entrada do caderno **antes** de fechar a tela, então o
+  `beforeClose` não a achava; com o jogador já desconectado, o jogo joga a grade **no chão** (não na mochila), e o acerto
+  procurava na mochila e levava ao baú itens **próprios** do mesmo tipo. Agora `release` fecha a tela com a entrada no
+  caderno (o emprestado volta ao baú antes de o jogo esvaziar a grade) e não procura na mochila de quem já desconectou.
+- **Diário gravado no mundo** (`bench/BenchJournal`, `data/stashlink/bench_journal.dat`). A grade e o cursor não são
+  gravados pelo jogo; se o servidor cair com a estação aberta, o baú (já gravado sem o item) fica desfalcado. O diário não
+  é atualizado "de vez em quando": **o conteúdo é calculado no próprio save** (`BenchLedger.outstanding`, só leitura, a
+  conta refeita contra o que ainda está no cursor e na grade), no mesmo save que grava baús e jogadores. Assim ele descreve
+  o mesmo instante que o resto do mundo: o que está nele estava na grade/cursor (que se perdem), não no baú nem na mochila.
+  Por isso nunca duplica: um item que o jogador levou para a mochila sai da conta no mesmo save que grava a mochila. Fornalha
+  e suporte de poções guardam os slots no bloco: ali só o cursor entra. Fechar do jeito normal (ou parar o servidor) devolve
+  tudo antes do último save, e o diário fica vazio. Ao **entrar de novo**, `StashLink.onPlayerJoin` → `BenchJournal.restore`
+  devolve ao baú de origem (se ao alcance) e o resto à mochila; a entrada sai do diário antes de devolver.
+- **Anti-flood** nos pedidos de cursor e "pôr no slot": `RequestLimiter` próprio de 2 ticks
+  (`StashLinkConfig.BENCH_PICK_COOLDOWN_TICKS`), separado do de montar receita/pagar (3 ticks).
+- **"Pôr no slot" passa pelo mesmo filtro do cursor** (`BenchSync.listed`): um cliente adulterado não põe na bigorna o
+  livro que o painel esconde (encantamento que não serve no item do 1º slot), nem o que um cadeado tranca.
+- **Testes** (`common/src/gametest/.../BenchSafetyScenarios`, 9 cenários nos dois loaders): morrer e trocar de dimensão
+  com emprestado na grade e no cursor; logout com o jogador já desconectado (as tábuas próprias ficam com ele); livro
+  encantado de volta ao baú (e o do jogador fica com ele); queda do servidor com ida e volta pelo codec do diário (devolve
+  exatamente o que estava na grade e no cursor, uma vez só); fechar normal deixa o diário vazio; anti-flood; filtro do
+  "pôr no slot"; e um **fuzz** com 2 jogadores, bancada e bigorna, itens comuns, renomeados e encantados, morte, Nether,
+  queda e entrada de novo, com a soma de cada item conferida antes e depois de cada ação. O jogador simulado é
+  invulnerável a dano (o "cliente" dele nunca termina de carregar o mundo), então o teste chama `die` como o dano fatal
+  chamaria. Ao montar o fuzz, duas "perdas" eram da conta do teste, não do mod: a tábua renomeada também vira graveto, e
+  uma tábua sozinha na grade vira botão. A conta junta tábuas comuns e renomeadas, e só pega o resultado se for graveto.
+- **Mutação (2026-11-15):** 8 regras estragadas, uma por vez: sem o gancho da morte; caderno só por tipo (a regra antiga);
+  diário sem refazer a conta no save; diário que não esquece depois de devolver; diário sem a parte de agora; sem o
+  anti-flood do cursor; "pôr no slot" sem filtro; `release` sem a entrada no caderno ao fechar (o bug do logout). Todas
+  pegas (Fabric: 220 GameTests; NeoForge: 25). A guarda "desconectado não procura na mochila" é só defesa: com a correção
+  do `release`, o emprestado já voltou ao baú antes, e não há caso em que ela mude o resultado.

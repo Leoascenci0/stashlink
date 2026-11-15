@@ -73,17 +73,31 @@ public final class BenchSync {
 
     /**
      * O jogador vai sair (desconectou) ou o servidor vai parar: fecha a estação e devolve ao baú o que foi emprestado,
-     * <b>antes</b> de o jogo salvar o jogador. Só roda na thread do servidor (baú e inventário não são thread-safe). Sem isso o que está na grade e no cursor seria salvo na mochila
-     * do jogador sem o baú saber (e o baú já foi desfalcado). Tolera erro: o logout nunca pode travar por aqui.
+     * <b>antes</b> de o jogo salvar o jogador. Só roda na thread do servidor (baú e inventário não são thread-safe). Sem
+     * isso o que está na grade e no cursor seria salvo na mochila do jogador sem o baú saber (e o baú já foi
+     * desfalcado). Tolera erro: o logout nunca pode travar por aqui.
      */
     public static void release(ServerPlayer player) {
+        release(player, false);
+    }
+
+    /**
+     * Igual a {@link #release(ServerPlayer)}, mas para quem continua no jogo (Item 31): morreu com a estação aberta. O
+     * jogo não fecha a tela na morte; sem isto, o emprestado caía no chão com o resto do inventário e o baú ficava
+     * desfalcado. Avisa o cliente que a tela fechou.
+     */
+    public static void releaseStaying(ServerPlayer player) {
+        release(player, true);
+    }
+
+    private static void release(ServerPlayer player, boolean tellClient) {
         if (!player.level().getServer().isSameThread()) {
             return;   // só a thread do servidor mexe em baú e inventário (o evento de rede de desconexão roda fora dela)
         }
         try {
-            BenchLedger.release(player);
+            BenchLedger.release(player, tellClient);
         } catch (RuntimeException e) {
-            Constants.LOG.error("Falha ao devolver o emprestado de {} ao sair", player.getGameProfile().name(), e);
+            Constants.LOG.error("Falha ao devolver o emprestado de {}", player.getGameProfile().name(), e);
         } finally {
             STATES.remove(player);
         }

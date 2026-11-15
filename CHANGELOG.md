@@ -11,6 +11,18 @@ Modo cliente (servidor sem o mod) mais seguro em servidores de terceiros (Item 3
 - **Não abrir baús com armadilha** (opção nova, ligada): a N e o reabastecimento pulam esses baús.
 - Se o servidor recusar os cliques duas vezes seguidas, o mod para e avisa.
 
+Bancadas: o que veio dos baús nunca se perde nem fica com você por engano (Item 31).
+
+- **Morrer** com uma bancada aberta: o que veio dos baús volta para eles na hora (antes ficava preso na bancada ou caía
+  no chão junto com o resto).
+- **Livro encantado** (ou item renomeado) pego do baú e não usado volta ao baú ao fechar a estação (antes ia para a
+  mochila). Um item seu do mesmo tipo nunca é levado ao baú por engano.
+- **Se o servidor cair** com a bancada aberta, o que estava emprestado na grade e na mão volta ao baú quando você entrar
+  de novo (o mundo guarda um diário disso).
+- Sair do jogo com a grade da bancada cheia não leva mais ao baú itens seus do mesmo tipo.
+- Pedidos do painel ao cursor e "pôr no slot" com intervalo mínimo (protege o servidor de rajadas), e "pôr no slot" só
+  aceita o que o painel mostraria.
+
 ## 1.0.1 — Minecraft 26.3 (Fabric e NeoForge), 2026-11-14
 
 Correções da segunda revisão completa (`docs/REVISAO-1.1.md`). Nada duplicava nem sumia; eram regras com furo.

@@ -16,6 +16,14 @@ public class StashLink {
     }
 
     /**
+     * O jogador entrou (os dois loaders chamam aqui, na thread do servidor, já com o jogador no mundo): se o servidor
+     * caiu com uma bancada dele aberta, devolve o que estava emprestado (diário das bancadas, Item 31).
+     */
+    public static void onPlayerJoin(ServerPlayer player) {
+        io.github.leoascenci0.stashlink.bench.BenchJournal.restore(player);
+    }
+
+    /**
      * O jogador está saindo (os dois loaders chamam aqui, na thread do servidor, antes de salvar o jogador): devolve
      * ao baú o que a bancada emprestou e esquece as preferências da sessão (o cliente as reenvia ao voltar).
      */
