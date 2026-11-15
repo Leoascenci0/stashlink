@@ -88,6 +88,8 @@ public class StashLinkFabric implements ModInitializer {
         // Sair com a estação aberta (ou parar o servidor) devolve o emprestado ao baú antes do save do jogador.
         // (LEAVE roda na thread do servidor, no começo de PlayerList.remove, antes do save; o DISCONNECT de rede roda fora dela.)
         ServerPlayerEvents.LEAVE.register(StashLink::onPlayerLeave);
+        // Item 31: o servidor caiu com a estação aberta? Ao entrar, o diário devolve o que estava emprestado.
+        ServerPlayerEvents.JOIN.register(StashLink::onPlayerJoin);
         ServerLifecycleEvents.SERVER_STOPPING.register(BenchSync::releaseAll);
         PayloadTypeRegistry.clientboundPlay().register(BenchPoolSync.TYPE, BenchPoolSync.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(BenchPullRequest.TYPE, BenchPullRequest.STREAM_CODEC);

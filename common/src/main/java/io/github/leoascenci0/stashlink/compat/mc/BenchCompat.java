@@ -596,8 +596,15 @@ public final class BenchCompat {
         return menu instanceof AbstractFurnaceMenu && menu.getSlot(1) == slot;
     }
 
-    /** Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). */
-    public static void closeMenu(ServerPlayer player) {
-        player.doCloseContainer();
+    /**
+     * Fecha a tela aberta do jogador do lado do servidor (o jogo devolve a grade à mochila). {@code tellClient}: também
+     * manda ao cliente o pacote de "tela fechou" (morte); no logout não há a quem mandar.
+     */
+    public static void closeMenu(ServerPlayer player, boolean tellClient) {
+        if (tellClient) {
+            player.closeContainer();
+        } else {
+            player.doCloseContainer();
+        }
     }
 }

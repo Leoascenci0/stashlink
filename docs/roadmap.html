@@ -275,9 +275,9 @@ const ITEMS = [
   {n:30, phase:"Depois da 1.0", t:"Modo cliente seguro em servidores de terceiros", b:"fix/modo-cliente-seguro", f:["F5","F14"], s:"todo",
    do:["W e Shift + passar só agem em tela aberta a partir de baú, barril ou shulker do mundo (lojas e kits são telas de baú: hoje a W clicaria em tudo)","Só abrir container com linha de visão livre","Cliques por tick configuráveis, padrão mais baixo e perfil para servidor com anticheat","Decidir se baú com armadilha entra","Aviso quando o servidor recusar cliques seguidos"],
    ok:"Teste da regra da tela; em servidor com plugin de loja, W e Shift + passar não fazem nada na loja; roteiro em Realms."},
-  {n:31, phase:"Depois da 1.0", t:"Caderno das bancadas à prova de morte, queda e dimensão", b:"fix/caderno-bancadas", f:["F10"], s:"todo",
-   do:["GameTests de morrer e trocar de dimensão com a estação aberta","Caderno por pilha (item + componentes) em todos os caminhos: o livro encantado emprestado volta ao baú","Diário gravado no mundo: devolve o emprestado se o servidor cair","Anti-flood também nos pedidos de cursor e pôr no slot","Pôr no slot usa o mesmo filtro do cursor"],
-   ok:"Fuzz das bancadas com itens encantados, morte e dimensão, soma conferida a cada ação; mutação pega."},
+  {n:31, phase:"Depois da 1.0", t:"Caderno das bancadas à prova de morte, queda e dimensão", b:"fix/caderno-bancadas", f:["F10"], s:"done",
+   do:["Morrer com a estação aberta devolve o emprestado ao baú (o jogo não fecha a tela na morte); trocar de dimensão o jogo já tratava, agora com teste","Caderno por pilha (item + componentes) em todos os caminhos: o livro encantado emprestado volta ao baú","Diário gravado no mundo, calculado no próprio save: devolve ao entrar o que estava na grade se o servidor cair","Anti-flood de 2 ticks nos pedidos de cursor e pôr no slot","Pôr no slot usa o mesmo filtro do cursor","Bug achado e corrigido: sair do jogo com a grade cheia levava ao baú itens próprios do mesmo tipo"],
+   ok:"9 GameTests novos nos dois loaders (Fabric 220 e NeoForge 25 verdes), com fuzz de itens encantados e renomeados, morte, Nether e queda; 8 mutações, todas pegas."},
   {n:32, phase:"Depois da 1.0", t:"Slots travados e reservas valendo em todas as funções", b:"fix/travas-em-todas-as-funcoes", f:["F7","F12","F13"], s:"todo",
    do:["Slots travados do jogador também no botão do meio, no Litematica e nas devoluções à mochila","Conferir e barrar shift-clique que completa pilha em slot reservado para outro item","Organizar: Aplicar e Desfazer reconferem travas e filtros criados depois da prévia"],
    ok:"GameTest por caminho; reserva criada entre a prévia e o Aplicar invalida o plano."},
@@ -309,7 +309,7 @@ const RISKS = [
   ["Formato de item muda entre versões do jogo","Uma única camada de acesso ao conteúdo da shulker","2"],
   ["Baú de outro mod com regras próprias (gavetas, upgrades)","Só pela API padrão do loader, sempre simulando antes; teste com bloco de teste e mod real","26"],
   ["Tela de loja ou kit confundida com baú no modo cliente","Só agir em tela aberta a partir de bloco de armazenamento","30"],
-  ["Item emprestado na bancada quando o servidor cai","Diário gravado no mundo, devolvido ao iniciar","31"]
+  ["Item emprestado na bancada quando o servidor cai","Diário gravado no mundo, devolvido quando o jogador entra","31"]
 ];
 const PILL = {todo:"A fazer", wip:"Em andamento", done:"Concluído"};
 let filter = null;

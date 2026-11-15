@@ -887,16 +887,20 @@ sugerida (do que protege o jogador para o que é conforto); cada item continua s
 - **Pronto quando:** teste unitário da regra "tela veio de bloco de armazenamento"; em servidor de teste com plugin de
   loja, W e Shift + passar não fazem nada na loja; roteiro em jogo num Realms.
 
-### Item 31 — Caderno das bancadas à prova de morte, queda e troca de dimensão ⬜
+### Item 31 — Caderno das bancadas à prova de morte, queda e troca de dimensão ✅
 - **Branch:** `fix/caderno-bancadas`
-- **Fazer:** (1) GameTests de morrer e de trocar de dimensão com a estação aberta e item emprestado na grade e no
-  cursor (nunca testado; se o jogo não fechar a tela na morte, chamar `BenchSync.release`); (2) caderno por pilha
-  (item + componentes) em todos os caminhos, não só no cursor: o livro encantado emprestado e não usado volta ao baú em
-  vez da mochila (hoje é limite aceito, #20 da revisão 1.0); (3) diário gravado no mundo para devolver o emprestado se
-  o servidor cair com a estação aberta; (4) anti-flood de 1–2 ticks também nos pedidos de cursor e "pôr no slot", que
-  varrem o raio; (5) "pôr no slot" passa pelo mesmo filtro do cursor (`BenchSync.listed`).
-- **Pronto quando:** fuzz das bancadas com itens encantados/renomeados, morte e dimensão, conferindo a soma depois de
-  cada ação; mutação pega.
+- **Feito (2026-11-15):** (1) morte: o jogo não fecha a tela (conferido no código do 26.3); um gancho no começo de
+  `ServerPlayer.die` chama `BenchSync.releaseStaying`, que fecha a estação e devolve o emprestado ao baú antes de o
+  inventário cair. Troca de dimensão: o próprio jogo fecha a tela (`Player.remove(CHANGED_DIMENSION)`); ficou só o
+  GameTest guardando isso. (2) Caderno por pilha (`Loan`: item + componentes) em todos os caminhos: o livro encantado
+  emprestado e não usado volta ao baú (fim do limite #20 da revisão 1.0). (3) Diário gravado no mundo
+  (`bench/BenchJournal`), calculado no próprio save: devolve ao entrar o que estava na grade e no cursor se o servidor
+  caiu. (4) Anti-flood de 2 ticks nos pedidos de cursor e "pôr no slot". (5) "Pôr no slot" passa por `BenchSync.listed`.
+  Bug achado e corrigido: no logout com a grade cheia, o jogo jogava a grade no chão (o jogador já está desconectado) e o
+  acerto levava ao baú tábuas **próprias** do mesmo tipo da mochila.
+- **Testes:** 9 GameTests novos nos dois loaders (`common/src/gametest/.../BenchSafetyScenarios`), incluindo o fuzz com 2
+  jogadores, itens comuns, renomeados e encantados, morte, Nether, queda e entrada de novo, soma conferida a cada ação.
+  Fabric 220 e NeoForge 25 verdes. Mutação: 8 regras estragadas, uma por vez; todas pegas.
 
 ### Item 32 — Slots travados e reservas valendo em todas as funções ⬜
 - **Branch:** `fix/travas-em-todas-as-funcoes`
