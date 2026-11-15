@@ -19,7 +19,8 @@
       "io.github.leoascenci0.stashlink.gametest.Review2GameTests",
       "io.github.leoascenci0.stashlink.gametest.BackpackBenchGameTests",
       "io.github.leoascenci0.stashlink.gametest.ModStorageGameTests",
-      "io.github.leoascenci0.stashlink.gametest.StorageDrawersGameTests"
+      "io.github.leoascenci0.stashlink.gametest.StorageDrawersGameTests",
+      "io.github.leoascenci0.stashlink.gametest.BenchSafetyGameTests"
     ],
     "main": [
       "io.github.leoascenci0.stashlink.gametest.FabricTestSetup"

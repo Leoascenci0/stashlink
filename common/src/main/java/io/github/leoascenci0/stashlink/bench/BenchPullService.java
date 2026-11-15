@@ -25,8 +25,14 @@ public final class BenchPullService {
     /** Chave por identidade do objeto do jogador: relogar cria outro objeto, e o antigo é coletado sozinho. */
     private static final Map<ServerPlayer, Long> LAST_REQUEST = new WeakHashMap<>();
 
-    /** Montar receita e pagar varrem o raio inteiro: ficam mais espaçados que o resto (colocar e cursor seguem livres). */
+    /** Montar receita e pagar varrem o raio inteiro: ficam mais espaçados que o resto. */
     private static final RequestLimiter SWEEP_LIMITER = new RequestLimiter(StashLinkConfig.BENCH_SWEEP_COOLDOWN_TICKS);
+
+    /**
+     * Cursor e "pôr no slot" também varrem o raio (Item 31): no máximo um a cada poucos ticks, com contador próprio
+     * (pedir ao cursor não gasta o limite de montar receita, nem o contrário).
+     */
+    private static final RequestLimiter PICK_LIMITER = new RequestLimiter(StashLinkConfig.BENCH_PICK_COOLDOWN_TICKS);
 
     private BenchPullService() {
     }
@@ -58,7 +64,8 @@ public final class BenchPullService {
             return;
         }
         LAST_REQUEST.put(player, now);
-        if ((request.recipeId() >= 0 || request.recipeId() == BenchResults.PAY) && !SWEEP_LIMITER.allow(player)) {
+        boolean sweep = request.recipeId() >= 0 || request.recipeId() == BenchResults.PAY;
+        if (!(sweep ? SWEEP_LIMITER : PICK_LIMITER).allow(player)) {
             return;
         }
         if (request.recipeId() >= 0) {
@@ -69,14 +76,14 @@ public final class BenchPullService {
             BenchResults.pay(player, menu, request.item());
             return;
         }
-        if (request.recipeId() == BenchResults.PLACE) {
-            BenchResults.place(player, menu, request.item(), request.one());
+        ItemStack model = request.item().copyWithCount(1);
+        // Só o que o painel mostraria (mesmos filtros e cadeados): o cliente do mod nunca pede outra coisa. Vale para
+        // o cursor e para "pôr no slot" (Item 31: antes o "pôr no slot" pulava este filtro).
+        if (!BenchSync.listed(menu, player, model)) {
             return;
         }
-
-        ItemStack model = request.item().copyWithCount(1);
-        // Só o que o painel mostraria (mesmos filtros e cadeados): o cliente do mod nunca pede outra coisa.
-        if (!BenchSync.listed(menu, player, model)) {
+        if (request.recipeId() == BenchResults.PLACE) {
+            BenchResults.place(player, menu, model, request.one());
             return;
         }
         // Trocou de item no painel: o que está no cursor e veio do armazenamento volta ao baú de origem.

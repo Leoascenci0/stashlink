@@ -94,6 +94,9 @@ public final class StashLinkConfig {
     /** Tempo mínimo entre dois pedidos da bancada que varrem o raio (montar receita, pagar): 3 ticks. */
     public static final int BENCH_SWEEP_COOLDOWN_TICKS = 3;
 
+    /** Bancadas (Item 31): pedido ao cursor ou "pôr no slot", no máximo um a cada este tanto de ticks por jogador. */
+    public static final int BENCH_PICK_COOLDOWN_TICKS = 2;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /**

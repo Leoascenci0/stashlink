@@ -70,6 +70,12 @@ public class StashLinkNeoForge {
             }
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent event) -> BenchSync.releaseAll(event.getServer()));
+        // Item 31: o servidor caiu com a estação aberta? Ao entrar, o diário devolve o que estava emprestado.
+        NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent event) -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                StashLink.onPlayerJoin(player);
+            }
+        });
         // Organizar o armazenamento (Item 20): apaga os contornos de destaque vencidos.
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> io.github.leoascenci0.stashlink.organize.OrganizeHighlight.tick(event.getServer()));
         // Rótulos de baú (Item 14): mantém os hologramas.

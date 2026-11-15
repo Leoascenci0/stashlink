@@ -352,7 +352,8 @@ public class BenchGameTests {
         Container chest = lab.chest(8, 2, 4);
         Lab.fill(chest, 0, Items.LAPIS_LAZULI, 20);
         ServerPlayer p = lab.player(4, 2, 4);
-        Lab.prefs(p, 8, true);
+        // Lápis automático desligado: ligado, o painel não mostra o lápis, e "pôr no slot" usa o mesmo filtro (Item 31).
+        PlayerPrefsStore.set(p.getUUID(), new PlayerPrefs(8, 1, List.of(), Feature.BENCH_LAPIS.bit(), 8));
         net.minecraft.world.inventory.EnchantmentMenu menu = new net.minecraft.world.inventory.EnchantmentMenu(1, p.getInventory(),
                 ContainerLevelAccess.create(lab.level, lab.bareAt(Blocks.ENCHANTING_TABLE, p.blockPosition().below())));
         p.containerMenu = menu;

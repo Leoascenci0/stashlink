@@ -47,6 +47,16 @@ public final class NeoForgeTestMod {
         add("vanilla_chest_is_counted_once", ModStorageScenarios::vanillaChestIsCountedOnce);
         add("random_requests_never_duplicate_or_lose", ModStorageScenarios::randomRequestsNeverDuplicateOrLose);
         TESTS.put("load_with_289_drawers", new Test(ModStorageScenarios::loadWith289Drawers, 600));
+        // Item 31: caderno das bancadas à prova de morte, queda e troca de dimensão (os mesmos do Fabric).
+        add("bench_death_returns_borrowed", BenchSafetyScenarios::deathWithBorrowedItemsReturnsThemToTheChest);
+        add("bench_dimension_returns_borrowed", BenchSafetyScenarios::changingDimensionReturnsBorrowedItems);
+        add("bench_logout_returns_borrowed_keeps_own", BenchSafetyScenarios::logoutReturnsBorrowedAndKeepsOwnItems);
+        add("bench_unused_enchanted_book_back_to_chest", BenchSafetyScenarios::unusedEnchantedBookGoesBackToTheChest);
+        add("bench_crash_journal_gives_back_what_was_lent", BenchSafetyScenarios::crashJournalGivesBackExactlyWhatWasLent);
+        add("bench_closing_leaves_journal_empty", BenchSafetyScenarios::closingNormallyLeavesTheJournalEmpty);
+        add("bench_cursor_and_place_are_spaced", BenchSafetyScenarios::cursorAndPlaceRequestsAreSpaced);
+        add("bench_place_uses_cursor_filter", BenchSafetyScenarios::placeUsesTheSameFilterAsTheCursor);
+        TESTS.put("bench_fuzz_death_travel_crash", new Test(BenchSafetyScenarios::benchFuzzWithDeathTravelAndCrash, 500));
         ThirdPartyStorageTests.register(TESTS::put, (name, body) -> new Test(body, 100));
     }
 
