@@ -570,7 +570,7 @@ public class OrganizeGameTests {
                     for (int i = 0; i < boxes.size(); i++) {
                         check(h, same(boxes.get(i), snaps.get(i)), "o plano mexeu no baú " + i + " (passo " + step + ")");
                     }
-                    if (!plan.isEmpty() && OrganizeSystem.apply(plan, OrganizeService.entries(actor))) {
+                    if (!plan.isEmpty() && OrganizeSystem.apply(plan, OrganizeService.entries(actor), stack -> false)) {
                         applied = plan;
                         for (int i = 0; i < boxes.size(); i++) {
                             for (int slot = 0; slot < 27; slot++) {
@@ -592,7 +592,7 @@ public class OrganizeGameTests {
                 }
                 case 2 -> {                                                     // desfazer, se ainda der
                     if (applied != null) {
-                        OrganizeSystem.undo(applied, OrganizeService.entries(actor));
+                        OrganizeSystem.undo(applied, OrganizeService.entries(actor), stack -> false);
                     }
                 }
                 case 3 -> {                                                     // alguém mexe à mão num baú

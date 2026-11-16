@@ -57,6 +57,26 @@ public final class NeoForgeTestMod {
         add("bench_cursor_and_place_are_spaced", BenchSafetyScenarios::cursorAndPlaceRequestsAreSpaced);
         add("bench_place_uses_cursor_filter", BenchSafetyScenarios::placeUsesTheSameFilterAsTheCursor);
         TESTS.put("bench_fuzz_death_travel_crash", new Test(BenchSafetyScenarios::benchFuzzWithDeathTravelAndCrash, 500));
+        // Item 32: travas do jogador e reservas valendo em todas as funções (os mesmos do Fabric).
+        add("lock_middle_click_never_uses_a_locked_slot", LockEverywhereScenarios::middleClickNeverUsesALockedSlot);
+        add("lock_middle_click_with_every_hotbar_slot_locked_brings_nothing", LockEverywhereScenarios::middleClickWithEveryHotbarSlotLockedBringsNothing);
+        add("lock_litematica_pull_never_uses_a_locked_slot", LockEverywhereScenarios::litematicaPullNeverUsesALockedSlot);
+        add("lock_litematica_return_never_uses_a_locked_backpack_slot", LockEverywhereScenarios::litematicaReturnNeverUsesALockedBackpackSlot);
+        add("lock_world_config_locked_slot_also_counts", LockEverywhereScenarios::worldConfigLockedSlotAlsoCounts);
+        add("lock_refill_empty_container_skips_locked_slots", LockEverywhereScenarios::refillEmptyContainerSkipsLockedSlots);
+        add("lock_refill_with_only_locked_room_keeps_the_empty_container_in_hand", LockEverywhereScenarios::refillWithOnlyLockedRoomKeepsTheEmptyContainerInHand);
+        add("lock_place_back_skips_locked_slots", LockEverywhereScenarios::placeBackSkipsLockedSlots);
+        add("lock_beacon_payment_return_skips_locked_slots", LockEverywhereScenarios::beaconPaymentReturnSkipsLockedSlots);
+        add("lock_recipe_book_never_brings_into_a_locked_slot", LockEverywhereScenarios::recipeBookNeverBringsIntoALockedSlot);
+        add("lock_ledger_settle_never_takes_from_a_locked_slot", LockEverywhereScenarios::ledgerSettleNeverTakesFromALockedSlot);
+        add("lock_shift_click_never_completes_a_stack_in_a_reserved_slot_of_another_item", LockEverywhereScenarios::shiftClickNeverCompletesAStackInAReservedSlotOfAnotherItem);
+        add("lock_number_key_and_double_click_respect_the_reservation", LockEverywhereScenarios::numberKeyAndDoubleClickRespectTheReservation);
+        add("lock_reservation_created_after_the_preview_invalidates_apply", LockEverywhereScenarios::reservationCreatedAfterThePreviewInvalidatesApply);
+        add("lock_button_n_changed_after_the_preview_invalidates_apply", LockEverywhereScenarios::buttonNChangedAfterThePreviewInvalidatesApply);
+        add("lock_category_turned_off_after_the_preview_invalidates_apply", LockEverywhereScenarios::categoryTurnedOffAfterThePreviewInvalidatesApply);
+        add("lock_reservation_created_after_apply_invalidates_undo", LockEverywhereScenarios::reservationCreatedAfterApplyInvalidatesUndo);
+        add("lock_button_n_changed_after_apply_invalidates_undo", LockEverywhereScenarios::buttonNChangedAfterApplyInvalidatesUndo);
+        add("lock_category_turned_off_after_apply_invalidates_undo", LockEverywhereScenarios::categoryTurnedOffAfterApplyInvalidatesUndo);
         ThirdPartyStorageTests.register(TESTS::put, (name, body) -> new Test(body, 100));
     }
 

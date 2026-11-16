@@ -224,7 +224,7 @@ public final class BenchResults {
      * não couber fica no slot. Devolve {@code true} se o slot ficou vazio.
      */
     private static boolean backToBackpack(ServerPlayer player, Slot slot) {
-        ItemStack rest = new StackListSink(player.getInventory().getNonEquipmentItems()).give(slot.getItem());
+        ItemStack rest = StackListSink.backpackOf(player).give(slot.getItem());
         slot.set(rest);
         return rest.isEmpty();
     }

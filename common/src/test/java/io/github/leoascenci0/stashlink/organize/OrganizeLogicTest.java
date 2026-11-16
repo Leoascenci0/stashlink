@@ -174,7 +174,7 @@ class OrganizeLogicTest {
         int moved = plan.moves().stream().mapToInt(OrganizeSystem.Move::count).sum();
         assertEquals(10 + 3 + 5, moved);
 
-        assertTrue(OrganizeSystem.apply(plan, entries));
+        assertTrue(OrganizeSystem.apply(plan, entries, stack -> false));
         assertEquals(0, count(a, Items.CALCITE) + count(a, Items.DRIPSTONE_BLOCK));
         assertEquals(63, count(b, Items.CALCITE));
         assertEquals(45, count(c, Items.DRIPSTONE_BLOCK));
@@ -184,7 +184,7 @@ class OrganizeLogicTest {
         // idempotente: um segundo plano não tem o que fazer
         assertTrue(OrganizeSystem.plan(entries, stack -> false).isEmpty());
 
-        assertTrue(OrganizeSystem.undo(plan, entries));
+        assertTrue(OrganizeSystem.undo(plan, entries, stack -> false));
         assertTrue(OrganizeLogic.sameContents(a, sa) && OrganizeLogic.sameContents(b, sb) && OrganizeLogic.sameContents(c, sc),
                 "desfazer devolve cada item exatamente ao slot de antes");
     }
@@ -200,15 +200,39 @@ class OrganizeLogicTest {
         a.setItem(5, new ItemStack(Items.MUD_BRICKS, 1));               // alguém mexeu depois da prévia
         List<ItemStack> sa = OrganizeLogic.snapshot(a);
         List<ItemStack> sb = OrganizeLogic.snapshot(b);
-        assertFalse(OrganizeSystem.apply(plan, entries));
+        assertFalse(OrganizeSystem.apply(plan, entries, stack -> false));
         assertTrue(OrganizeLogic.sameContents(a, sa) && OrganizeLogic.sameContents(b, sb), "nada foi gravado");
 
         a.removeItemNoUpdate(5);
-        assertTrue(OrganizeSystem.apply(plan, entries));
+        assertTrue(OrganizeSystem.apply(plan, entries, stack -> false));
         b.setItem(20, new ItemStack(Items.MUD_BRICKS, 2));              // e depois de aplicar
         List<ItemStack> sb2 = OrganizeLogic.snapshot(b);
-        assertFalse(OrganizeSystem.undo(plan, entries));
+        assertFalse(OrganizeSystem.undo(plan, entries, stack -> false));
         assertTrue(OrganizeLogic.sameContents(b, sb2), "desfazer recusado não grava nada");
+    }
+
+    /** Item 32: categoria desligada/trancada depois da prévia invalida Aplicar e Desfazer (nada é gravado). */
+    @Test
+    void categoryTurnedOffAfterThePreviewInvalidatesApplyAndUndo() {
+        SimpleContainer a = chest();
+        SimpleContainer b = chest();
+        a.setItem(0, new ItemStack(Items.CALCITE, 10));
+        b.setItem(0, new ItemStack(Items.CALCITE, 50));
+        List<ContainerSource.Entry> entries = List.of(entry(a, 1), entry(b, 2));
+        OrganizeSystem.Plan plan = OrganizeSystem.plan(entries, stack -> false);
+        List<ItemStack> sa = OrganizeLogic.snapshot(a);
+        List<ItemStack> sb = OrganizeLogic.snapshot(b);
+
+        assertFalse(OrganizeSystem.apply(plan, entries, stack -> stack.is(Items.CALCITE)));
+        assertTrue(OrganizeLogic.sameContents(a, sa) && OrganizeLogic.sameContents(b, sb), "nada foi gravado");
+
+        assertTrue(OrganizeSystem.apply(plan, entries, stack -> false));
+        List<ItemStack> ta = OrganizeLogic.snapshot(a);
+        List<ItemStack> tb = OrganizeLogic.snapshot(b);
+        assertFalse(OrganizeSystem.undo(plan, entries, stack -> stack.is(Items.CALCITE)));
+        assertTrue(OrganizeLogic.sameContents(a, ta) && OrganizeLogic.sameContents(b, tb), "desfazer recusado não grava nada");
+        // Categoria que não tem nada a ver com o plano não atrapalha.
+        assertTrue(OrganizeSystem.undo(plan, entries, stack -> stack.is(Items.MUD_BRICKS)));
     }
 
     @Test
@@ -279,12 +303,12 @@ class OrganizeLogicTest {
             if (plan.isEmpty()) {
                 continue;
             }
-            assertTrue(OrganizeSystem.apply(plan, entries));
+            assertTrue(OrganizeSystem.apply(plan, entries, stack -> false));
             assertEquals(before, total(boxes.toArray(new Container[0])), "soma depois de aplicar, rodada " + round);
             for (SimpleContainer c : boxes) {
                 assertEquals(0, countPartialsOfSameItem(c), "stacks parciais do mesmo item no mesmo baú, rodada " + round);
             }
-            assertTrue(OrganizeSystem.undo(plan, entries));
+            assertTrue(OrganizeSystem.undo(plan, entries, stack -> false));
             assertEquals(before, total(boxes.toArray(new Container[0])));
             for (int i = 0; i < n; i++) {
                 assertTrue(OrganizeLogic.sameContents(boxes.get(i), snaps.get(i)), "desfazer não restaurou o baú " + i);

@@ -1022,3 +1022,22 @@ cursor). Este item fecha os buracos que a revisão 1.1 (#17) apontou.
   anti-flood do cursor; "pôr no slot" sem filtro; `release` sem a entrada no caderno ao fechar (o bug do logout). Todas
   pegas (Fabric: 220 GameTests; NeoForge: 25). A guarda "desconectado não procura na mochila" é só defesa: com a correção
   do `release`, o emprestado já voltou ao baú antes, e não há caso em que ela mude o resultado.
+
+## Item 32 — Slots travados e reservas valendo em todas as funções (2026-11-16)
+
+- **Um ponto só para a mochila.** Todo caminho em que o mod guarda algo no inventário do jogador usa
+  `StackListSink.backpackOf(player)`, que já vem com as travas (`PlayerPrefsStore.isSlotLocked`: config do mundo mais
+  preferências do jogador). Slot travado não recebe nem para completar pilha. `PullLogic.chooseSlot`, `pull` e
+  `pullIntoHotbar` recebem a trava como parâmetro (botão do meio e Litematica nunca escolhem slot travado, nem trocam
+  um slot do mod que o jogador travou depois).
+- **Último recurso.** `McCompat.placeBackInInventory` tenta primeiro os slots livres de trava; só se não couber cai no
+  `placeItemBackInInventory` do jogo, que pode usar slot travado ou o chão. Perder o item seria pior.
+- **Tirar também conta.** `BenchLedger.settleFromInventory` e `BenchRecipe.settle` pulam slot travado: o que está lá é do
+  jogador. Efeito colateral aceito: um emprestado que o jogo devolveu a um slot travado fica com o jogador.
+- **Shift-clique e reserva (Item 13).** `AbstractContainerMenu.moveItemStackTo` completa pilhas iguais antes de olhar
+  slots vazios, e só o segundo passo pergunta `Slot.mayPlace`. Um `@Redirect` na chamada `Slot.getMaxStackSize` do
+  primeiro passo devolve 0 quando `SlotLocks.mayPlace` é falso; o item segue para outro slot. Vale nos dois loaders.
+- **Organizar.** `OrganizeSystem.Touched` guarda `reserved` (`SlotLocks.snapshot`) e `receives` (botão N). `apply` e
+  `undo` recebem `excluded` (a categoria, perguntada de novo) e `write` exige `sameRules` além de `sameContents`.
+- **Não muda:** o reabastecimento escreve na mão selecionada mesmo travada; o consumo das bancadas usa qualquer slot;
+  o conteúdo de uma shulker em slot travado continua sendo usado (pendente de decisão).

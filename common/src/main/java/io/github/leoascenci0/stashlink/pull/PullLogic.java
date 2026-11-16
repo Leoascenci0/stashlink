@@ -4,6 +4,7 @@ import io.github.leoascenci0.stashlink.source.ItemSource;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.function.IntPredicate;
 
 /** Regras puras do "puxar para a hotbar" (sem jogador nem mundo), para poderem ser testadas sem abrir o jogo. */
 public final class PullLogic {
@@ -35,19 +36,23 @@ public final class PullLogic {
      * Escolhe o slot da hotbar que vai receber o item: o selecionado (se vazio ou se já tem o mesmo item com
      * espaço), senão outro slot com o mesmo item e espaço, senão o primeiro vazio.
      *
-     * @return o índice, ou {@link #NO_SLOT} se a hotbar está cheia de outras coisas
+     * <p>Slot travado pelo jogador (Item 32) nunca é escolhido, nem vazio nem para completar pilha: o mod não coloca
+     * nada nele. A mão do jogador continua livre; a trava é só contra o mod.
+     *
+     * @param locked diz se o slot (índice da hotbar = índice do inventário) está travado para este jogador
+     * @return o índice, ou {@link #NO_SLOT} se a hotbar está cheia de outras coisas (ou só sobrou slot travado)
      */
-    public static int chooseSlot(List<ItemStack> hotbar, int selected, ItemStack model) {
-        if (accepts(hotbar.get(selected), model)) {
+    public static int chooseSlot(List<ItemStack> hotbar, int selected, ItemStack model, IntPredicate locked) {
+        if (!locked.test(selected) && accepts(hotbar.get(selected), model)) {
             return selected;
         }
         for (int i = 0; i < hotbar.size(); i++) {
-            if (!hotbar.get(i).isEmpty() && accepts(hotbar.get(i), model)) {
+            if (!locked.test(i) && !hotbar.get(i).isEmpty() && accepts(hotbar.get(i), model)) {
                 return i;
             }
         }
         for (int i = 0; i < hotbar.size(); i++) {
-            if (hotbar.get(i).isEmpty()) {
+            if (!locked.test(i) && hotbar.get(i).isEmpty()) {
                 return i;
             }
         }
@@ -55,19 +60,19 @@ public final class PullLogic {
     }
 
     /**
-     * Como {@link #chooseSlot(List, int, ItemStack)}, mas sabendo qual slot é do mod: um slot que já tem o
+     * Como {@link #chooseSlot(List, int, ItemStack, IntPredicate)}, mas sabendo qual slot é do mod: um slot que já tem o
      * mesmo item (com espaço) ainda ganha; depois vem o slot do mod (o item antigo dele será trocado), e só
      * então slot vazio. Assim a hotbar não enche de itens puxados.
      */
-    static int chooseSlot(List<ItemStack> hotbar, int selected, ItemStack model, Owned owned) {
-        if (!ownedUsable(hotbar, owned)) {
-            return chooseSlot(hotbar, selected, model);
+    static int chooseSlot(List<ItemStack> hotbar, int selected, ItemStack model, Owned owned, IntPredicate locked) {
+        if (!ownedUsable(hotbar, owned, locked)) {
+            return chooseSlot(hotbar, selected, model, locked);
         }
-        if (!hotbar.get(selected).isEmpty() && accepts(hotbar.get(selected), model)) {
+        if (!locked.test(selected) && !hotbar.get(selected).isEmpty() && accepts(hotbar.get(selected), model)) {
             return selected;
         }
         for (int i = 0; i < hotbar.size(); i++) {
-            if (!hotbar.get(i).isEmpty() && accepts(hotbar.get(i), model)) {
+            if (!locked.test(i) && !hotbar.get(i).isEmpty() && accepts(hotbar.get(i), model)) {
                 return i;
             }
         }
@@ -75,19 +80,21 @@ public final class PullLogic {
         if (!ItemStack.isSameItemSameComponents(hotbar.get(owned.slot()), model)) {
             return owned.slot();
         }
-        if (hotbar.get(selected).isEmpty()) {
+        if (!locked.test(selected) && hotbar.get(selected).isEmpty()) {
             return selected;
         }
         for (int i = 0; i < hotbar.size(); i++) {
-            if (hotbar.get(i).isEmpty()) {
+            if (!locked.test(i) && hotbar.get(i).isEmpty()) {
                 return i;
             }
         }
         return NO_SLOT;
     }
 
-    private static boolean ownedUsable(List<ItemStack> hotbar, Owned owned) {
+    /** O slot do mod só pode ser trocado se não foi travado depois: slot travado nunca perde item para o mod. */
+    private static boolean ownedUsable(List<ItemStack> hotbar, Owned owned, IntPredicate locked) {
         return owned != null && owned.count() > 0 && owned.slot() >= 0 && owned.slot() < hotbar.size()
+                && !locked.test(owned.slot())
                 && !hotbar.get(owned.slot()).isEmpty()
                 && ItemStack.isSameItemSameComponents(hotbar.get(owned.slot()), owned.model());
     }
@@ -105,8 +112,9 @@ public final class PullLogic {
      * @param selected slot selecionado no momento
      * @return o slot que recebeu o item, ou {@link #NO_SLOT} se nada foi movido
      */
-    public static int pullIntoHotbar(List<ItemStack> hotbar, int selected, ItemStack model, int wanted, ItemSource source) {
-        return pull(hotbar, selected, model, wanted, source, null, null).slot();
+    public static int pullIntoHotbar(List<ItemStack> hotbar, int selected, ItemStack model, int wanted, ItemSource source,
+                                     IntPredicate locked) {
+        return pull(hotbar, selected, model, wanted, source, null, null, locked).slot();
     }
 
     /**
@@ -116,20 +124,21 @@ public final class PullLogic {
      * <p>Garantias: (1) só mexe no slot do mod e só no que o mod pôs ({@code owned.count()}), nunca em item do
      * jogador; (2) o que sai do slot é <b>exatamente</b> o que {@code returnTo} aceitou — se nada aceitar, o
      * item antigo continua no slot e o novo vai para outro slot, como sem a troca; (3) a troca só começa se a
-     * fonte tem o item pedido, para um pedido impossível não esvaziar a mão à toa.
+     * fonte tem o item pedido, para um pedido impossível não esvaziar a mão à toa; (4) slot travado pelo jogador
+     * ({@code locked}, Item 32) nunca recebe item nem perde o que tem: não é escolhido e não é trocado.
      */
     public static Result pull(List<ItemStack> hotbar, int selected, ItemStack model, int wanted, ItemSource source,
-                              Owned owned, ItemSource returnTo) {
+                              Owned owned, ItemSource returnTo, IntPredicate locked) {
         if (model.isEmpty() || wanted <= 0) {
             return Result.none(0);
         }
         ItemStack one = model.copyWithCount(1);
-        int slot = chooseSlot(hotbar, selected, one, returnTo == null ? null : owned);
+        int slot = chooseSlot(hotbar, selected, one, returnTo == null ? null : owned, locked);
         if (slot == NO_SLOT) {
             return Result.none(0);
         }
         int returned = 0;
-        if (returnTo != null && ownedUsable(hotbar, owned) && slot == owned.slot() && !accepts(hotbar.get(slot), one)) {
+        if (returnTo != null && ownedUsable(hotbar, owned, locked) && slot == owned.slot() && !accepts(hotbar.get(slot), one)) {
             if (source.available(one) <= 0) {
                 return Result.none(0);
             }
@@ -137,7 +146,7 @@ public final class PullLogic {
             if (!hotbar.get(slot).isEmpty()) {
                 // Sobrou item antigo (origem e inventário cheios): deixa lá, quem sobra no slot passa a ser do
                 // jogador, e o novo item vai para outro slot.
-                slot = chooseSlot(hotbar, selected, one);
+                slot = chooseSlot(hotbar, selected, one, locked);
                 if (slot == NO_SLOT) {
                     return Result.none(returned);
                 }

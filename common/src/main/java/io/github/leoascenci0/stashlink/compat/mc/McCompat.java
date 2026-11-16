@@ -1,6 +1,7 @@
 package io.github.leoascenci0.stashlink.compat.mc;
 
 import io.github.leoascenci0.stashlink.Constants;
+import io.github.leoascenci0.stashlink.source.StackListSink;
 import java.util.List;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
@@ -72,9 +73,17 @@ public final class McCompat {
     /**
      * Devolve o item ao inventário (ou solta no chão se não couber). Em MC 26.3 passou a exigir um
      * {@link Prediction} (aqui SERVER_ONLY: ação do servidor, sem previsão do cliente).
+     *
+     * <p>Item 32: primeiro tenta só os slots que o jogador <b>não</b> travou. O jogo base só entra aqui como último
+     * recurso (nenhum slot livre), porque é melhor usar um slot travado do que perder o item; como o
+     * {@code placeItemBackInInventory}, deixa {@code stack} com o que não coube (vazio se coube tudo).
      */
     public static void placeBackInInventory(ServerPlayer player, ItemStack stack) {
-        player.getInventory().placeItemBackInInventory(stack, Prediction.SERVER_ONLY);
+        ItemStack rest = StackListSink.backpackOf(player).give(stack);
+        stack.setCount(rest.getCount());
+        if (!stack.isEmpty()) {
+            player.getInventory().placeItemBackInInventory(stack, Prediction.SERVER_ONLY);
+        }
     }
 
     /** Manda ao cliente qual slot da hotbar está selecionado. */

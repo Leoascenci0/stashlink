@@ -5,6 +5,7 @@ import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
 import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.StackListSink;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -96,7 +97,7 @@ public final class BenchRecipe {
             ItemStack rest = taken.copy();
             // Guarda a mochila por conta própria (StackListSink), sem Inventory.add: ele descarta o que sobra quando o
             // jogador tem materiais infinitos, e aqui nada pode sumir.
-            rest = new StackListSink(player.getInventory().getNonEquipmentItems()).give(rest);
+            rest = StackListSink.backpackOf(player).give(rest);
             kept += taken.getCount() - rest.getCount();
             if (!rest.isEmpty()) {
                 giveBack(player, pool, rest);
@@ -139,7 +140,8 @@ public final class BenchRecipe {
         int returned = 0;
         for (int i = 0; i < backpack.size() && returned < pulled; i++) {
             ItemStack stack = backpack.get(i);
-            if (!stack.is(item) || !BenchCompat.usableForCrafting(stack)) {
+            // Item 32: o que o mod trouxe nunca foi para um slot travado, então o que está lá é do jogador.
+            if (PlayerPrefsStore.isSlotLocked(player, i) || !stack.is(item) || !BenchCompat.usableForCrafting(stack)) {
                 continue;
             }
             int move = Math.min(stack.getCount(), pulled - returned);

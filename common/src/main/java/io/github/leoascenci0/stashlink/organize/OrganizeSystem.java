@@ -7,6 +7,7 @@ import io.github.leoascenci0.stashlink.source.ContainerInsert;
 import io.github.leoascenci0.stashlink.source.ContainerSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -30,6 +31,11 @@ import java.util.function.Predicate;
  * cada item (conferida), e só gravamos sobre containers iguais ao "antes", nada duplica nem some. Desfazer é o mesmo
  * passo ao contrário (só vale se os containers ainda estão iguais ao "depois").
  *
+ * <p><b>As regras também são conferidas (Item 32).</b> Conteúdo igual não basta: o plano foi feito com certas regras, e se
+ * elas mudam depois da prévia ele pode pôr um item onde agora não podia. Por isso o plano guarda, por container, os slots
+ * reservados e o botão da N, e Aplicar/Desfazer exigem que continuem iguais; e a categoria (desligada pelo jogador ou
+ * trancada pelo servidor) é perguntada de novo para cada item que o plano move. Qualquer diferença = nada é gravado.
+ *
  * <p><b>Casa do item (mesma regra da N):</b> baú que tem um slot reservado para ele (Item 13) vem primeiro; depois, o baú que
  * já tem mais dele (empate: o mais perto). A categoria do item não pode estar desligada pelo jogador (Item 17). Container com
  * "recebe com a N" desligado fica <b>fora de tudo</b>: nem recebe, nem é esvaziado, nem reordenado. Item que não tem casa
@@ -46,8 +52,13 @@ public final class OrganizeSystem {
     public record Move(ItemStack item, int count, Set<BlockPos> from, Set<BlockPos> to) {
     }
 
-    /** O que um container tinha antes e terá depois (todos os slots; é o que Aplicar/Desfazer gravam). */
-    public record Touched(Set<BlockPos> where, List<ItemStack> before, List<ItemStack> after) {
+    /**
+     * O que um container tinha antes e terá depois (todos os slots; é o que Aplicar/Desfazer gravam), mais a "foto" das
+     * regras com que o plano foi feito (Item 32): {@code reserved} = slots reservados (Item 13) e {@code receives} = o
+     * botão "recebe com a N" (Item 17). Se uma delas muda depois da prévia, o plano deixa de valer.
+     */
+    public record Touched(Set<BlockPos> where, List<ItemStack> before, List<ItemStack> after,
+                          Map<Integer, Item> reserved, boolean receives) {
     }
 
     /** O plano: nada mexe enquanto ele é só um plano. {@code tidied} = quantos containers só serão reordenados. */
@@ -119,7 +130,8 @@ public final class OrganizeSystem {
             List<Touched> touched = new ArrayList<>();
             for (Box box : boxes) {
                 if (box.mutated) {
-                    touched.add(new Touched(box.entry.where(), box.before, OrganizeLogic.snapshot(box.c)));
+                    touched.add(new Touched(box.entry.where(), box.before, OrganizeLogic.snapshot(box.c),
+                            SlotLocks.snapshot(box.c), QuickStackReceive.accepts(box.c)));
                 }
             }
             List<Move> moves = new ArrayList<>();
@@ -261,19 +273,32 @@ public final class OrganizeSystem {
 
     // ------------------------------------------------------------------------------------------ aplicar / desfazer
 
-    /** Aplica o plano se todos os containers ainda estão como estavam. {@code false} = nada foi gravado. */
-    public static boolean apply(Plan plan, List<ContainerSource.Entry> entries) {
-        return write(plan, entries, true);
+    /**
+     * Aplica o plano se todos os containers ainda estão como estavam <b>e</b> as regras (reservas, botão da N, categoria)
+     * também. {@code excluded} é a mesma pergunta do {@link #plan}, feita agora. {@code false} = nada foi gravado.
+     */
+    public static boolean apply(Plan plan, List<ContainerSource.Entry> entries, Predicate<ItemStack> excluded) {
+        return write(plan, entries, excluded, true);
     }
 
-    /** Desfaz um plano aplicado, se todos os containers ainda estão como o plano os deixou. {@code false} = nada foi gravado. */
-    public static boolean undo(Plan plan, List<ContainerSource.Entry> entries) {
-        return write(plan, entries, false);
+    /**
+     * Desfaz um plano aplicado, se todos os containers ainda estão como o plano os deixou e as regras continuam as mesmas.
+     * {@code false} = nada foi gravado.
+     */
+    public static boolean undo(Plan plan, List<ContainerSource.Entry> entries, Predicate<ItemStack> excluded) {
+        return write(plan, entries, excluded, false);
     }
 
-    private static boolean write(Plan plan, List<ContainerSource.Entry> entries, boolean forward) {
+    private static boolean write(Plan plan, List<ContainerSource.Entry> entries, Predicate<ItemStack> excluded,
+                                 boolean forward) {
         if (plan.isEmpty() || !plan.conserved()) {
             return false;
+        }
+        // Categoria desligada/trancada depois da prévia: o item "nunca se move", nem para ir nem para voltar.
+        for (Move move : plan.moves()) {
+            if (excluded.test(move.item())) {
+                return false;
+            }
         }
         List<Container> targets = new ArrayList<>();
         for (Touched touched : plan.touched()) {
@@ -285,7 +310,8 @@ public final class OrganizeSystem {
                 }
             }
             List<ItemStack> expected = forward ? touched.before() : touched.after();
-            if (found == null || !found.allowed().getAsBoolean() || !OrganizeLogic.sameContents(found.container(), expected)) {
+            if (found == null || !found.allowed().getAsBoolean() || !OrganizeLogic.sameContents(found.container(), expected)
+                    || !sameRules(found.container(), touched)) {
                 return false;
             }
             targets.add(found.container());
@@ -295,5 +321,14 @@ public final class OrganizeSystem {
             OrganizeLogic.restore(targets.get(i), forward ? touched.after() : touched.before());
         }
         return true;
+    }
+
+    /**
+     * Item 32: as reservas de slot (Item 13) e o botão da N (Item 17) deste container são os do momento do plano? Reserva
+     * nova, removida ou trocada, ou N desligada depois da prévia, invalida: o plano pode estar pondo um item num slot que
+     * agora é de outro, ou num container que agora diz "não mexa".
+     */
+    private static boolean sameRules(Container c, Touched touched) {
+        return QuickStackReceive.accepts(c) == touched.receives() && SlotLocks.snapshot(c).equals(touched.reserved());
     }
 }
