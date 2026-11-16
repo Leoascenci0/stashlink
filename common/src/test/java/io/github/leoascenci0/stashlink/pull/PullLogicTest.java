@@ -11,10 +11,14 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntPredicate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class PullLogicTest {
+    /** Nenhum slot travado. */
+    private static final IntPredicate NONE = slot -> false;
+
     @BeforeAll
     static void bootstrap() {
         MinecraftTestSetup.init();
@@ -42,7 +46,7 @@ class PullLogicTest {
 
     @Test
     void prefersSelectedSlotWhenEmpty() {
-        assertEquals(4, PullLogic.chooseSlot(emptyHotbar(), 4, new ItemStack(Items.COBBLESTONE)));
+        assertEquals(4, PullLogic.chooseSlot(emptyHotbar(), 4, new ItemStack(Items.COBBLESTONE), NONE));
     }
 
     @Test
@@ -50,7 +54,7 @@ class PullLogicTest {
         List<ItemStack> hotbar = emptyHotbar();
         hotbar.set(0, new ItemStack(Items.DIAMOND_PICKAXE));
         hotbar.set(1, new ItemStack(Items.TORCH, 3));
-        assertEquals(2, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE)));
+        assertEquals(2, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE), NONE));
     }
 
     @Test
@@ -58,13 +62,42 @@ class PullLogicTest {
         List<ItemStack> hotbar = emptyHotbar();
         hotbar.set(0, new ItemStack(Items.DIAMOND_PICKAXE));
         hotbar.set(5, new ItemStack(Items.COBBLESTONE, 10));
-        assertEquals(5, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE)));
+        assertEquals(5, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE), NONE));
     }
 
     @Test
     void fullHotbarOfOtherThingsHasNoSlot() {
         List<ItemStack> hotbar = new ArrayList<>(Collections.nCopies(9, new ItemStack(Items.DIAMOND_PICKAXE)));
-        assertEquals(PullLogic.NO_SLOT, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE)));
+        assertEquals(PullLogic.NO_SLOT, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE), NONE));
+    }
+
+    // ---------------------------------------------------------------------- Item 32: slot travado do jogador
+
+    @Test
+    void lockedSelectedSlotIsSkippedEvenWhenEmpty() {
+        IntPredicate locked = slot -> slot == 4;
+        assertEquals(0, PullLogic.chooseSlot(emptyHotbar(), 4, new ItemStack(Items.COBBLESTONE), locked));
+    }
+
+    @Test
+    void lockedSlotWithTheSameItemIsNotToppedUp() {
+        List<ItemStack> hotbar = emptyHotbar();
+        hotbar.set(0, new ItemStack(Items.DIAMOND_PICKAXE));
+        hotbar.set(5, new ItemStack(Items.COBBLESTONE, 10));
+        hotbar.set(6, new ItemStack(Items.COBBLESTONE, 10));
+        assertEquals(6, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE), slot -> slot == 5));
+        assertEquals(1, PullLogic.chooseSlot(hotbar, 0, new ItemStack(Items.COBBLESTONE), slot -> slot == 5 || slot == 6));
+    }
+
+    @Test
+    void onlyLockedSlotsLeftMeansNoSlotAndTheSourceIsUntouched() {
+        ItemStack box = shulkerWith(new ItemStack(Items.COBBLESTONE, 64));
+        List<ItemStack> hotbar = emptyHotbar();
+        int slot = PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.COBBLESTONE), 64,
+                new PlayerShulkerSource(new ArrayList<>(List.of(box))), s -> true);
+        assertEquals(PullLogic.NO_SLOT, slot);
+        assertEquals(0, total(hotbar, new ItemStack(Items.COBBLESTONE)));
+        assertEquals(64, ShulkerStorage.read(box).stream().mapToInt(ItemStack::getCount).sum());
     }
 
     @Test
@@ -76,7 +109,7 @@ class PullLogicTest {
         ItemStack cobble = new ItemStack(Items.COBBLESTONE);
         int before = 94;
 
-        int slot = PullLogic.pullIntoHotbar(hotbar, 2, cobble, 64, new PlayerShulkerSource(inventory));
+        int slot = PullLogic.pullIntoHotbar(hotbar, 2, cobble, 64, new PlayerShulkerSource(inventory), NONE);
 
         assertEquals(2, slot);
         assertEquals(64, hotbar.get(2).getCount());
@@ -91,7 +124,7 @@ class PullLogicTest {
         List<ItemStack> hotbar = emptyHotbar();
         hotbar.set(0, new ItemStack(Items.COBBLESTONE, 60));
 
-        int slot = PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.COBBLESTONE), 64, new PlayerShulkerSource(inventory));
+        int slot = PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.COBBLESTONE), 64, new PlayerShulkerSource(inventory), NONE);
 
         assertEquals(0, slot);
         assertEquals(64, hotbar.get(0).getCount());
@@ -103,7 +136,7 @@ class PullLogicTest {
         ItemStack box = shulkerWith(new ItemStack(Items.DIRT, 10));
         List<ItemStack> hotbar = emptyHotbar();
         int slot = PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.COBBLESTONE), 64,
-                new PlayerShulkerSource(new ArrayList<>(List.of(box))));
+                new PlayerShulkerSource(new ArrayList<>(List.of(box))), NONE);
         assertEquals(PullLogic.NO_SLOT, slot);
         assertEquals(0, total(hotbar, new ItemStack(Items.COBBLESTONE)));
         assertEquals(10, ShulkerStorage.read(box).stream().mapToInt(ItemStack::getCount).sum());
@@ -112,8 +145,8 @@ class PullLogicTest {
     @Test
     void ignoresNonPositiveOrEmptyRequests() {
         List<ItemStack> hotbar = emptyHotbar();
-        assertEquals(PullLogic.NO_SLOT, PullLogic.pullIntoHotbar(hotbar, 0, ItemStack.EMPTY, 8, new PlayerShulkerSource(new ArrayList<>())));
-        assertEquals(PullLogic.NO_SLOT, PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.DIRT), 0, new PlayerShulkerSource(new ArrayList<>())));
+        assertEquals(PullLogic.NO_SLOT, PullLogic.pullIntoHotbar(hotbar, 0, ItemStack.EMPTY, 8, new PlayerShulkerSource(new ArrayList<>()), NONE));
+        assertEquals(PullLogic.NO_SLOT, PullLogic.pullIntoHotbar(hotbar, 0, new ItemStack(Items.DIRT), 0, new PlayerShulkerSource(new ArrayList<>()), NONE));
     }
 
     @Test

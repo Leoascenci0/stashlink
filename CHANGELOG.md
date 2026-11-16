@@ -2,6 +2,14 @@
 
 ## Não lançado
 
+Slots travados e reservas valendo em todas as funções (Item 32).
+
+- **Slots travados da mochila** agora valem também para o botão do meio, o Litematica, o recipiente vazio do
+  reabastecimento (balde, tigela, garrafa) e as devoluções das bancadas. Antes só a N e a W respeitavam.
+- **Shift-clique** não completa mais uma pilha num slot de baú reservado para outro item.
+- **Organizar:** se você reservar um slot, mudar o botão N de um baú ou desligar uma categoria depois da prévia,
+  Aplicar e Desfazer avisam e não mexem em nada.
+
 Modo cliente (servidor sem o mod) mais seguro em servidores de terceiros (Item 30).
 
 - **Modo cliente seguro** (opção nova, ligada): a W e o Shift + passar o mouse só agem em telas abertas a partir de um

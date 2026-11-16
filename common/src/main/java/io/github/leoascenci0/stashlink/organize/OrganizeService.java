@@ -199,7 +199,7 @@ public final class OrganizeService {
         }
         Pending pending = PENDING.remove(player);
         if (pending == null || !pending.dimension().equals(McCompat.dimensionOf(player))
-                || !OrganizeSystem.apply(pending.plan(), entries(player))) {
+                || !OrganizeSystem.apply(pending.plan(), entries(player), stack -> QuickStackService.categoryOff(player, stack))) {
             state(player, OrganizeSync.MSG_STALE, false);
             return;
         }
@@ -217,7 +217,8 @@ public final class OrganizeService {
             state(player, OrganizeSync.MSG_NOTHING, false);
             return;
         }
-        if (!applied.dimension().equals(McCompat.dimensionOf(player)) || !OrganizeSystem.undo(applied.plan(), entries(player))) {
+        if (!applied.dimension().equals(McCompat.dimensionOf(player)) || !OrganizeSystem.undo(applied.plan(), entries(player),
+                stack -> QuickStackService.categoryOff(player, stack))) {
             state(player, OrganizeSync.MSG_UNDO_FAILED, false);
             return;
         }

@@ -47,6 +47,8 @@ class PullSwapTest {
         final List<ItemStack> backpack = emptyList(27);
         final PlayerShulkerSource source = new PlayerShulkerSource(backpack);
         PulledSlot mine;
+        /** Slots que o jogador travou (Item 32); a troca no mesmo slot e a escolha do slot respeitam. */
+        java.util.function.IntPredicate locked = slot -> false;
 
         Rig(ItemStack... boxes) {
             for (int i = 0; i < boxes.length; i++) {
@@ -61,7 +63,7 @@ class PullSwapTest {
             }
             ItemSource returnTo = new PrioritizedItemSource(List.of(source, new StackListSink(backpack)));
             PullLogic.Result r = PullLogic.pull(hotbar, selected, model, 64, source,
-                    mine == null ? null : mine.asOwned(), mine == null ? null : returnTo);
+                    mine == null ? null : mine.asOwned(), mine == null ? null : returnTo, locked);
             mine = PulledSlot.next(mine, hotbar, r, model, SHULKERS);
             return r;
         }
@@ -240,5 +242,32 @@ class PullSwapTest {
         PullLogic.Result swap = rig.request(Items.DIRT, 0);
         assertEquals(50, swap.returned());                          // os 50 (do mod) voltam
         assertEquals(50, rig.total(Items.COBBLESTONE));
+    }
+
+    /** Item 32: o jogador travou depois o slot que o mod tinha usado: o mod não troca nem tira nada dele. */
+    @Test
+    void aSlotLockedLaterIsNeverSwappedNorFedAgain() {
+        Rig rig = new Rig(box(new ItemStack(Items.COBBLESTONE, 64), new ItemStack(Items.DIRT, 64)));
+        assertEquals(0, rig.request(Items.COBBLESTONE, 0).slot());
+        rig.hotbar.get(0).shrink(14);                               // sobram 50, do mod
+        rig.locked = slot -> slot == 0;
+
+        PullLogic.Result r = rig.request(Items.DIRT, 0);
+
+        assertEquals(0, r.returned());
+        assertEquals(1, r.slot(), "o novo item vai para outro slot");
+        assertTrue(rig.hotbar.get(0).is(Items.COBBLESTONE) && rig.hotbar.get(0).getCount() == 50, "slot travado intacto");
+        assertEquals(50, rig.total(Items.COBBLESTONE));
+        assertEquals(64, rig.total(Items.DIRT));
+    }
+
+    @Test
+    void lockedHotbarSlotsNeverReceiveFromTheSink() {
+        Rig rig = new Rig(box(new ItemStack(Items.COBBLESTONE, 64)));
+        rig.locked = slot -> slot < 9;                              // a hotbar inteira travada
+        PullLogic.Result r = rig.request(Items.COBBLESTONE, 0);
+        assertEquals(PullLogic.NO_SLOT, r.slot());
+        assertEquals(64, rig.total(Items.COBBLESTONE), "nada saiu da shulker");
+        assertEquals(0, rig.hotbarFilled());
     }
 }

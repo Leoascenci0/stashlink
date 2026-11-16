@@ -18,6 +18,7 @@ import net.minecraft.world.item.Items;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.IntPredicate;
 
 /**
  * Trata o {@link PullItemRequest} no servidor. O cliente só <i>pede</i>; aqui o servidor revalida tudo (quem
@@ -85,16 +86,19 @@ public final class PullItemService {
             LEDGER.remove(player);
             mine = null;
         }
-        boolean swappable = mine != null && !PlayerPrefsStore.isSlotLocked(player, mine.slot);
+        // Item 32: slot travado pelo jogador nunca recebe item do mod nem é trocado por ele.
+        IntPredicate locked = slot -> PlayerPrefsStore.isSlotLocked(player, slot);
+        boolean swappable = mine != null && !locked.test(mine.slot);
 
         // Baú que outro jogador está olhando fica de fora, como na tecla N e no botão do meio.
         PlayerSources.Operation operation = PlayerSources.operationSkippingOpened(player);
         PullLogic.Owned owned = swappable ? mine.asOwned() : null;
         ItemSource returnTo = swappable
-                ? operation.returnTarget(mine.origin, new StackListSink(backpack))
+                ? operation.returnTarget(mine.origin,
+                        new StackListSink(backpack, i -> locked.test(i + Inventory.getSelectionSize())))
                 : null;
         PullLogic.Result result = PullLogic.pull(hotbar, inventory.getSelectedSlot(), model, wanted,
-                operation.source(), owned, returnTo);
+                operation.source(), owned, returnTo, locked);
         PulledSlot next = PulledSlot.next(mine, hotbar, result, model, operation.origin());
         if (next == null) {
             LEDGER.remove(player);
@@ -175,14 +179,16 @@ public final class PullItemService {
             return false;   // nada guardado por perto: o jogo base também não faria nada
         }
         List<ItemStack> hotbar = inventory.getNonEquipmentItems().subList(0, Inventory.getSelectionSize());
-        if (PullLogic.chooseSlot(hotbar, inventory.getSelectedSlot(), model) == PullLogic.NO_SLOT) {
+        // Item 32: o botão do meio também nunca põe item em slot travado do jogador.
+        IntPredicate locked = slot -> PlayerPrefsStore.isSlotLocked(player, slot);
+        if (PullLogic.chooseSlot(hotbar, inventory.getSelectedSlot(), model, locked) == PullLogic.NO_SLOT) {
             warnHotbarFull(player);
             return false;
         }
         // Sem "owned"/"returnTo": a troca no mesmo slot do Item 18 é só do Litematica. Aqui o item vai para um slot
         // livre, e depois dele o jogador manda (o registro do Litematica não é tocado).
         PullLogic.Result result = PullLogic.pull(hotbar, inventory.getSelectedSlot(), model, model.getMaxStackSize(),
-                source, null, null);
+                source, null, null, locked);
         if (result.slot() == PullLogic.NO_SLOT) {
             return false;
         }

@@ -2,6 +2,7 @@ package io.github.leoascenci0.stashlink.bench;
 
 import io.github.leoascenci0.stashlink.compat.mc.BenchCompat;
 import io.github.leoascenci0.stashlink.compat.mc.McCompat;
+import io.github.leoascenci0.stashlink.config.PlayerPrefsStore;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.Origin;
 import net.minecraft.server.level.ServerPlayer;
@@ -354,7 +355,8 @@ public final class BenchLedger {
             int left = loan.count;
             for (int i = 0; i < backpack.size() && left > 0; i++) {
                 ItemStack stack = backpack.get(i);
-                if (!loan.matches(stack)) {
+                // Item 32: slot travado pelo jogador nunca perde item para o mod (o emprestado que ficou lá é dele).
+                if (PlayerPrefsStore.isSlotLocked(player, i) || !loan.matches(stack)) {
                     continue;
                 }
                 int move = Math.min(stack.getCount(), left);

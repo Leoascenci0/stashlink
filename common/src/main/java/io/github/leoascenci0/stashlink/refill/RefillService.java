@@ -6,6 +6,7 @@ import io.github.leoascenci0.stashlink.config.Feature;
 import io.github.leoascenci0.stashlink.config.FeatureGate;
 import io.github.leoascenci0.stashlink.source.ItemSource;
 import io.github.leoascenci0.stashlink.source.PlayerSources;
+import io.github.leoascenci0.stashlink.source.StackListSink;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -140,8 +141,9 @@ public final class RefillService {
         // O servidor sincroniza o slot alterado com o cliente no próximo envio de inventário do jogador.
         player.setItemInHand(hand, refill);
         if (!leftover.isEmpty()) {
-            ItemStack toStore = leftover.copy();
-            if (!player.getInventory().add(toStore) || !toStore.isEmpty()) {
+            // Item 32: o recipiente nunca entra em slot travado do jogador (nem completando pilha, nem em slot vazio).
+            ItemStack toStore = StackListSink.backpackOf(player).give(leftover);
+            if (!toStore.isEmpty()) {
                 // Sem lugar: desfaz, nada some (o recipiente volta à mão, o estoque volta à shulker).
                 // Se o inventário guardou só parte do stack, a mão fica só com o que sobrou (senão duplicaria).
                 player.setItemInHand(hand, toStore);

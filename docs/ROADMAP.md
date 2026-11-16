@@ -924,8 +924,29 @@ sugerida (do que protege o jogador para o que é conforto); cada item continua s
   jogadores, itens comuns, renomeados e encantados, morte, Nether, queda e entrada de novo, soma conferida a cada ação.
   Fabric 220 e NeoForge 25 verdes. Mutação: 8 regras estragadas, uma por vez; todas pegas.
 
-### Item 32 — Slots travados e reservas valendo em todas as funções ⬜
+### Item 32 — Slots travados e reservas valendo em todas as funções ✅
 - **Branch:** `fix/travas-em-todas-as-funcoes`
+- **Feito (2026-11-16):** (1) **Slot travado do jogador vale em todo caminho em que o mod escreve na mochila**: botão do
+  meio e Litematica (escolha do slot, troca no mesmo slot e devolução do item antigo), recipiente vazio do
+  reabastecimento, devoluções das bancadas (pagamento do sinalizador, livro de receitas, caderno, diário) e a devolução
+  de último recurso (`McCompat.placeBackInInventory`). Tudo passa por um ponto só: `StackListSink.backpackOf(player)` e
+  `PlayerPrefsStore.isSlotLocked` (junta a config do mundo e as preferências do jogador). O caderno das bancadas também
+  deixou de **tirar** item de slot travado ao fechar a estação. (2) **Shift-clique em slot reservado: acontecia.** O
+  primeiro passo do shift-clique do jogo completa pilhas iguais sem perguntar `mayPlace`; num slot reservado para terra
+  que tinha pedregulho (posto por um funil), o pedregulho era completado. Corrigido com um `@Redirect` em
+  `AbstractContainerMenuMixin`. Tecla numérica e clique duplo já respeitavam (teste de prova). (3) **Organizar:** o
+  plano guarda a foto das regras de cada baú (slots reservados e botão N) e Aplicar/Desfazer exigem que continuem
+  iguais; a categoria do item é perguntada de novo. Qualquer diferença: nada é gravado e aparece a mensagem de sempre
+  ("Algo mudou desde a prévia" / "Não dá para desfazer").
+- **Testes:** 19 cenários novos nos dois loaders (`LockEverywhereScenarios`): Fabric 239 GameTests e NeoForge 44, todos
+  verdes; 250 unitários. **Mutação:** 11 regras estragadas uma por vez, todas pegas.
+- **Limites e decisões pendentes:** (a) se não houver nenhum slot livre fora das travas, a devolução de último recurso
+  ainda usa o caminho do jogo (pode cair num slot travado ou no chão): preferimos isso a perder o item; (b) o
+  reabastecimento continua escrevendo na mão selecionada mesmo se o slot está travado, e o consumo das bancadas usa
+  qualquer slot (decisões antigas, mantidas); (c) `BenchRecipe.settle` pula slot travado mas ficou **sem teste** (o jogo
+  mexe em todos os slots ao montar a receita; não saiu cenário determinístico); (d) **decidir com o Eliel:** shulker
+  num slot travado ainda tem o conteúdo usado pelo mod (o slot fica com a shulker, o que está dentro muda); (e) o fuzz
+  das bancadas falhou uma vez durante a mutação (com 6 regras estragadas ao mesmo tempo) e não repetiu: observar no CI.
 - **Fazer:** (1) os slots travados do jogador (que N e W já respeitam) também no botão do meio, no Litematica e em
   toda devolução à mochila (`PullLogic.chooseSlot`, `StackListSink`, recipiente vazio do reabastecimento); (2) conferir
   no jogo se o shift-clique completa uma pilha num slot reservado para outro item e, se sim, barrar; (3) Organizar:
